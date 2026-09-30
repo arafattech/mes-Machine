@@ -1,0 +1,14 @@
+services:
+  face-service:
+    build: .
+    container_name: face-service
+    ports:
+      - "8888:8888"
+    env_file:
+      - .env
+    volumes:
+      - insightface_models:/models
+    restart: unless-stopped
+
+volumes:
+  insightface_models:

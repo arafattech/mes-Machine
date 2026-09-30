@@ -1,0 +1,95 @@
+<div class="flex flex-col gap-2 table-height overflow-y-hidden">
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
+    <ui5-card class="bg-white rounded-2xl hover:shadow-lg hover:translate-y-0.2 transition-all duration-200 border border-gray-100">
+      <div class="flex gap-4 p-5">
+        <div class="flex items-center gap-3 flex-1">
+          <div class="w-16 h-16 bg-gradient-to-br from-green-200 to-green-400 rounded-full flex items-center justify-center shadow-inner flex-shrink-0">
+            <ui5-icon name="group" class="text-white text-3xl"></ui5-icon>
+          </div>
+          <div>
+            <ui5-title level="H3" size="H3">{{ payrollData.totolEmployee }}</ui5-title>
+            <ui5-label class="text-sm font-medium text-gray-500" i18n>Current Employees</ui5-label>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-3 flex-1">
+          <div class="w-16 h-16 bg-gradient-to-br from-purple-200 to-purple-400 rounded-full flex items-center justify-center shadow-inner flex-shrink-0">
+            <ui5-icon name="employee" class="text-white text-3xl"></ui5-icon>
+          </div>
+          <div>
+            <ui5-title level="H3" size="H3">{{ payrollData.newEmployees }}</ui5-title>
+            <ui5-label class="text-sm font-medium text-gray-500" i18n>Last Month Employees</ui5-label>
+          </div>
+        </div>
+      </div>
+    </ui5-card>
+
+    <ui5-card class="bg-white rounded-2xl hover:shadow-lg hover:translate-y-0.2 transition-all duration-200 border border-gray-100">
+      <div class="flex items-center p-5 gap-4">
+        <div class="w-16 h-16 bg-gradient-to-br from-red-200 to-red-400 rounded-full flex items-center justify-center shadow-inner">
+          <ui5-icon name="wallet" class="text-white text-3xl"></ui5-icon>
+        </div>
+        <div>
+          <ui5-title level="H3" size="H3">{{ payrollData.avarageSalary }}</ui5-title>
+          <ui5-label class="text-sm font-medium text-gray-500" i18n>Total Salary</ui5-label>
+        </div>
+      </div>
+    </ui5-card>
+
+    <ui5-card class="bg-white rounded-2xl hover:shadow-lg hover:translate-y-0.2 transition-all duration-200 border border-gray-100">
+      <div class="flex items-center p-5 gap-4">
+        <div class="w-16 h-16 bg-gradient-to-br from-blue-200 to-blue-400 rounded-full flex items-center justify-center shadow-inner">
+          <ui5-icon name="building" class="text-white text-3xl"></ui5-icon>
+        </div>
+        <div>
+          <ui5-title level="H3" size="H3">{{ payrollData.totalOutstanding }}</ui5-title>
+          <ui5-label class="text-sm font-medium text-gray-500" i18n>Total Outstanding</ui5-label>
+        </div>
+      </div>
+    </ui5-card>
+
+    <ui5-card class="bg-white rounded-2xl hover:shadow-lg hover:translate-y-0.2 transition-all duration-200 border border-gray-100">
+      <div class="flex items-center p-5 gap-4">
+        <div class="w-16 h-16 bg-gradient-to-br from-yellow-200 to-yellow-400 rounded-full flex items-center justify-center shadow-inner">
+          <ui5-icon name="request" class="text-white text-3xl"></ui5-icon>
+        </div>
+        <div>
+          <ui5-title level="H3" size="H3">{{ payrollData.totalrequest }}</ui5-title>
+          <ui5-label class="text-sm font-medium text-gray-500" i18n>Total Requests</ui5-label>
+        </div>
+      </div>
+    </ui5-card>
+  </div>
+
+  <ui5-card class="flex flex-col h-full">
+    <div class="h-[calc(83vh-50px)] rounded-lg">
+      <app-ag-grid-table
+        #payrolltable
+        [dataSource]="dataSource"
+        [toolbarConfig]="toolbarConfig"
+        [filterQuery]="payrollFilterQuery"
+        [columns]="payrollTableCol"
+        [showAction]="false"
+        [isBase]="true"
+        [showDateRangePicker]="true"
+        [dateRangePickerValue]="dateRangeValue"
+        selectionMode="Single"
+        gridId="hr-employee-payroll"
+        (changeRangeDatePicker)="onDateRangeChange($event)"
+        (extraButtonClick)="resetFilter()"
+        (downloadButtonClick)="downloadButtonClick($event)"
+      >
+      </app-ag-grid-table>
+    </div>
+  </ui5-card>
+</div>
+
+<excel-upload-download
+  [exportApiUrl]="getExportUrl()"
+  [IsInsertXls]="IsInsertXls"
+  [IsExportXls]="IsExportXls"
+  (isSuccessChange)="processData($event)"
+  [isv8]="false"
+></excel-upload-download>
+
+<app-payroll-overview #payrolloverview></app-payroll-overview>

@@ -1,0 +1,29 @@
+[
+  {
+    "id": "1",
+    "transport": "modbus",
+    "ip": "10.4.11.181",
+    "enabled": true,
+    "invert": {
+      "F": false,
+      "P": false,
+      "A": false,
+      "ZH": false,
+      "HK": false
+    }
+  },
+  {
+    "id": "10",
+    "transport": "api",
+    "api_url": "http://10.4.11.170/state.xml?relayState=1",
+    "api_signal_map": {
+      "F": 1,
+      "P": 2,
+      "A": 3,
+      "ZH": 4,
+      "HK": 5
+    },
+    "enabled": true
+  }
+]
+
