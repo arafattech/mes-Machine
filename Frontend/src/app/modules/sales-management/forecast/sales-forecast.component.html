@@ -1,0 +1,187 @@
+<div class="flex flex-col gap-3 p-4 bg-gray-50 md:h-[90vh] md:max-h-[90vh] md:overflow-hidden print:h-auto print:max-h-none print:overflow-visible">
+
+  <div class="shrink-0 grid grid-cols-1 md:grid-cols-12 gap-3 items-center">
+    <div class="md:col-span-6 flex items-center gap-2">
+      <div class="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center">
+        <ui5-icon name="line-chart" class="text-blue-600" style="width: 1rem; height: 1rem;"></ui5-icon>
+      </div>
+      <h1 class="text-lg font-semibold text-gray-800" i18n>Sales Forecast</h1>
+    </div>
+    <div class="md:col-span-6 flex justify-end gap-2 items-center">
+      <ui5-busy-indicator *ngIf="running" [active]="running" size="S" class="print:hidden"></ui5-busy-indicator>
+      <ui5-select [value]="selectedMonthStr" (change)="onMonthChange($event)">
+        <ui5-option *ngFor="let m of months" [value]="m.value.toString()" [selected]="m.value === selectedMonth">{{ m.name }}</ui5-option>
+      </ui5-select>
+      <ui5-select [value]="selectedYearStr" (change)="onYearChange($event)">
+        <ui5-option *ngFor="let y of years" [value]="y.toString()" [selected]="y === selectedYear">{{ y }}</ui5-option>
+      </ui5-select>
+      <ui5-button
+        design="Transparent"
+        icon="print"
+        tooltip="Print Report"
+        i18n-tooltip
+        class="print:hidden"
+        (click)="printReport()"
+      ></ui5-button>
+    </div>
+  </div>
+
+  <!-- Row 1: Trend chart (wide) + Risk donut (compact) -->
+  <div class="h-[420px] md:h-[45vh] min-h-0 grid grid-cols-1 lg:grid-cols-12 gap-3">
+    <div class="lg:col-span-8 min-h-0 rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow bg-white flex flex-col overflow-hidden relative">
+      <div class="shrink-0 flex items-center justify-between px-4 pt-4 pb-2">
+        <div class="flex items-center gap-2">
+          <div class="w-7 h-7 rounded-full bg-blue-50 flex items-center justify-center">
+            <ui5-icon name="line-chart" class="text-blue-600" style="width: 0.9rem; height: 0.9rem;"></ui5-icon>
+          </div>
+          <span class="text-sm font-semibold text-gray-800" i18n>Sales Overview</span>
+          <span
+            *ngIf="selectedProductForecast as f"
+            class="text-xs font-semibold px-2 py-0.5 rounded-full"
+            [style.color]="riskColors[f.risk]"
+            [style.background]="riskColors[f.risk] + '1A'"
+          >{{ f.predicted_change_percent > 0 ? '+' : '' }}{{ f.predicted_change_percent }}%</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <ui5-select [(ngModel)]="chartViewMode">
+            <ui5-option value="GRAPH">GRAPH</ui5-option>
+            <ui5-option value="CANDLE">CANDLE</ui5-option>
+          </ui5-select>
+          <ui5-combobox
+            placeholder="Select Product"
+            [value]="selectedProductName"
+            (selectionChange)="onProductChange($event)"
+          >
+            <ui5-cb-item *ngFor="let item of itemList" [id]="item.id" [text]="item.product_name"></ui5-cb-item>
+          </ui5-combobox>
+        </div>
+      </div>
+      <div class="flex-1 min-h-0 px-2 pb-2">
+        <app-sales-forecast-chart *ngIf="chartViewMode === 'GRAPH' && chartData.length" class="block h-full" [data]="chartData" chartHeight="100%"></app-sales-forecast-chart>
+        <app-sales-forecast-candlestick-chart *ngIf="chartViewMode === 'CANDLE' && monthlyOhlcData.length" class="block h-full" [data]="monthlyOhlcData" chartHeight="100%"></app-sales-forecast-candlestick-chart>
+        <ui5-illustrated-message
+          *ngIf="chartViewMode === 'GRAPH' && !chartData.length"
+          name="NoData"
+          [attr.title-text]="'No forecast data yet'"
+          [attr.subtitle-text]="'Select a product and run forecast to see the trend'"
+        ></ui5-illustrated-message>
+        <ui5-illustrated-message
+          *ngIf="chartViewMode === 'CANDLE' && !monthlyOhlcData.length"
+          name="NoData"
+          [attr.title-text]="'No monthly sales history'"
+          [attr.subtitle-text]="'Select a product with sales history to see monthly candles'"
+        ></ui5-illustrated-message>
+      </div>
+      <div *ngIf="running" class="absolute inset-0 bg-white/60 flex items-center justify-center">
+        <ui5-busy-indicator [active]="true" size="M"></ui5-busy-indicator>
+      </div>
+    </div>
+
+    <div class="lg:col-span-4 min-h-0 rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow bg-white flex flex-col overflow-hidden relative">
+      <div class="shrink-0 flex items-center gap-2 px-4 pt-4 pb-2">
+        <div class="w-7 h-7 rounded-full bg-red-50 flex items-center justify-center">
+          <ui5-icon name="alert" style="color: #B42318; width: 0.9rem; height: 0.9rem;"></ui5-icon>
+        </div>
+        <span class="text-sm font-semibold text-gray-800" i18n>Risk by Category</span>
+      </div>
+      <div class="flex-1 min-h-0 px-2 pb-2">
+        <app-shared-donut-chart
+          *ngIf="riskDonutData.length > 0"
+          class="block h-full"
+          [data]="riskDonutData"
+          labelField="level"
+          valueField="count"
+          [colors]="riskDonutColors"
+          [innerRadius]="'0%'"
+          chartHeight="100%"
+          [showCenterOverlay]="false"
+          [showSideList]="false"
+          [showLegend]="true"
+          [legendPosition]="'bottom'"
+          [legendFontSize]="10"
+          [showSliceLabels]="false"
+          [showSliceTicks]="false"
+        ></app-shared-donut-chart>
+        <ui5-illustrated-message
+          *ngIf="riskDonutData.length === 0"
+          name="NoData"
+          [attr.title-text]="'No risk data yet'"
+          [attr.subtitle-text]="'Run a forecast to see risk breakdown'"
+        ></ui5-illustrated-message>
+      </div>
+      <div *ngIf="running" class="absolute inset-0 bg-white/60 flex items-center justify-center">
+        <ui5-busy-indicator [active]="true" size="M"></ui5-busy-indicator>
+      </div>
+    </div>
+  </div>
+
+  <!-- Row 2: Bar chart (narrow) + Daily candlestick (mid) + Detail table (narrower) -->
+  <div class="h-[340px] md:h-[38vh] min-h-0 grid grid-cols-1 lg:grid-cols-12 gap-3">
+    <div class="lg:col-span-3 min-h-0 rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow bg-white flex flex-col overflow-hidden relative">
+      <div class="shrink-0 flex items-center gap-2 px-4 pt-4 pb-2">
+        <div class="w-7 h-7 rounded-full bg-amber-50 flex items-center justify-center">
+          <ui5-icon name="trend-down" style="color: #B45309; width: 0.9rem; height: 0.9rem;"></ui5-icon>
+        </div>
+        <span class="text-sm font-semibold text-gray-800" i18n>Steepest Predicted Declines</span>
+      </div>
+      <div class="flex-1 min-h-0 px-2 pb-2">
+        <app-shared-bar-chart
+          class="block h-full"
+          [data]="changeByProductChartData"
+          categoryField="product"
+          valueField="change"
+          barColor="#EF4444"
+          chartHeight="100%"
+        ></app-shared-bar-chart>
+      </div>
+      <div *ngIf="running" class="absolute inset-0 bg-white/60 flex items-center justify-center">
+        <ui5-busy-indicator [active]="true" size="M"></ui5-busy-indicator>
+      </div>
+    </div>
+
+    <div class="lg:col-span-4 min-h-0 rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow bg-white flex flex-col overflow-hidden relative">
+      <div class="shrink-0 flex items-center gap-2 px-4 pt-4 pb-2">
+        <div class="w-7 h-7 rounded-full bg-purple-50 flex items-center justify-center">
+          <ui5-icon name="pie-chart" style="color: #7C3AED; width: 0.9rem; height: 0.9rem;"></ui5-icon>
+        </div>
+        <span class="text-sm font-semibold text-gray-800" i18n>Daily Sales</span>
+      </div>
+      <div class="flex-1 min-h-0 px-2 pb-2">
+        <app-sales-forecast-candlestick-chart
+          *ngIf="ohlcData.length"
+          class="block h-full"
+          [data]="ohlcData"
+          chartHeight="100%"
+        ></app-sales-forecast-candlestick-chart>
+        <ui5-illustrated-message
+          *ngIf="!ohlcData.length"
+          name="NoData"
+          [attr.title-text]="'No daily data'"
+          [attr.subtitle-text]="'Select a product to see daily sales'"
+        ></ui5-illustrated-message>
+      </div>
+      <div *ngIf="running" class="absolute inset-0 bg-white/60 flex items-center justify-center">
+        <ui5-busy-indicator [active]="true" size="M"></ui5-busy-indicator>
+      </div>
+    </div>
+
+    <div class="lg:col-span-5 min-h-0 bg-white rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow overflow-hidden relative">
+      <app-ag-grid-table
+        [columns]="productColumns"
+        [dataSource]="productDataSource"
+        [toolbarConfig]="productToolbarConfig"
+        [displayConfig]="productDisplayConfig"
+        selectionMode="None"
+        [isBase]="false"
+        [isTableCacheEnabled]="false"
+        [showAction]="false"
+        [showIllustratedMessage]="true"
+        IllustratedName="NoEntries"
+      ></app-ag-grid-table>
+      <div *ngIf="running" class="absolute inset-0 bg-white/60 flex items-center justify-center">
+        <ui5-busy-indicator [active]="true" size="M"></ui5-busy-indicator>
+      </div>
+    </div>
+  </div>
+
+</div>

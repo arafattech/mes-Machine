@@ -1,0 +1,29 @@
+<div class="h-[calc(100vh-55px)]">
+  <app-ag-grid-table
+    #agGridRef
+    [columns]="columns"
+    [dataSource]="dataSource"
+    [toolbarConfig]="toolbarConfig"
+    selectionMode="Single"
+    selectionRowBehavior="RowOnly"
+    [isBase]="true"
+    gridId="base-data-hall-list"
+    [showAction]="true"
+    [editPermission]="true"
+    [showEditButton]="rolePermissionService.hasPermission(permissions.BASE_DATA_HALL_EDIT)"
+    [showDeleteButton]="rolePermissionService.hasPermission(permissions.BASE_DATA_HALL_DELETE)"
+    [showIllustratedMessage]="true"
+    (newButtonClick)="newHall()"
+    (editClick)="editHall($event)"
+    (deleteClick)="onDeleteHall($event)"
+    (rowClick)="editHall($event)"
+  ></app-ag-grid-table>
+</div>
+
+<app-hall-form
+  #hallForm
+  (RefreshTable)="processData($event)"
+></app-hall-form>
+
+<app-delete-entity [IsDelete]="IsDelete" (isSuccess)="processData($event)">
+</app-delete-entity>

@@ -1,0 +1,48 @@
+<app-ag-grid-table
+  #agGridRef
+  [columns]="columns"
+  [dataSource]="dataSource"
+  [toolbarConfig]="toolbarConfig"
+  [gridId]="gridId"
+  [showIllustratedMessage]="true"
+  IllustratedName="NoData"
+  IllustratedTitle="No Activity Logs Found"
+  IllustratedSubtitle="Try adjusting your search or date range."
+></app-ag-grid-table>
+
+<ui5-dialog [open]="IsDelete" [attr.header-text]="[localize.Warning]" state="Critical">
+  <p class="w-100 text-center">
+    <span *ngIf="!Loading" i18n>Are you sure you want to delete?</span>
+    <ui5-busy-indicator
+      [delay]="0"
+      [active]="Loading"
+      size="M"
+      *ngIf="Loading"
+    ></ui5-busy-indicator>
+  </p>
+  <div
+    slot="footer"
+    class="d-flex justify-content-end align-items-center w-100"
+  >
+    <ui5-button
+      (click)="DeleteLog()"
+      [disabled]="Loading"
+      class="mx-2"
+      design="Negative">
+      {{ localize.Delete }}
+    </ui5-button>
+    <ui5-button [disabled]="Loading" (click)="IsDelete = false">
+      {{ localize.Cancel }}
+    </ui5-button>
+  </div>
+</ui5-dialog>
+
+<app-toaster-message
+  [IsOpenToastAlert]="IsOpenToastAlert"
+  [ToastType]="ToastType"
+></app-toaster-message>
+
+<app-log-info
+  [isOpen]="IsOpenLogInfo"
+  [logData]="seletedlog"
+></app-log-info>

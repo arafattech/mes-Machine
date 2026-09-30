@@ -1,0 +1,144 @@
+<app-ag-grid-table
+  #agGridRef
+  [dataSource]="dataSource"
+  [toolbarConfig]="toolbarConfig"
+  [columns]="BlacklistTable"
+  [showAction]="false"
+  selectionMode="Single"
+  gridId="hr-blacklist"
+  [showIllustratedMessage]="true"
+  IllustratedName="NoData"
+  IllustratedTitle="No Blacklist Records Found"
+  i18n-IllustratedTitle
+  (newButtonClick)="newBlackList()"
+></app-ag-grid-table>
+<ui5-dialog
+  [open]="isOpenDialog"
+  [attr.header-text]="
+    saveMode === 'POST' ? localization.New : localization.Edit
+  "
+  class="w-[calc(120vh-100px)]"
+  (before-close)="CloseDialog()"
+>
+  <ui5-busy-indicator class="w-full" [delay]="0" [active]="isLoading" size="M">
+    <section class="w-full space-y-4">
+      <div class="grid grid-cols-2 gap-2">
+        <div class="flex flex-col">
+          <ui5-label show-colon required i18n>Select Employee</ui5-label>
+          <ui5-combobox
+            #employeeCombo
+            class="w-full"
+            [value]="employeeName ? employeeName : ''"
+            placeholder="Select an employee"
+            i18n-placeholder
+            (selection-change)="selectedEmployee($event)"
+            [disabled]="saveMode === 'PUT'"
+          >
+            <ui5-cb-item
+              *ngFor="let employees of employeeList"
+              [text]="
+                employees.employee_no +
+                ' - ' +
+                employees.first_name +
+                ' ' +
+                employees.last_name
+              "
+              [value]="employees.id"
+              [id]="employees.id"
+            ></ui5-cb-item>
+          </ui5-combobox>
+        </div>
+        <div class="flex flex-col">
+          <ui5-label show-colon required i18n>Reason</ui5-label>
+          <ui5-input
+            class="w-full"
+            [(ngModel)]="blackList.reason"
+            (input)="checkValidation($event, 'reason')"
+            [attr.value-state]="valueStateOptions.reason"
+          >
+            <div slot="valueStateMessage">{{ validationMessage }}</div>
+          </ui5-input>
+        </div>
+      </div>
+      <div class="flex flex-col space-y-1">
+        <ui5-label show-colon required i18n>Remark</ui5-label>
+        <ui5-message-strip
+          design="Negative"
+          *ngIf="valueStateOptions.remarks === valueState.Negative"
+        >
+          {{ validationMessage }}
+        </ui5-message-strip>
+        <app-angular-editor
+          [(ngModel)]="htmlContent"
+          (input)="checkValidation($event, 'remarks')"
+        ></app-angular-editor>
+      </div>
+    </section>
+  </ui5-busy-indicator>
+  <ui5-toolbar slot="footer">
+    <ui5-toolbar-button
+      design="Emphasized"
+      (click)="saveBlackList()"
+      [disabled]="isLoading"
+      text="{{ localization.Submit }}"
+    ></ui5-toolbar-button>
+    <ui5-toolbar-button
+      design="Transparent"
+      [disabled]="isLoading"
+      (click)="CloseDialog()"
+      text="{{ localization.Cancel }}"
+    ></ui5-toolbar-button>
+  </ui5-toolbar>
+</ui5-dialog>
+<ui5-dialog
+  [open]="isViewOpen"
+  [attr.header-text]="localization.Details"
+  class="w-[1000px]"
+  (before-close)="CloseDialog()"
+>
+  <section class="w-full p-4">
+    <div class="row">
+      <div class="col-md-6">
+        <ui5-label show-colon i18n>Employee Name </ui5-label>
+        <ui5-input [value]="employeeName" readonly class="w-100"></ui5-input>
+      </div>
+      <div class="col-md-6">
+        <ui5-label show-colon i18n>Reason </ui5-label>
+        <ui5-input
+          value="{{ blackList.reason.toString() }}"
+          readonly
+          class="w-100"
+        ></ui5-input>
+      </div>
+    </div>
+    <ui5-label show-colon i18n>Remark</ui5-label>
+    <div
+      class="border p-2"
+      [innerHTML]="blackList.remarks"
+      style="min-height: 200px"
+    ></div>
+    <ui5-label show-colon i18n>Revoke Reason</ui5-label>
+    <ui5-textarea
+      [readonly]="dialogMode === 'VIEW'"
+      [(ngModel)]="blackList.revoke_reason"
+      class="w-100"
+    ></ui5-textarea>
+  </section>
+  <ui5-toolbar slot="footer">
+    <ui5-toolbar-button
+      *ngIf="this.dialogMode === 'REVOKE'"
+      design="Emphasized"
+      (click)="revokeBlackList()"
+      text="{{ localization.Submit }}"
+    >
+    </ui5-toolbar-button>
+    <ui5-toolbar-button
+      design="Transparent"
+      (click)="CloseDialog()"
+      text="{{ localization.Cancel }}"
+    >
+    </ui5-toolbar-button>
+  </ui5-toolbar>
+</ui5-dialog>
+<app-delete-entity (isSuccess)="RefreshTable.emit()" [IsDelete]="IsDelete">
+</app-delete-entity>

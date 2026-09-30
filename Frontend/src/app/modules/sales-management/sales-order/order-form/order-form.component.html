@@ -1,0 +1,245 @@
+<ui5-dialog class="w-[80vw] h-[86vh]" [open]="open" [attr.header-text]="
+    this.saveMode === 'POST' ? localization.New : localization.Information
+  " (before-close)="CloseDialog()">
+  <ui5-busy-indicator class="w-full h-[72vh]" [delay]="0" [active]="loading">
+    <div class="w-[80vw] p-2 h-[72vh] flex flex-col">
+    <ui5-wizard
+      class="w-full h-full block"
+      content-layout="SingleStep"
+      (step-change)="onWizardStepChange($event)"
+    >
+      <!-- ─── Step 1: Order Details ────────────────────────────────────────── -->
+      <ui5-wizard-step
+        [attr.data-step]="1"
+        title-text="Order Details"
+        i18n-title-text
+        icon="document-text"
+        [selected]="currentStep === 1"
+      >
+        <div class="w-full py-2 grid grid-cols-2 gap-3">
+          <div class="flex flex-col">
+            <ui5-label for="client" show-colon required i18n>Client</ui5-label>
+            <div class="d-flex gap-2 align-items-center">
+              <ui5-combobox #clientNameCombo [value]="clientName ? clientName : ''"  (selectionChange)="getClient($event)"
+                    (change)="checkValidation($event, 'client_id')" [attr.value-state]="valueStateOptions.client_id"
+                      [readonly]="isReadOnly || isDisabled" class="w-full" id="client" placeholder="Select Client" i18n-placeholder>
+                      @for (item of clientList; track $index) { <ui5-cb-item [text]="item.name"
+                          [id]="item.id"></ui5-cb-item> }
+                           <div slot="valueStateMessage">
+                            {{ validationMessage }}
+                          </div>
+              </ui5-combobox>
+              <ui5-button *ngIf="saveMode === 'POST'" design="Transparent" icon="add" tooltip="Add New Client"
+                (click)="AddClient()"
+              ></ui5-button>
+            </div>
+          </div>
+          <div class="flex flex-col">
+            <ui5-label for="vatTaxRate" show-colon i18n>VAT/Tax Rate</ui5-label>
+            <ui5-input id="vatTaxRate" [readonly]="true" value="7.5%" class="w-full"></ui5-input>
+          </div>
+
+          <div class="flex flex-col">
+            <ui5-label for="status" show-colon i18n>Status</ui5-label>
+            <ui5-combobox [value]="SalesOrder.status ??''" (selectionChange)="getStatus($event)" [readonly]="isStatusReadOnly"
+              class="w-full" id="status" placeholder="Select Status" i18n-placeholder>
+              <ui5-cb-item [text]="SalesOrder.status" [id]="SalesOrder.status"></ui5-cb-item>
+            </ui5-combobox>
+          </div>
+          <div class="flex flex-col">
+            <ui5-label for="deliveryDate" show-colon required i18n>Delivery Date</ui5-label>
+
+            <ui5-date-picker #deliveryDatePicker id="deliveryDate" class="w-full" format-pattern="yyyy-MM-dd"
+              (change)="dateRangePickerChange($event)" [value]="dateRangeValue"
+              [attr.value-state]="valueStateOptions.expected_delivery_date" [readonly]="isReadOnly ||isDisabled">
+              <div slot="valueStateMessage">{{ validationDate }}</div>
+            </ui5-date-picker>
+          </div>
+
+          <div class="col-span-2 grid  gap-2" [ngClass]="SalesOrder.discount_option == DiscountOption[1] ?'grid-cols-2': 'grid-cols-3'">
+            <div class="flex flex-col">
+              <ui5-label for="status" show-colon i18n>Discount Options</ui5-label>
+              <ui5-combobox [value]="SalesOrder.discount_option ??''" (selectionChange)="DiscountOptionChange($event)" [(ngModel)]="SalesOrder.discount_option" class="w-full"
+                id="status" placeholder="Select Status" [readonly]="isDisabled" i18n-placeholder>
+                <ui5-cb-item *ngFor="let selectionType of DiscountOption" [text]="selectionType"
+                  [id]="selectionType"></ui5-cb-item>
+              </ui5-combobox>
+            </div>
+            <div class="flex flex-col" *ngIf="SalesOrder.discount_option == DiscountOption[0]">
+              <ui5-label for="deliveryDate" show-colon i18n>Discount Type</ui5-label>
+              <ui5-combobox [value]="SalesOrder.discount_type??''" (selectionChange)="DiscountTypeChange($event)" class="w-full"
+                id="status" placeholder="Select Status" [readonly]="isDisabled" i18n-placeholder>
+                <ui5-cb-item *ngFor="let discountType of DiscountType" [text]="discountType"
+                  [id]="discountType"></ui5-cb-item>
+              </ui5-combobox>
+            </div>
+
+            <div class="flex flex-col">
+              <ui5-label for="vatTaxRate" show-colon i18n>Discount</ui5-label>
+              <ui5-input id="vatTaxRate" [readonly]="isDisabled || SalesOrder.discount_option == DiscountOption[1]" (input)="onDiscountChange($event)"  type="Text" [(ngModel)]="SalesOrder.discount"
+                class="w-full"></ui5-input>
+            </div>
+          </div>
+
+          <div class="flex gap-4 col-span-2" [ngClass]="{
+              'flex-row': statusTitle === 'Rejected',
+              'flex-col': statusTitle !== 'Rejected'
+            }">
+            <div class="flex flex-col flex-1">
+              <ui5-label for="justification" show-colon i18n>Justification</ui5-label>
+              <ui5-textarea id="justification" placeholder="Type message..." [(ngModel)]="SalesOrder.note" class="w-full"
+                [readonly]="isReadOnly ||isDisabled" i18n-placeholder>
+              </ui5-textarea>
+            </div>
+            <div class="flex flex-col flex-1" *ngIf="statusTitle === 'Rejected'">
+              <ui5-label for="rejectNote" show-colon i18n>Reject Note</ui5-label>
+              <ui5-textarea id="rejectNote" placeholder="Type message..." [(ngModel)]="SalesOrder.note"
+                [readonly]="isReadOnly || isDisabled" [disabled]="isDisabled" class="w-full" i18n-placeholder>
+              </ui5-textarea>
+            </div>
+          </div>
+
+          <div class="flex justify-end col-span-2 pt-2">
+            <ui5-button design="Emphasized" icon="slim-arrow-right" icon-end (click)="nextStep()" i18n>Next</ui5-button>
+          </div>
+        </div>
+      </ui5-wizard-step>
+
+      <!-- ─── Step 2: Items & Summary ──────────────────────────────────────── -->
+      <ui5-wizard-step
+        [attr.data-step]="2"
+        title-text="Items & Summary"
+        i18n-title-text
+        icon="list"
+        [selected]="currentStep === 2"
+      >
+        <div class="w-full h-full py-2 flex flex-col gap-2">
+          <div class="flex-1 min-h-0 rounded-lg border border-slate-300 pt-2">
+            <app-ag-grid-table
+              #childComponentRef
+              class="flex-grow"
+              [columns]="column"
+              [dataSource]="dataSource"
+              [toolbarConfig]="toolbarConfig"
+              [displayConfig]="displayConfig"
+              [isBase]="false"
+              [isTableCacheEnabled]="false"
+              [showAction]="false"
+              [showEditButton]="false"
+              [showIllustratedMessage]="true"
+              IllustratedName="NoEntries"
+              (newButtonClick)="newItem()"
+              (cellEdited)="onCellEdited($event)"
+            ></app-ag-grid-table>
+          </div>
+
+          <div class="p-3 border rounded-lg shrink-0">
+            <div class="flex flex-col items-end space-y-2">
+
+              <div class="flex justify-between w-full sm:w-1/2 md:w-1/3">
+                <ui5-label i18n>Total Items</ui5-label>
+                <ui5-text class="font-bold">{{ SalesOrder.items?.length || 0 }}</ui5-text>
+              </div>
+              <div class="flex justify-between w-full sm:w-1/2 md:w-1/3">
+                <ui5-label i18n>SubTotal</ui5-label>
+                <ui5-text>
+                  <bdi>{{ SalesOrder.subtotal | currency:'BDT':'symbol' }}</bdi>
+                </ui5-text>
+              </div>
+
+              <div class="flex justify-between w-full sm:w-1/2 md:w-1/3">
+                <ui5-label i18n>VAT/Tax</ui5-label>
+                <ui5-text class="text-red-500">
+                  <bdi>+{{ SalesOrder.vat??0 | currency:'BDT':'symbol' }}</bdi>
+                </ui5-text>
+              </div>
+
+              <div class="flex justify-between w-full sm:w-1/2 md:w-1/3">
+                <ui5-label i18n>Discount</ui5-label>
+                <ui5-text class="text-green-500">
+                  <bdi>-{{ DiscountCalculation | currency:'BDT':'symbol' }}</bdi>
+                </ui5-text>
+              </div>
+
+              <div class="flex justify-between w-full sm:w-1/2 md:w-1/3 pt-2 border-t border-gray-300">
+                <ui5-label class="font-bold text-lg" i18n>Total</ui5-label>
+                <ui5-text class="font-bold text-lg text-green-700">
+                  <bdi>{{ SalesOrder.grand_total??0 | currency:'BDT':'symbol' }}</bdi>
+                </ui5-text>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex justify-start pt-1 shrink-0">
+            <ui5-button design="Transparent" icon="slim-arrow-left" (click)="prevStep()" i18n>Back</ui5-button>
+          </div>
+        </div>
+      </ui5-wizard-step>
+    </ui5-wizard>
+    </div>
+  </ui5-busy-indicator>
+  <ui5-toolbar slot="footer">
+
+    @if (statusTitle !== 'Rejected') { <ui5-toolbar-button *ngIf="!isDisabled" design="Emphasized" (click)="onSaveType()"
+      [disabled]="loading || isDisabled" [attr.text]="this.localization.Submit"></ui5-toolbar-button> } @else{
+    <ui5-toolbar-button *ngIf="statusTitle === 'Rejected'" design="Negative" (click)="onSaveType()" [disabled]="loading"
+      [attr.text]="'Reject'"></ui5-toolbar-button> }
+
+    <ui5-toolbar-button design="Transparent" (click)="CloseDialog()"
+      text="{{ localization.Cancel }}"></ui5-toolbar-button>
+  </ui5-toolbar>
+</ui5-dialog>
+<app-assosiate #itemAssosiate [apiUrl]="
+    'Products?$expand=suppliers,productTypes,category,clients,plants,variants,uom&$orderby=created_at desc'
+  " [filterQuery]="'is_sellable eq true'" [model]="product" [tableColumn]="associateTableColum()" [orderByColumn]="'custom_id'"
+  (selectedData)="getDataFromAssosiate($event , true)"></app-assosiate>
+<app-client-form #clientForm [saveMode]="saveMode" [client]="client" (ClientAdded)="autoClientAdded($event)" (RefreshTable)="onRefreshClient()"></app-client-form>
+<ui5-dialog [open]="isWarning" state="Critical" [attr.header-text]="[localization.Warning]">
+  <ui5-busy-indicator class="w-full h-full" [delay]="0" size="M">
+
+    <div>
+      <div class="overflow-auto rounded-lg  border border-gray-200">
+        <table class="min-w-full text-sm text-left">
+          <thead class="bg-gray-100 border-b">
+            <tr>
+              <th class="px-4 py-2 font-semibold text-gray-700" i18n>Item Code</th>
+              <th class="px-4 py-2 font-semibold text-gray-700" i18n>Product Name</th>
+              <th class="px-4 py-2 font-semibold text-gray-700" i18n>Min Price (Plan)</th>
+              <th class="px-4 py-2 font-semibold text-gray-700" i18n>Given Price</th>
+              <th class="px-4 py-2 font-semibold text-gray-700" i18n>Message</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            <tr *ngFor="let items of salesValidationWarning" class="border-b hover:bg-red-50 transition-all">
+              <td class="px-4 py-2 text-gray-800 font-medium">{{ items.item_code }}</td>
+              <td class="px-4 py-2 text-gray-800">{{ items.product_name }}</td>
+              <td class="px-4 py-2 text-gray-800">{{ items.price_plan }}</td>
+              <td class="px-4 py-2 text-gray-800">{{ items.received_quantity }}</td>
+              <td class="px-4 py-2 text-red-600 font-semibold">{{ items.message }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </ui5-busy-indicator>
+
+  <div slot="footer" class="flex justify-end items-center gap-2 w-full p-3 border-t bg-gray-50">
+    <ui5-button design="Negative" (click)="isWarning = false; loading = false;">
+      {{ localization.Cancel }}
+    </ui5-button>
+  </div>
+</ui5-dialog>
+
+<ui5-dialog [open]="isWarningValidation" state="Critical" [attr.header-text]="[localization.Warning]">
+  <ui5-busy-indicator class="w-full bg-none h-full" [delay]="0" size="M">
+    <p class="w-100 text-center">
+      <span i18n>{{this.warningMessage}}</span>
+    </p>
+  </ui5-busy-indicator>
+  <div slot="footer" class="d-flex justify-content-end align-items-center w-100">
+
+    <ui5-button (click)="isWarningValidation = false">{{localization.Cancel}}</ui5-button>
+  </div>
+</ui5-dialog>

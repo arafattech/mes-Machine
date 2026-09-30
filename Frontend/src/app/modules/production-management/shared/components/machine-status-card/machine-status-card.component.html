@@ -1,0 +1,287 @@
+@if (viewMode === this.viewModeEnum.COMPACT) {
+  <div
+    class="machine-card max-w-full rounded-[10px] px-4 py-2.5 flex flex-col gap-2 hover:-translate-y-0.5"
+    [class.is-alert]="isOverTemp || isOverLoad"
+  >
+    <!-- Row 1: badge + name + alert -->
+    <div class="flex items-center gap-2">
+      <ui5-tag
+        class="shrink-0"
+        [style.--sapNeutralBackground]="statusColorVar"
+
+        [style.--sapTextColor]="'#ffffff'"
+      >
+        <ui5-icon slot="icon" [name]="statusIcon"></ui5-icon>
+        {{ badgeText }}
+      </ui5-tag>
+      <h2
+        class="flex-1 min-w-0 text-[13px] font-semibold metric-value truncate cursor-pointer"
+        [title]="label"
+      >
+        {{ fullLabel }}
+      </h2>
+
+      <span *ngIf="isOverTemp || isOverLoad" class="shrink-0">
+        <ui5-icon
+          [id]="'iconTrigger-' + label"
+          name="alert"
+          class="w-5 h-5 alert-icon cursor-pointer"
+          (mouseenter)="openPopover()"
+          (mouseleave)="closePopover()"
+        ></ui5-icon>
+
+        <ui5-popover #popover [opener]="'iconTrigger-' + label">
+          <div class="p-2 min-w-[200px]">
+            <h4
+              *ngIf="alertHeader"
+              class="font-semibold alert-icon mb-2 flex items-center gap-1"
+            >
+              <ui5-icon name="warning" class="alert-icon w-4 h-4"></ui5-icon>
+              {{ alertHeader }}
+            </h4>
+            <p *ngIf="isOverTemp">
+              Current Temperature:
+              <span class="over-threshold"
+                >{{ temp | number: "1.0-0" }} °C</span
+              >
+              (Limit: {{ maxTemp | number: "1.0-0" }} °C)
+            </p>
+            <p *ngIf="isOverLoad">
+              Current Load:
+              <span class="over-threshold">{{ rpm | number: "1.0-0" }}</span>
+              (Limit: {{ maxRate | number: "1.0-0" }})
+            </p>
+          </div>
+        </ui5-popover>
+      </span>
+    </div>
+
+    <!-- Row 2: metrics -->
+    <div class="flex items-center gap-5">
+      <div
+        class="flex items-center gap-1.5 whitespace-nowrap"
+        *ngIf="has_temperature"
+      >
+        <ui5-icon
+          name="temperature"
+          class="w-4 h-4 metric-icon"
+          [class.over-threshold]="isOverTemp"
+        ></ui5-icon>
+        <span
+          class="text-[13px] font-semibold tabular-nums metric-value"
+          [class.over-threshold]="isOverTemp"
+        >
+          {{
+            isNonProductive
+              ? "--"
+              : (temp ?? null) === null
+                ? "--"
+                : (temp | number: "1.0-0") + " °C"
+          }}
+        </span>
+      </div>
+
+      <div class="flex items-center gap-1.5 whitespace-nowrap" *ngIf="has_rpm">
+        <ui5-icon
+          name="line-charts"
+          class="w-4 h-4 metric-icon"
+          [class.over-threshold]="isOverLoad"
+        ></ui5-icon>
+        <span
+          class="text-[13px] font-semibold tabular-nums metric-value"
+          [class.over-threshold]="isOverLoad"
+        >
+          {{
+            isNonProductive
+              ? "--"
+              : (rpm | number: "1.0-0") + " %"
+          }}
+        </span>
+      </div>
+
+      <div class="flex items-center gap-1.5 whitespace-nowrap">
+      <ui5-icon name="history" class="w-4 h-4 metric-icon"></ui5-icon>
+      <span class="text-[13px] font-semibold tabular-nums metric-value">
+          {{
+            currentStatusSeconds != null
+              ? (currentStatusSeconds | duration)
+              : "--"
+          }}
+      </span>
+    </div>
+    </div>
+  </div>
+} @else {
+<div
+    class="machine-card relative rounded-2xl border border-slate-200 dark:border-zinc-800/80 bg-white/90 dark:bg-zinc-900/95 backdrop-blur-md shadow-sm min-h-[200px] w-full p-3.5 flex flex-col justify-between overflow-hidden"
+    [class.is-alert]="isOverTemp || isOverLoad"
+  >
+    <!-- Background highlight element for alert status -->
+    <div *ngIf="isOverTemp || isOverLoad" class="absolute inset-0 bg-red-500/[0.02] dark:bg-red-500/[0.01] pointer-events-none"></div>
+
+    <!-- Header -->
+    <div class="flex items-center justify-between mb-2">
+      <div class="flex items-center gap-2.5 min-w-0 flex-1">
+        <!-- Status dot with dynamic glow ring -->
+        <div class="relative flex h-2.5 w-2.5 shrink-0">
+          <span 
+            class="absolute inline-flex h-full w-full rounded-full opacity-75 pulse-glow" 
+            [style.backgroundColor]="statusColorVar"
+          ></span>
+          <span
+            class="relative inline-flex rounded-full h-2.5 w-2.5"
+            [style.backgroundColor]="statusColorVar"
+          ></span>
+        </div>
+        <h2 class="flex-1 min-w-0 text-[13px] font-semibold metric-value truncate cursor-pointer"
+          [title]="fullLabel"
+        >
+          {{ label }}
+        </h2>
+      </div>
+      <div class="flex items-center gap-2 shrink-0">
+        <span *ngIf="isOverTemp || isOverLoad" class="inline-flex items-center">
+          <ui5-icon
+            [id]="'iconTrigger-' + label"
+            name="alert"
+            class="w-5 h-5 alert-icon cursor-pointer animate-pulse"
+            (mouseenter)="openPopover()"
+            (mouseleave)="closePopover()"
+          >
+          </ui5-icon>
+
+          <ui5-popover #popover [opener]="'iconTrigger-' + label" class="shadow-2xl border border-slate-200 dark:border-zinc-800 rounded-lg">
+            <div class="p-3 min-w-[220px] bg-white dark:bg-zinc-900">
+              <h4 *ngIf="alertHeader" class="font-bold mb-2 text-xs uppercase tracking-wider flex items-center gap-1.5">
+                <ui5-icon name="warning" class="w-4 h-4"></ui5-icon>
+                {{ alertHeader }}
+              </h4>
+              <p *ngIf="isOverTemp" class="text-xs py-1" i18n>
+                Current Temperature:
+                <span class="font-bold font-mono"
+                  >{{ temp | number: "1.0-0" }} °C</span
+                >
+                <span class="text-[10px] block">(Limit: {{ maxTemp | number: "1.0-0" }} °C)</span>
+              </p>
+              <p *ngIf="isOverLoad" class="text-xs py-1 border-t border-slate-100 dark:border-zinc-800" i18n>
+                Current Load:
+                <span class="font-bold font-mono">{{ rpm | number: "1.0-0" }}</span>
+                <span class="text-[10px] block">(Limit: {{ maxRate | number: "1.0-0" }})</span>
+              </p>
+            </div>
+          </ui5-popover>
+        </span>
+
+        <!-- Status tag -->
+        <ui5-tag
+          [style.--sapNeutralBackground]="statusColorVar"
+          [style.--sapNeutralBorderColor]="statusColorVar"
+          [style.--sapTextColor]="'#ffffff'"
+        >
+          <ui5-icon slot="icon" [name]="statusIcon"></ui5-icon>
+          {{ badgeText }}
+        </ui5-tag>
+      </div>
+    </div>
+
+    <div *ngIf="lastSeenAt != null" class="text-[11px] metric-label -mt-1.5" i18n>
+      Last seen {{ lastSeenAt | timeAgo }}
+    </div>
+
+    <hr class="card-divider h-px border-0 -ml-3.5 -mr-3.5 bg-gradient-to-r from-transparent via-slate-200/70 dark:via-zinc-800/60 to-transparent my-1.5" />
+
+    <!-- Metrics row (Dynamic Columns) -->
+    <div
+      class="grid gap-3 py-1.5"
+      [ngClass]="{
+        'grid-cols-3': has_temperature && has_rpm,
+        'grid-cols-2':
+          (has_temperature && !has_rpm) || (!has_temperature && has_rpm),
+        'grid-cols-1': !has_temperature && !has_rpm,
+      }"
+    >
+      <!-- Temperature -->
+      <div class="flex flex-col py-0.5 px-1.5 rounded-lg" *ngIf="has_temperature">
+        <div class="flex items-center gap-1.5 text-xs">
+          <ui5-icon
+            name="temperature"
+            class="w-3.5 h-3.5 metric-icon"
+          ></ui5-icon>
+          <span
+            class="font-medium metric-label tracking-tight text-[11px]"
+            [class.font-semibold]="isOverTemp"
+            i18n
+            >Temperature</span
+          >
+        </div>
+        <div
+          class="metric-value font-semibold text-xs sm:text-sm mt-1 font-mono"
+        >
+          {{
+            isNonProductive
+              ? "--"
+              : (temp ?? null) === null
+                ? "--"
+                : (temp | number: "1.0-0") + " °C"
+          }}
+        </div>
+      </div>
+
+      <!-- Load -->
+      <div class="flex flex-col py-0.5 px-1.5 rounded-lg" *ngIf="has_rpm">
+        <div class="flex items-center gap-1.5 text-xs">
+          <ui5-icon
+            name="line-charts"
+            class="w-3.5 h-3.5 metric-icon"
+          ></ui5-icon>
+          <span
+            class="font-medium metric-label tracking-tight text-[11px]"
+            [class.font-semibold]="isOverLoad"
+            i18n
+            >Load</span
+          >
+        </div>
+        <div
+          class="metric-value font-semibold text-xs sm:text-sm mt-1 font-mono"
+        >
+          {{
+            isNonProductive
+              ? "--"
+              : (rpm | number: "1.0-0") + " %"
+          }}
+        </div>
+      </div>
+
+      <!-- Uptime: live time in current status -->
+      <div class="flex flex-col py-0.5 px-1.5 rounded-lg">
+        <div class="flex items-center gap-1.5 text-xs">
+          <ui5-icon name="history" class="w-3.5 h-3.5 metric-icon"></ui5-icon>
+          <span class="font-medium metric-label tracking-tight text-[11px]" i18n>Uptime</span>
+        </div>
+        <div class="font-semibold metric-value text-xs sm:text-sm mt-1 font-mono tabular-nums">
+          {{
+            currentStatusSeconds != null
+              ? (currentStatusSeconds | duration)
+              : "--"
+          }}
+        </div>
+      </div>
+    </div>
+
+    <!-- OEE / Shot count / Availability -->
+    <div
+      *ngIf="oee != null || shotCount != null || availabilityPercent != null"
+      class="flex flex-wrap items-center gap-x-5 gap-y-1.5 pt-2 border-t border-slate-100 dark:border-zinc-800/50 mt-1"
+    >
+      <div class="flex flex-col py-0.5" *ngIf="availabilityPercent != null">
+        <div class="flex items-center gap-1.5 text-[11px]">
+          <ui5-icon name="bar-chart" class="w-3.5 h-3.5 metric-icon"></ui5-icon>
+          <span class="font-medium metric-label tracking-tight text-[11px]" i18n>KPI</span>
+        </div>
+        <div class="font-semibold metric-value text-xs sm:text-sm mt-1 font-mono tabular-nums">
+          {{ availabilityPercent + "%" }}
+        </div>
+      </div>
+    </div>
+  </div>
+}

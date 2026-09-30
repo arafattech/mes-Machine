@@ -1,0 +1,364 @@
+<div
+  class="grid gap-1"
+  [ngClass]="showEmployeeLog ? 'grid-cols-4' : 'grid-cols-1'"
+>
+  <div
+    class="h-[calc(100vh-50px)]"
+    [ngClass]="showEmployeeLog ? 'col-span-3' : 'col-span-1'"
+  >
+
+    <app-ag-grid-table
+      #agGridTable
+      [columns]="columns"
+      [dataSource]="dataSource"
+      [toolbarConfig]="toolbarConfig"
+      [isBase]="true"
+      [gridId]="gridId"
+      [selectionMode]="'Multiple'"
+      [selectionRowBehavior]="'Row'"
+      [showAction]="true"
+      [editPermission]="true"
+      [showEditButton]="
+        rolePermissionService.hasPermission(
+          permissions.BASE_DATA_EMPLOYEE_UPDATE
+        ) || rolePermissionService.hasPermission(permissions.HR_EMPLOYEE_EDIT)
+      "
+      [showDeleteButton]="
+        rolePermissionService.hasPermission(
+          permissions.BASE_DATA_EMPLOYEE_REMOVE
+        ) || rolePermissionService.hasPermission(permissions.HR_EMPLOYEE_DELETE)
+      "
+      (newButtonClick)="newEmployee()"
+      (editClick)="editEmployee($event)"
+      (deleteClick)="deleteClick($event)"
+      (extraButtonClick)="activeInactiveFunction()"
+      (rowClick)="onRowSelect($event)"
+      (selectionChanged)="onSelectionChanged($event)"
+      (downloadButtonClick)="downloadButtonClick($event)"
+      (uploadButtonClick)="uploadButtonClick($event)"
+      (processData)="handleEmployeeTableData($event)"
+      (cellEdited)="onCellEdited($event)"
+      [showSwitch]="true"
+      [switchLabel]="'Report'"
+      [selectedSwitchValue]="showEmployeeLog"
+      (onSwitchChange)="onEmployeeLogSwitchChange($event)"
+    ></app-ag-grid-table>
+  </div>
+
+  <ui5-card
+    class="col-span-1 h-[calc(100vh-50px)] overflow-hidden rounded origin-left transition-all duration-200 ease-out will-change-transform"
+    [ngClass]="
+      showEmployeeLog
+        ? 'opacity-100 translate-x-0 max-w-full ml-0 pointer-events-auto'
+        : 'opacity-0 translate-x-3 max-w-0 -ml-3 pointer-events-none'
+    "
+  >
+    <div class="min-w-[260px] h-full p-4">
+      <div class="mb-3">
+        <div class="text-sm font-semibold" style="color: var(--sapTextColor, #1d2d3e)">Employee Report</div>
+      </div>
+
+      <div class="mb-3 flex flex-col gap-2" *ngIf="!isMultipleEmployeesSelected">
+        <ui5-daterange-picker
+          class="w-full"
+          format-pattern="dd-MM-yyyy"
+          [maxDate]="employeeLogMaxDate"
+          [value]="employeeLogDateRange"
+          (change)="onEmployeeLogDateRangeChange($event)"
+        ></ui5-daterange-picker>
+
+        <ui5-button
+          design="Emphasized"
+          class="w-full"
+          (click)="exportEmployeeLog()"
+          [disabled]="!canExportEmployeeLog()"
+        >
+          Export
+        </ui5-button>
+      </div>
+
+      <div
+        *ngIf="employeeLogError && !isMultipleEmployeesSelected"
+        class="mb-2 rounded-xl px-3 py-3 text-sm"
+        style="background-color: var(--sapErrorBackground, #ffebeb); color: var(--sapErrorColor, #b00)"
+      >
+        {{ employeeLogError }}
+      </div>
+
+      <div *ngIf="isMultipleEmployeesSelected" class="flex flex-col gap-2">
+        <div class="rounded-xl border border-dashed px-4 py-4 text-sm"
+          style="border-color: var(--sapList_BorderColor, #d9d9d9); background-color: var(--sapList_Background, #f5f6f7); color: var(--sapContent_LabelColor, #64748b)">
+          {{ selectedEmployeeCount }} employees selected. Export a PDF list of the selected employees.
+        </div>
+
+        <ui5-button
+          design="Emphasized"
+          class="w-full"
+          (click)="exportEmployeeListPdf()"
+          [disabled]="isEmployeeLogExporting"
+        >
+          Export
+        </ui5-button>
+      </div>
+
+      <ng-container *ngIf="!isMultipleEmployeesSelected">
+      <ng-container *ngIf="selectedEmployeeForLog; else noEmployeeSelected">
+        <ng-container *ngIf="!isEmployeeLogLoading; else employeeLogSkeleton">
+          <div class="mb-3 text-lg font-bold" style="color: var(--sapTextColor, #1d2d3e)">
+            {{ getSelectedEmployeeLogDisplayName() }}
+          </div>
+
+          <div class="mb-3 flex justify-start">
+            <ui5-segmented-button
+              accessible-name="Employee log sections"
+              class="w-full"
+            >
+              <ui5-segmented-button-item
+                value="overview"
+                [selected]="isEmployeeLogTabSelected('overview')"
+                (click)="onEmployeeLogTabChange('overview')"
+              >
+                Overview
+              </ui5-segmented-button-item>
+              <ui5-segmented-button-item
+                value="payroll"
+                [selected]="isEmployeeLogTabSelected('payroll')"
+                (click)="onEmployeeLogTabChange('payroll')"
+              >
+                Billing
+              </ui5-segmented-button-item>
+              <ui5-segmented-button-item
+                value="activity"
+                [selected]="isEmployeeLogTabSelected('activity')"
+                (click)="onEmployeeLogTabChange('activity')"
+              >
+                Activity
+              </ui5-segmented-button-item>
+            </ui5-segmented-button>
+          </div>
+
+          <section class="flex flex-col gap-3">
+            <ui5-card
+              *ngIf="isEmployeeLogTabSelected('payroll')"
+              class="w-full"
+            >
+              <ui5-card-header
+                slot="header"
+                title-text="Billing Log"
+                subtitle-text="Billing process style snapshot"
+              ></ui5-card-header>
+              <div class="grid grid-cols-2 gap-4 p-4">
+                <div
+                  *ngFor="let item of getSelectedEmployeePayrollLogSummary()"
+                  class="flex justify-between rounded-xl p-3" style="background-color: var(--sapList_Background, #f5f6f7)"
+                >
+                  <ui5-label class="text-sm" style="color: var(--sapContent_LabelColor, #64748b)" show-colon>{{
+                    item.label
+                  }}</ui5-label>
+                  <ui5-label class="text-sm font-medium" style="color: var(--sapTextColor, #1d2d3e)">{{
+                    item.value
+                  }}</ui5-label>
+                </div>
+              </div>
+            </ui5-card>
+
+            <ui5-card
+              *ngIf="isEmployeeLogTabSelected('overview')"
+              class="w-full"
+            >
+              <ui5-card-header
+                slot="header"
+                title-text="Overview"
+                subtitle-text="Employee information"
+              ></ui5-card-header>
+              <div class="grid grid-cols-2 gap-4 p-4">
+                <div
+                  *ngFor="let item of getSelectedEmployeeOverviewSummary()"
+                  class="flex flex-col gap-1 rounded-xl p-3" style="background-color: var(--sapList_Background, #f5f6f7)"
+                >
+                  <ui5-label class="text-sm" style="color: var(--sapContent_LabelColor, #64748b)" show-colon>{{
+                    item.label
+                  }}</ui5-label>
+                  <ui5-label class="text-sm font-medium" style="color: var(--sapTextColor, #1d2d3e)">{{
+                    item.value
+                  }}</ui5-label>
+                </div>
+              </div>
+            </ui5-card>
+
+            <ui5-card
+              *ngIf="isEmployeeLogTabSelected('activity')"
+              class="w-full"
+            >
+              <ui5-card-header
+                slot="header"
+                title-text="Activity Logs"
+                subtitle-text="Recent audit trail"
+              ></ui5-card-header>
+              <div class="px-4 pt-4">
+                <div class="mb-3 text-sm font-semibold" style="color: var(--sapTextColor, #1d2d3e)">
+                  Leave Status
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                  <div
+                    *ngFor="let item of getSelectedEmployeeLeaveStatusSummary()"
+                    class="flex justify-between rounded-xl p-3" style="background-color: var(--sapList_Background, #f5f6f7)"
+                  >
+                    <ui5-label class="text-sm" style="color: var(--sapContent_LabelColor, #64748b)" show-colon>{{
+                      item.label
+                    }}</ui5-label>
+                    <ui5-label class="text-sm font-medium" style="color: var(--sapTextColor, #1d2d3e)">{{
+                      item.value
+                    }}</ui5-label>
+                  </div>
+                </div>
+              </div>
+              <div
+                *ngIf="employeeActivityLogs.length"
+                class="flex flex-col gap-2 p-3"
+              >
+                <div
+                  class="rounded-lg border px-3 py-2"
+                  style="border-color: var(--sapList_BorderColor, #d9d9d9); background-color: var(--sapList_Background, #f5f6f7)"
+                  *ngFor="
+                    let item of getSelectedEmployeeActivityLogs();
+                    let i = index
+                  "
+                >
+                  <div class="font-semibold" style="color: var(--sapTextColor, #1d2d3e)">
+                    {{ item.title }}
+                  </div>
+                  <div class="text-xs" style="color: var(--sapContent_LabelColor, #64748b)">{{ item.subtitle }}</div>
+                </div>
+              </div>
+            </ui5-card>
+          </section>
+        </ng-container>
+
+        <ng-template #employeeLogSkeleton>
+          <div class="mb-3 space-y-3 animate-pulse">
+            <div class="h-5 w-48 rounded" style="background-color: var(--sapList_BorderColor, #d9d9d9)"></div>
+            <div class="h-10 w-full rounded-full" style="background-color: var(--sapList_BorderColor, #d9d9d9)"></div>
+          </div>
+
+          <section class="flex flex-col gap-3">
+            <div
+              class="rounded-2xl border p-4 shadow-sm animate-pulse"
+              style="border-color: var(--sapList_BorderColor, #d9d9d9); background-color: var(--sapGroup_ContentBackground, #fff)"
+            >
+              <div class="mb-4 h-4 w-24 rounded" style="background-color: var(--sapList_BorderColor, #d9d9d9)"></div>
+              <div class="grid grid-cols-2 gap-4">
+                <div class="h-16 rounded-xl" style="background-color: var(--sapList_Background, #f5f6f7)"></div>
+                <div class="h-16 rounded-xl" style="background-color: var(--sapList_Background, #f5f6f7)"></div>
+                <div class="h-16 rounded-xl" style="background-color: var(--sapList_Background, #f5f6f7)"></div>
+                <div class="h-16 rounded-xl" style="background-color: var(--sapList_Background, #f5f6f7)"></div>
+              </div>
+            </div>
+
+            <div
+              class="rounded-2xl border p-4 shadow-sm animate-pulse"
+              style="border-color: var(--sapList_BorderColor, #d9d9d9); background-color: var(--sapGroup_ContentBackground, #fff)"
+            >
+              <div class="mb-4 h-4 w-28 rounded" style="background-color: var(--sapList_BorderColor, #d9d9d9)"></div>
+              <div class="grid grid-cols-2 gap-4">
+                <div class="h-16 rounded-xl" style="background-color: var(--sapList_Background, #f5f6f7)"></div>
+                <div class="h-16 rounded-xl" style="background-color: var(--sapList_Background, #f5f6f7)"></div>
+                <div class="h-16 rounded-xl" style="background-color: var(--sapList_Background, #f5f6f7)"></div>
+                <div class="h-16 rounded-xl" style="background-color: var(--sapList_Background, #f5f6f7)"></div>
+              </div>
+            </div>
+          </section>
+        </ng-template>
+      </ng-container>
+      </ng-container>
+
+      <ng-template #noEmployeeSelected>
+        <div
+          class="rounded-xl border border-dashed px-4 py-4 text-sm"
+          style="border-color: var(--sapList_BorderColor, #d9d9d9); background-color: var(--sapList_Background, #f5f6f7); color: var(--sapContent_LabelColor, #64748b)"
+        >
+          Select an employee row to see the detail tabs.
+        </div>
+      </ng-template>
+    </div>
+  </ui5-card>
+</div>
+
+<app-delete-entity (isSuccess)="processData($event)" [IsDelete]="IsDelete">
+</app-delete-entity>
+
+<app-employee-form
+  #employeeForm
+  [saveMode]="saveMode"
+  [employeeData]="EmployeeData"
+  (RefreshTable)="processData($event)"
+  (isSuccessChange)="processData($event)"
+></app-employee-form>
+
+<excel-upload-download
+  [apiUrl]="'import/employees'"
+  [exportApiUrl]="'employees/export'"
+  [IsInsertXls]="IsInsertXls"
+  [IsExportXls]="IsExportXls"
+  (isSuccessChange)="processData($event)"
+  [isv8]="true"
+></excel-upload-download>
+
+<ui5-dialog
+  [open]="isBulkStatusDialogOpen"
+  state="Critical"
+  header-text="Action"
+  (ui5BeforeClose)="closeBulkStatusDialog()"
+>
+  <ui5-busy-indicator
+    [delay]="0"
+    [active]="isBulkStatusLoading"
+    size="M"
+    class="w-full"
+  >
+    <div class="min-w-[860px] max-w-[90vw]">
+      <div class="mb-3 flex items-center justify-between">
+        <div class="text-sm font-semibold text-slate-900" i18n>
+          Selected Employees ({{ selectedEmployeeCount }})
+        </div>
+        <div class="flex items-center gap-2">
+          <ui5-label i18n>{{ localization.Active }}</ui5-label>
+          <ui5-switch
+            [disabled]="isBulkStatusLoading"
+            [(ngModel)]="bulkEmployeeStatus"
+          ></ui5-switch>
+        </div>
+      </div>
+
+      <div class="h-[360px] rounded-lg border border-slate-300">
+        <app-ag-grid-table
+          [columns]="selectedEmployeeColumn"
+          [dataSource]="selectedEmployeesDataSource"
+          [toolbarConfig]="selectedEmployeesToolbarConfig"
+          [displayConfig]="selectedEmployeesDisplayConfig"
+          [showAction]="true"
+          [showEditButton]="false"
+          [showDeleteButton]="true"
+          [enableRowClick]="false"
+          [selectionMode]="'None'"
+          (deleteClick)="removeSelectedEmployee($event)"
+        ></app-ag-grid-table>
+      </div>
+    </div>
+  </ui5-busy-indicator>
+
+  <ui5-toolbar slot="footer">
+    <ui5-toolbar-button
+      design="Emphasized"
+      (click)="updateSelectedEmployeesStatus()"
+      [disabled]="isBulkStatusLoading || selectedEmployeeCount === 0"
+      text="{{ localization.Submit }}"
+    ></ui5-toolbar-button>
+    <ui5-toolbar-button
+      design="Transparent"
+      [disabled]="isBulkStatusLoading"
+      (click)="closeBulkStatusDialog()"
+      text="{{ localization.Cancel }}"
+    ></ui5-toolbar-button>
+  </ui5-toolbar>
+</ui5-dialog>

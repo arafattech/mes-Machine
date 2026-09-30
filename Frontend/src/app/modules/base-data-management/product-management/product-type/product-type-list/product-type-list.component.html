@@ -1,0 +1,31 @@
+<div class="h-[calc(100vh-55px)]">
+  <app-ag-grid-table
+    #agGridRef
+    [columns]="columns"
+    [dataSource]="dataSource"
+    [toolbarConfig]="toolbarConfig"
+    selectionMode="Single"
+    [isBase]="true"
+    [gridId]="gridId"
+    [showEditButton]="rolePermissionService.hasPermission(permissions.BASE_DATA_ITEM_TYPE_EDIT)"
+    [showDeleteButton]="rolePermissionService.hasPermission(permissions.BASE_DATA_ITEM_TYPE_DELETE)"
+    (newButtonClick)="newProductType()"
+    (editClick)="editProductType($event)"
+    (deleteClick)="deleteClick($event)"
+    (rowClick)="editProductType($event)"
+    [showIllustratedMessage]="true"
+    IllustratedName="NoData"
+    IllustratedTitle="No Product Types Found"
+    IllustratedSubtitle="Try adjusting your search or active status."
+  ></app-ag-grid-table>
+</div>
+
+<app-delete-entity (isSuccess)="processData($event)" [IsDelete]="IsDelete">
+</app-delete-entity>
+
+<app-product-form
+  #productForm
+  [saveMode]="saveMode"
+  [productType]="productType"
+  (RefreshTable)="processData($event)"
+></app-product-form>

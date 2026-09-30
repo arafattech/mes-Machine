@@ -1,0 +1,118 @@
+<div class="login-container">
+  <img
+    src="assets/new.jpeg"
+    class="bg-image backdrop-blur-2xl shadow-lg shadow-slate-900"
+  />
+  <div id="container" class="backdrop-blur-2xl shadow-lg shadow-slate-900">
+    <div id="right">
+      <div class="d-flex justify-content-end p-3 logo m-3">
+        <img
+          slot="logo"
+          src="assets/logo/logo.png"
+          class="img-fluid"
+          class="m-auto"
+          id="login"
+        />
+      </div>
+
+      <div class="d-flex justify-center">
+        <ui5-message-strip
+          design="Negative"
+          class="message-strip"
+          *ngIf="validationMessage.email !== ''"
+          (click)="validationMessage.email = ''"
+        >
+          {{ validationMessage.email }}
+        </ui5-message-strip>
+      </div>
+
+      <input
+        type="email"
+        id="email"
+        class="client-info"
+        [(ngModel)]="user.email"
+        (input)="clearError('email')"
+        (keydown.enter)="onLogin()"
+      />
+      <label for="email">Email Address Or Phone*</label>
+
+      <div class="d-flex justify-center">
+        <ui5-message-strip
+          design="Negative"
+          class="message-strip"
+          *ngIf="validationMessage.password !== ''"
+          (click)="validationMessage.password = ''"
+        >
+          {{ validationMessage.password }}
+        </ui5-message-strip>
+      </div>
+
+      <div class="password-input">
+        <div>
+          <input
+            [type]="isPasswordVisible ? 'Text' : 'Password'"
+            id="password"
+            [(ngModel)]="user.password"
+            (input)="clearError('password')"
+            class="client-info mt-3"
+            (keydown.enter)="onLogin()"
+          />
+
+          <label for="password">Password *</label>
+        </div>
+        <ui5-icon
+          id="password"
+          slot="icon"
+          name="{{ isPasswordVisible ? 'hide' : 'show' }}"
+          class="cursor-pointer password-icon"
+          title="{{ isPasswordVisible ? 'Hide Password' : 'Show Password' }}"
+          (click)="togglePasswordVisibility()"
+        ></ui5-icon>
+      </div>
+
+      <div class="remember">
+        <input
+          type="checkbox"
+          id="rememberMe"
+          class="cursor-pointer"
+          [(ngModel)]="rememberMe"
+        />
+        <span class="ms-2">Remember Me</span>
+      </div>
+
+      <ui5-button
+        design="Emphasized"
+        class="client-info login-button mt-0"
+        (click)="onLogin()"
+        [disabled]="loading"
+      >
+        <ng-container *ngIf="!loading">Login</ng-container>
+
+        <ui5-icon
+          name="co"
+          class="animate-spin text-white"
+          *ngIf="loading"
+        ></ui5-icon>
+      </ui5-button>
+
+      <div class="d-flex justify-center pb-3">
+        <ui5-message-strip
+          class="message-strip"
+          design="ColorSet2"
+          *ngIf="errorMessage"
+          (click)="errorMessage = ''"
+        >
+          <ui5-icon slot="icon" name="message-information"> </ui5-icon>
+          {{ errorMessage }}
+        </ui5-message-strip>
+      </div>
+    </div>
+  </div>
+</div>
+<span class="copy-right">
+  Designed by
+  <a href="https://hybri.tech" target="_blank" class="hover:underline"
+    >Hybritech Innovations</a
+  >
+  Ⓒ {{ currentYear }}. All rights reserved.
+</span>

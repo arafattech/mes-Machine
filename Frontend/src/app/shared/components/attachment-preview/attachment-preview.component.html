@@ -1,0 +1,150 @@
+<ui5-dialog [open]="Open" id="dialog" headerText="Attachments" i18n-text (before-close)="CloseDialog()">
+  <div class="grid gap-2 grid-cols-4">
+    <div class="col-span-1">
+      <ui5-card class=" ">
+        <div
+          slot="header"
+          class="flex justify-between items-center p-2.5 border-b border-gray-200 sticky top-0 bg-white"
+        >
+          <div class="text-base font-bold">
+            <span>{{ documentTitle }} ({{ filesCount }})</span>
+          </div>
+        </div>
+        <div class="ovaerflow-y-scroll">
+          <ui5-busy-indicator
+            [active]="isLoading"
+            class="w-full h-full"
+            [delay]="0"
+          >
+            <ng-container *ngIf="files.length > 0; else noList">
+              <ui5-list
+                growing="Scroll"
+                class="h-[70vh] list-border-bottom"
+                mode="Single"
+                (itemClick)="selectFile($event)"
+              >
+                <ui5-upload-collection-item
+                  *ngFor="let file of files"
+                  [fileName]="file.file_name"
+                  [id]="file.id"
+                  [text]="file.mime_type"
+                  [hideDeleteButton]="true"
+                  [selected]="file.path === selectedFile?.path"
+                  upload-state="Complete"
+                  class="border-b border-gray-400"
+                >
+                  <div>{{ uploadedOn }} {{ file.getFormattedDate() }}</div>
+                  {{ fileSize }}: {{ file.getFileSizeInKB() }}
+                  <ui5-icon
+                    name="attachment-photo"
+                    class="file-icon text-blue-600"
+                    slot="thumbnail"
+                    *ngIf="file.checkFileType() === 'image'"
+                  ></ui5-icon>
+                  <ui5-icon
+                    name="doc-attachment"
+                    class="file-icon text-blue-600"
+                    slot="thumbnail"
+                    *ngIf="file.checkFileType() === 'document'"
+                  ></ui5-icon>
+                  <ui5-icon
+                    name="pdf-attachment"
+                    class="file-icon text-blue-600"
+                    slot="thumbnail"
+                    *ngIf="file.checkFileType() === 'pdf'"
+                  ></ui5-icon>
+                  <ui5-icon
+                    name="excel-attachment"
+                    class="file-icon text-blue-600"
+                    slot="thumbnail"
+                    *ngIf="file.checkFileType() === 'excel'"
+                  ></ui5-icon>
+                  <ui5-icon
+                    name="ppt-attachment"
+                    class="file-icon text-blue-600"
+                    slot="thumbnail"
+                    *ngIf="file.checkFileType() === 'powerpoint'"
+                  ></ui5-icon>
+                  <ui5-icon
+                    name="document-text"
+                    class="file-icon text-blue-600"
+                    slot="thumbnail"
+                    *ngIf="file.checkFileType() === 'text'"
+                  ></ui5-icon>
+                  <ui5-icon
+                    name="email"
+                    class="file-icon text-blue-600"
+                    slot="thumbnail"
+                    *ngIf="file.checkFileType() === 'message'"
+                  ></ui5-icon>
+                  <ui5-icon
+                    name="document"
+                    class="file-icon text-blue-600"
+                    slot="thumbnail"
+                    *ngIf="file.checkFileType() === null"
+                  ></ui5-icon>
+                </ui5-upload-collection-item>
+              </ui5-list>
+            </ng-container>
+          </ui5-busy-indicator>
+          <ng-template #noList>
+            <ui5-illustrated-message
+              name="NoActivities"
+              class="w-full h-full"
+            >
+              <ui5-title slot="title" level="H5" 
+              i18n>NO ATTACHMENTS FOUND
+              </ui5-title>
+              <div slot="subtitle" i18n>
+                There are no attachments to display.
+              </div>
+            </ui5-illustrated-message>
+          </ng-template>
+        </div>
+      </ui5-card>
+    </div>
+    <div class="col-span-3">
+      <ui5-card>
+        <div
+          slot="header"
+          class="flex justify-between items-center p-2.5 border-b border-gray-200 sticky top-0 bg-white"
+        >
+          <div class="text-base font-bold">
+            <span i18n>Preview</span>
+          </div>
+        </div>
+        <div
+          class="h-[70vh] flex justify-center items-center overflow-hidden rounded-lg"
+        >
+          <ng-container *ngIf="viewerUrl; else noFileSelected">
+            <!-- <ng-container > -->
+            @if (isImage) {
+            <img [src]="viewerUrl" class="max-h-[98%] max-w-[98%] rounded-xl" />
+            }@else {
+            <ngx-doc-viewer
+              [url]="viewerUrl"
+              viewer="google"
+              style="width: 98%; height: 98%"
+            ></ngx-doc-viewer>
+            }
+          
+          </ng-container>
+          <ng-template #noFileSelected>
+            <ui5-illustrated-message name="TntUnableToLoad">
+              <ui5-title slot="title" level="H5" 
+              i18n>Selete A File To Preview</ui5-title
+              >
+            </ui5-illustrated-message>
+          </ng-template>
+        </div>
+      </ui5-card>
+    </div>
+  </div>
+  <ui5-toolbar slot="footer">
+    <ui5-toolbar-button
+      design="Transparent"
+      (click)="CloseDialog()"
+      text="Close"
+    ></ui5-toolbar-button>
+  </ui5-toolbar>
+</ui5-dialog>

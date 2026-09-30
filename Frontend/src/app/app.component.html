@@ -1,0 +1,7 @@
+<app-layout *ngIf="isLoggedIn && !permissionsLoaded">
+	<router-outlet></router-outlet>
+</app-layout>
+
+<app-auth-layout *ngIf="!isLoggedIn">
+	<router-outlet></router-outlet>
+</app-auth-layout>

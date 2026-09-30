@@ -1,0 +1,151 @@
+<div class="tool-layout " [dir]="selectedDiction"
+  [ngClass]="{ 'ui5-content-density-compact': selectedDensityCode === 'Compact' }">
+  <!-- header -->
+  <input type="text" name="username" style="display: none" />
+  <input type="password" name="password" style="display: none" />
+  <ui5-bar design="Header">
+    <ui5-button *ngIf="!isDashboardRoute" data-ui5-compact-size design="Transparent" icon="menu" slot="startContent"
+      id="SettingsNav" (click)="toggleSidenav()" class="ms-3 nav_button"></ui5-button>
+
+    <a *ngIf="appLogo" href="/" slot="startContent" (click)="onLoad($event)">
+      <img class="logo" [src]="appLogo" alt="Company logo" />
+    </a>
+
+    <ui5-label id="basic-label" class="hidden lg:block"> {{ logUserInfo.name }} </ui5-label>
+
+    <div class="hidden lg:flex items-center gap-3 mx-3" slot="endContent"
+      [ngClass]="isDarkTheme() ? 'text-white' : 'text-black'">
+
+      <ui5-icon name="date-time"></ui5-icon>
+      <span class="text-sm font-medium">{{ currentDateTime | date: 'dd MMM yyyy - hh:mm:ss a' }}</span>
+
+      <div *ngIf="currentShift" class="flex items-center gap-1.5 text-sm font-medium">
+        <span class="w-2.5 h-2.5 rounded-full" [style.backgroundColor]="currentShift.color || '#10b981'"></span>
+        <span>{{ currentShift.name }}</span>
+      </div>
+    </div>
+
+    <app-language-switch slot="endContent"> </app-language-switch>
+
+    <button type="button" class="btn position-relative me-3" slot="endContent" id="SettingsBtn">
+      <ui5-button icon="action-settings" tooltip="Settings" design="Default" (click)="settingsOpen()">
+      </ui5-button>
+    </button>
+
+    <button *ngIf="hasNotificationAccess" type="button" class="btn position-relative me-3" slot="endContent" id="log">
+      <ui5-button icon="bell" tooltip="Notification" design="Default" (click)="isNotification()">
+      </ui5-button>
+      <span *ngIf="notificationCountNumber > 0" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger p-1 mt-1 me-1">
+        {{ notificationCountNumber }}
+      </span>
+    </button>
+
+    <ng-container slot="endContent" *ngIf="userImg && userImg !== ''; else noImage">
+      <img [src]="userImg" slot="endContent" id="img" alt="Employee Image" (click)="popover.open = true"
+        class="object-cover rounded-full border-2 border-gray-200 cursor-pointer" />
+    </ng-container>
+
+    <ng-template #noImage>
+      <ui5-avatar [initials]="getInitials(logUserInfo.name)" color-scheme="Accent5" initials="employee"
+        slot="endContent" size="XS" id="img" interactive (click)="popover.open = true">
+      </ui5-avatar>
+    </ng-template>
+  </ui5-bar>
+
+  <ui5-popover #popover="ui5Popover" opener="img" placement="Bottom"
+    [ngClass]="{ 'ui5-content-density-compact': selectedDensityCode === 'Compact' }">
+    <div class="d-flex justify-content-center pt-2">
+      <ng-container slot="endContent" *ngIf="userImg && userImg !== ''; else noImage">
+        <img [src]="userImg" slot="endContent" id="img" alt="Employee Image" (click)="popover.open = true"
+          class="object-cover rounded-full border-2 border-gray-200 cursor-pointer" />
+      </ng-container>
+
+      <ng-template #noImage>
+        <ui5-avatar [initials]="getInitials(logUserInfo.name)" color-scheme="Accent5" size="L" interactive>
+        </ui5-avatar>
+      </ng-template>
+    </div>
+    <div class="d-flex justify-content-center">
+      <ui5-title level="H5" class="mt-3">{{ logUserInfo.name }} </ui5-title>
+    </div>
+
+    <ui5-label for="emailInput" class="m-auto ms-1 d-block text-center mb-2">{{ logUserInfo.email }}
+    </ui5-label>
+
+    <div slot="footer" class="w-100">
+      <div class="w-100 d-flex justify-content-end">
+        <ui5-button style="float: inline-end" icon="sap-icon://log" design="Transparent"
+          (click)="isLogout = true">Logout</ui5-button>
+      </div>
+    </div>
+  </ui5-popover>
+
+  <!-- content -->
+  <div class="content" [ngStyle]="{
+      'background-color': isDarkTheme()
+        ? 'rgb(54, 50, 49)'
+        : 'rgb(233, 233, 233)'
+    }" [ngClass]="isMcoRoute() ? 'overflow-auto' : 'overflow-hidden'">
+    <ng-content></ng-content>
+  </div>
+</div>
+
+<ui5-dialog [open]="isLogout" [attr.header-text]="localization.Warning" state="Critical" data-ui5-compact-size>
+  <p *ngIf="!loading" i18n>Are you sure you want to logout?</p>
+  <div class="d-flex justify-content-center" *ngIf="loading">
+    <ui5-busy-indicator [active]="loading" size="M" class="m-auto" delay="0"></ui5-busy-indicator>
+  </div>
+
+  <div slot="footer" class="d-flex justify-content-end align-items-center w-100">
+    <ui5-button (click)="onLogout()" design="Emphasized" [disabled]="loading">{{
+      localization.Logout
+      }}</ui5-button>
+    <ui5-button (click)="isLogout = false" class="ms-2" [disabled]="loading">{{
+      localization.Cancel
+      }}</ui5-button>
+  </div>
+</ui5-dialog>
+
+<app-notification [isOpen]="IsOpenNotification"
+  [ngClass]="{ 'ui5-content-density-compact': selectedDensityCode === 'Compact' }"
+  (notificationCount)="handleNotificationCount($event)"></app-notification>
+
+<ui5-popover [open]="settingOpen" opener="SettingsBtn" placement="Bottom" (close)="onCloseSettingPopover()"
+  [ngClass]="{ 'ui5-content-density-compact': selectedDensityCode === 'Compact' }">
+  <ui5-list selection-mode="Single" (selectionChange)="onThemeMenuItemSelect($event)">
+    <ui5-li-group header-text="Theme">
+      <ui5-li *ngFor="let t of themes" [value]="t.value" [id]="t.value" [selected]="t.value === selectedTheme"
+        icon="{{ t.icon }}">
+        {{ t.label }}
+      </ui5-li>
+    </ui5-li-group>
+  </ui5-list>
+
+  <ui5-list selection-mode="Single" (selectionChange)="onDensityMenuItemSelect($event)" class="">
+    <ui5-li-group header-text="Content Density">
+      <ui5-li *ngFor="let t of densityList" [value]="t.name" [id]="t.name" icon="{{ t.icon }}"
+        [selected]="t.name === selectedDensityCode">
+        {{ t.name }}
+      </ui5-li>
+    </ui5-li-group>
+  </ui5-list>
+
+  <div class="flex items-center justify-between px-4 py-2 gap-3" *ngIf="hasNotificationAccess">
+    <ui5-label>Alert Notifications</ui5-label>
+    <ui5-switch [checked]="alertEnabled" (change)="onAlertToggle($event)"></ui5-switch>
+  </div>
+
+  <ui5-list selection-mode="Single" (selectionChange)="onDirectionMenuItemSelect($event)" class="hidden">
+    <ui5-li-group header-text="Direction">
+      <ui5-li id="LTR" icon="arrow-left" [selected]="selectedDiction === 'LTR'">
+        LTR
+      </ui5-li>
+      <ui5-li id="RTL" icon="arrow-right" [selected]="selectedDiction === 'RTL'">
+        RTL
+      </ui5-li>
+    </ui5-li-group>
+  </ui5-list>
+
+</ui5-popover>
+
+<app-toaster></app-toaster>

@@ -1,0 +1,148 @@
+<div class="h-full w-full p-1 box-border">
+  <ui5-illustrated-message
+    *ngIf="!workOrderId"
+    name="NoData"
+    class="w-full h-full flex items-center justify-center"
+  >
+    <ui5-title slot="title" level="H6" i18n>No active work order</ui5-title>
+    <div slot="subtitle" i18n>This machine has no work order selected.</div>
+  </ui5-illustrated-message>
+
+  <ui5-busy-indicator
+    *ngIf="workOrderId"
+    [active]="loading"
+    [delay]="0"
+    size="M"
+    class="block w-full"
+  >
+    <div class="w-full">
+      <ng-container *ngIf="workOrder as wo">
+        <div class="flex flex-col gap-3 w-full">
+          <!-- Compact WO context header — identity/progress row, plus this machine's own
+               OEE for this WO as a second row (kept in the same card, not a separate box,
+               since both describe "this machine, this WO" at a glance). -->
+          <div
+            class="rounded-xl p-4 flex flex-col gap-3 bg-[var(--sapTile_Background,#fff)] border border-[var(--sapTile_BorderColor,#e2e8f0)] shadow-sm"
+          >
+            <div class="flex flex-wrap items-center justify-between gap-3">
+              <div class="min-w-0 flex items-center gap-3">
+                <div
+                  class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[var(--sapInformationBackground,#e8f4fe)] border border-[var(--sapInformationBorderColor,#b2d7ff)]"
+                >
+                  <ui5-icon name="document" [style.color]="'var(--sapInformationColor, #0a6ed1)'"></ui5-icon>
+                </div>
+                <div class="min-w-0">
+                  <div class="flex items-center gap-2 flex-wrap">
+                    <h2 class="text-sm font-bold tracking-tight text-[var(--sapTextColor,#1d2d3e)] truncate">
+                      {{ wo.customId || "WO-" + wo.id }}
+                    </h2>
+                    <span
+                      *ngIf="wo.status"
+                      class="rounded-full px-2 py-0.5 text-[10px] font-semibold shrink-0 border border-black/5"
+                      [style.background]="getWorkOrderStatusTint(wo.status)"
+                      [style.color]="getWorkOrderStatusColor(wo.status)"
+                    >
+                      {{ getWorkOrderStatusLabel(wo.status) }}
+                    </span>
+                  </div>
+                  <p class="text-[var(--sapContent_LabelColor,#64748b)] text-xs font-medium truncate">
+                    {{ wo.productName }}
+                  </p>
+                </div>
+              </div>
+
+
+              <div *ngIf="woTotals as totals" class="w-full sm:w-64 shrink-0">
+                <div class="flex items-center justify-between gap-2 mb-1">
+                  <span class="text-[10px] uppercase tracking-wider font-bold text-[var(--sapContent_LabelColor,#94a3b8)]" i18n>
+                    Overall Progress
+                  </span>
+                  <span class="text-xs font-semibold tabular-nums text-[var(--sapTextColor,#334155)]">
+                    {{ totals.goodCount }} / {{ totals.quantityTarget ?? "—" }}
+                    <span *ngIf="totals.percentComplete !== null">({{ totals.percentComplete }}%)</span>
+                  </span>
+                </div>
+                <ui5-progress-indicator
+                  [value]="totals.percentComplete ?? 0"
+                  [valueState]="(totals.percentComplete ?? 0) >= 100 ? 'Positive' : 'None'"
+                  class="w-full"
+                ></ui5-progress-indicator>
+              </div>
+            </div>
+
+            <!-- This machine's production totals + OEE for this work order -->
+            <div class="grid grid-cols-1 sm:grid-cols-[4fr_6fr] gap-3 pt-3 border-t border-[var(--sapTile_BorderColor,#f1f5f9)]">
+              <div class="grid grid-cols-3 gap-3 rounded-lg p-3 bg-[var(--sapGroup_ContentBackground,#f8fafc)] border border-[var(--sapTile_BorderColor,#e2e8f0)]">
+                <div class="text-center rounded-2xl p-3 bg-[var(--sapTile_Background,#fff)] border border-[var(--sapTile_BorderColor,#d9d9d9)]">
+                  <div class="text-[10px] font-bold uppercase text-[var(--sapContent_LabelColor,#64748b)]" i18n>Good</div>
+                  <div class="text-lg font-bold tabular-nums text-[var(--sapPositiveColor,#059669)]">{{ machineTotals.goodCount }} kg</div>
+                </div>
+                <div class="text-center rounded-2xl p-3 bg-[var(--sapTile_Background,#fff)] border border-[var(--sapTile_BorderColor,#d9d9d9)]">
+                  <div class="text-[10px] font-bold uppercase text-[var(--sapContent_LabelColor,#64748b)]" i18n>Total Wastage</div>
+                  <div class="text-lg font-bold tabular-nums text-[var(--sapNegativeColor,#dc2626)]">{{ machineWastageTotal | number: '1.0-2' }} kg</div>
+                </div>
+                <div class="text-center rounded-2xl p-3 bg-[var(--sapTile_Background,#fff)] border border-[var(--sapTile_BorderColor,#d9d9d9)]">
+                  <div class="text-[10px] font-bold uppercase text-[var(--sapContent_LabelColor,#64748b)]" i18n>Total</div>
+                  <div class="text-lg font-bold tabular-nums text-[var(--sapTextColor,#1d2d3e)]">{{ grandTotalKg | number: '1.0-2' }} kg</div>
+                </div>
+              </div>
+              <div
+                *ngIf="oeeMetrics.length"
+                class="grid grid-cols-4 gap-3 rounded-lg p-3 bg-[var(--sapGroup_ContentBackground,#f8fafc)] border border-[var(--sapTile_BorderColor,#e2e8f0)]"
+              >
+                <app-quality-efficiency
+                  *ngFor="let m of oeeMetrics; trackBy: trackByMetricLabel"
+                  [metric]="m"
+                  variant="compact"
+                ></app-quality-efficiency>
+              </div>
+            </div>
+          </div>
+
+          <!-- This machine's production / wastage — 70/30 side by side -->
+          <div class="grid grid-cols-1 md:grid-cols-[6fr_4fr] gap-3">
+              <app-ag-grid-table
+                class="block w-full"
+                gridId="machine-work-order-production"
+                [columns]="productionColumns"
+                [toolbarConfig]="gridToolbarProductionConfig"
+                [dataSource]="productionDataSource"
+                [displayConfig]="gridDisplayproductionConfig"
+                [enableRowClick]="false"
+                [showIllustratedMessage]="true"
+                noRowsMessage="This machine hasn't logged production against this work order"
+                i18n-noRowsMessage
+              ></app-ag-grid-table>
+
+              <!-- `w-full` on this wrapper is load-bearing: ui5-busy-indicator's shadow root
+                   is `display:flex; flex-direction:row` with no stretch on the main axis, so
+                   a plain block child shrinks to its content width instead of filling the
+                   card (confirmed live — collapses to ~85px without it). -->
+              <ui5-busy-indicator [active]="wastageLoading" [delay]="0" size="M" class="block w-full">
+                  <app-ag-grid-table
+                    class="block w-full"
+                    gridId="machine-work-order-wastage"
+                    [columns]="machineWastageColumns"
+                    [toolbarConfig]="gridToolbarConfig"
+                    [dataSource]="machineWastageDataSource"
+                    [displayConfig]="gridDisplayConfig"
+                    [enableRowClick]="false"
+                    [showIllustratedMessage]="true"
+                    noRowsMessage="No wastage logged against this work order yet"
+                    i18n-noRowsMessage
+                  ></app-ag-grid-table>
+              </ui5-busy-indicator>
+            </div>
+          </div>
+      </ng-container>
+
+      <ui5-illustrated-message
+        *ngIf="!loading && !workOrder"
+        name="UnableToLoad"
+        class="w-full h-full flex items-center justify-center min-h-[200px]"
+      >
+        <ui5-title slot="title" level="H6" i18n>Work order details unavailable</ui5-title>
+      </ui5-illustrated-message>
+    </div>
+  </ui5-busy-indicator>
+</div>

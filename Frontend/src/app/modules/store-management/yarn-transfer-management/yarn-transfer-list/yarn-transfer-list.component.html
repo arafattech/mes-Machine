@@ -1,0 +1,37 @@
+<div class="h-[calc(100vh-55px)]">
+  <app-ag-grid-table
+    #agGridRef
+    [columns]="columns"
+    [dataSource]="dataSource"
+    [toolbarConfig]="toolbarConfig"
+    selectionMode="Single"
+    [isBase]="true"
+    [gridId]="gridId"
+    [showAction]="true"
+    [showInfoButton]="false"
+    [showEditButton]="false"
+    [showDeleteButton]="false"
+    [customActionButtons]="customActionButtons"
+    [enableRowClick]="true"
+    (newButtonClick)="newTransfer()"
+    (infoClick)="openView($event)"
+    (editClick)="openEdit($event)"
+    (deleteClick)="deleteClick($event)"
+    (rowClick)="openView($event)"
+    [showIllustratedMessage]="true"
+    IllustratedName="NoData"
+    IllustratedTitle="No Yarn Transfers Found"
+    IllustratedSubtitle="Submit a GTN for a packed lot to see it here."
+  ></app-ag-grid-table>
+</div>
+
+<app-delete-entity
+  [IsDelete]="IsDelete"
+  [IsOdata]="true"
+  (isSuccess)="processData()"
+></app-delete-entity>
+
+<app-yarn-advice-form
+  #transferFormRef
+  (RefreshTable)="processData()"
+></app-yarn-advice-form>

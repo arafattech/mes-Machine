@@ -1,0 +1,204 @@
+<div
+  class="panel rounded-2xl shadow-sm h-full flex flex-col justify-between"
+  [ngClass]="compact ? 'p-3 sm:p-4' : 'p-5 sm:p-6'"
+>
+  <!-- Header -->
+  <div
+    class="flex items-center justify-between"
+    [ngClass]="compact ? 'mb-3' : 'mb-5'"
+  >
+    <h2
+      class="panel-title font-semibold"
+      [ngClass]="compact ? 'text-base' : 'text-lg'"
+    >
+      Production Overview
+    </h2>
+    <p
+      class="inline-flex items-center gap-2 rounded-lg text-sm"
+      [ngClass]="compact ? 'px-2.5 py-1' : 'px-3 py-1.5'"
+    >
+      <span>{{ periodLabel }}</span>
+    </p>
+  </div>
+
+  <!-- KPI Grid -->
+  <div
+    class="grid grid-cols-1 sm:grid-cols-2 flex-1 items-stretch"
+    [ngClass]="compact ? 'gap-3' : 'gap-4'"
+  >
+    <!-- Production Target -->
+    <div
+      class="tile-target rounded-xl flex items-center h-full"
+      [ngClass]="compact ? 'p-3' : 'p-4'"
+    >
+      <div class="flex items-start gap-3 w-full">
+        <div
+          class="tile-icon-circle shrink-0 rounded-full"
+          [ngClass]="compact ? 'p-1.5' : 'p-2'"
+        >
+          <!-- target icon -->
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            [ngClass]="compact ? 'w-4 h-4' : 'w-5 h-5'"
+            class="icon-target"
+          >
+            <circle cx="12" cy="12" r="9" stroke-width="1.5" />
+            <circle cx="12" cy="12" r="3" stroke-width="1.5" />
+            <path d="M12 3v3M21 12h-3M12 21v-3M3 12h3" stroke-width="1.5" />
+          </svg>
+        </div>
+        <div class="flex-1">
+          <p class="tile-label" [ngClass]="compact ? 'text-xs' : 'text-sm'">
+            Production Target
+          </p>
+          <p
+            class="tile-value font-semibold"
+            [ngClass]="compact ? 'text-xl' : 'text-2xl'"
+          >
+            {{ productionTarget | number }}
+            <span
+              class="tile-label"
+              [ngClass]="compact ? 'text-sm' : 'text-base'"
+              >{{ unit }}</span
+            >
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Machine Status -->
+    <div
+      class="tile-good rounded-xl flex items-center h-full"
+      [ngClass]="compact ? 'p-3' : 'p-4'"
+    >
+      <div class="flex items-start gap-3 w-full">
+        <div
+          class="tile-icon-circle shrink-0 rounded-full"
+          [ngClass]="compact ? 'p-1.5' : 'p-2'"
+        >
+          <!-- gear icon -->
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            [ngClass]="compact ? 'w-4 h-4' : 'w-5 h-5'"
+            class="icon-good"
+          >
+            <path stroke-width="1.5" d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" />
+            <path
+              stroke-width="1.5"
+              d="M19.4 15a7.97 7.97 0 0 0 .1-2 7.97 7.97 0 0 0-.1-2l2.1-1.6a.75.75 0 0 0 .18-.96l-2-3.46a.75.75 0 0 0-.9-.33l-2.48 1a7.98 7.98 0 0 0-3.46-2l-.38-2.64A.75.75 0 0 0 10.72 0H7.28a.75.75 0 0 0-.74.64l-.38 2.64a7.98 7.98 0 0 0-3.46 2l-2.48-1a.75.75 0 0 0-.9.33l-2 3.46a.75.75 0 0 0 .18.96L2.1 9a7.97 7.97 0 0 0-.1 2c0 .67.04 1.34.1 2l-2.1 1.6a.75.75 0 0 0-.18.96l2 3.46c.2.35.63.49.99.33l2.48-1a7.98 7.98 0 0 0 3.46 2l.38 2.64c.05.37.37.64.74.64h3.44c.37 0 .69-.27.74-.64l.38-2.64a7.98 7.98 0 0 0 3.46-2l2.48 1c.36.16.79.02.99-.33l2-3.46a.75.75 0 0 0-.18-.96L19.4 15Z"
+            />
+          </svg>
+        </div>
+        <div class="flex-1">
+          <p class="tile-label" [ngClass]="compact ? 'text-xs' : 'text-sm'">
+            Good Units
+          </p>
+          <p
+            class="tile-value font-semibold"
+            [ngClass]="compact ? 'text-xl' : 'text-2xl'"
+          >
+            {{ machineOk }}
+            <span
+              class="tile-label"
+              [ngClass]="compact ? 'text-sm' : 'text-base'"
+              >/ out of {{ machineTotal }}</span
+            >
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Production Achieved -->
+    <div
+      class="tile-achieved rounded-xl flex items-center h-full"
+      [ngClass]="compact ? 'p-3' : 'p-4'"
+    >
+      <div class="flex items-start gap-3 w-full">
+        <div
+          class="tile-icon-circle shrink-0 rounded-full"
+          [ngClass]="compact ? 'p-1.5' : 'p-2'"
+        >
+          <!-- medal icon -->
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            [ngClass]="compact ? 'w-4 h-4' : 'w-5 h-5'"
+            class="icon-achieved"
+          >
+            <path stroke-width="1.5" d="M6 3h12v4a6 6 0 1 1-12 0V3Z" />
+            <path
+              stroke-width="1.5"
+              d="M18 5h2a2 2 0 0 1 0 4h-2M6 5H4a2 2 0 1 0 0 4h2"
+            />
+            <path stroke-width="1.5" d="M9 17h6M8 21h8" />
+          </svg>
+        </div>
+        <div class="flex-1">
+          <p class="tile-label" [ngClass]="compact ? 'text-xs' : 'text-sm'">
+            Production Achieved
+          </p>
+          <p
+            class="tile-value font-semibold"
+            [ngClass]="compact ? 'text-xl' : 'text-2xl'"
+          >
+            {{ productionAchieved | number }}
+            <span
+              class="tile-label"
+              [ngClass]="compact ? 'text-sm' : 'text-base'"
+              >{{ unit }}</span
+            >
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Wastage -->
+    <div
+      class="tile-wastage rounded-xl flex items-center h-full"
+      [ngClass]="compact ? 'p-3' : 'p-4'"
+    >
+      <div class="flex items-start gap-3 w-full">
+        <div
+          class="tile-icon-circle shrink-0 rounded-full"
+          [ngClass]="compact ? 'p-1.5' : 'p-2'"
+        >
+          <!-- trash icon -->
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            [ngClass]="compact ? 'w-4 h-4' : 'w-5 h-5'"
+            class="icon-wastage"
+          >
+            <path
+              stroke-width="1.5"
+              d="M3 6h18M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2M6 6l1 14a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-14"
+            />
+            <path stroke-width="1.5" d="M10 10v7M14 10v7" />
+          </svg>
+        </div>
+        <div class="flex-1">
+          <p class="tile-label" [ngClass]="compact ? 'text-xs' : 'text-sm'">
+            Wastage
+          </p>
+          <p
+            class="tile-value font-semibold"
+            [ngClass]="compact ? 'text-xl' : 'text-2xl'"
+          >
+            {{ wastage | number }}
+            <span
+              class="tile-label"
+              [ngClass]="compact ? 'text-sm' : 'text-base'"
+              >{{ unit }}</span
+            >
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

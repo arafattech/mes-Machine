@@ -1,0 +1,113 @@
+<div class="h-[calc(100vh-55px)]">
+  <app-ag-grid-table
+    #agGridRef
+    [dataSource]="dataSource"
+    [toolbarConfig]="toolbarConfig"
+    [columns]="columns"
+    [isBase]="true"
+    gridId="hr-tax-rule-management"
+    [showAction]="true"
+    [showEditButton]="rolePermissionService.hasPermission(permissions.HR_TAX_RULE_EDIT)"
+    [showDeleteButton]="rolePermissionService.hasPermission(permissions.HR_TAX_RULE_DELETE)"
+    selectionMode="Single"
+    [showIllustratedMessage]="true"
+    IllustratedName="NoData"
+    IllustratedTitle="No Tax Rules Found"
+    i18n-IllustratedTitle
+    (newButtonClick)="newTaxRule()"
+    (editClick)="editTaxRule($event)"
+    (deleteClick)="deleteClick($event.id)"
+  ></app-ag-grid-table>
+</div>
+
+<app-delete-entity [IsDelete]="IsDelete" (isSuccess)="processData()">
+</app-delete-entity>
+
+<ui5-dialog
+  class="ui5-xl-without-tab"
+  [open]="open"
+  [attr.header-text]="saveMode === 'POST' ? localization.New : localization.Edit"
+  (before-close)="closeDialog()"
+>
+  <ui5-busy-indicator class="w-full" [delay]="0" [active]="loading" size="M">
+    <section class="w-full">
+      <div class="flex gap-2 mb-2">
+        <div class="flex flex-col">
+          <ui5-label show-colon>{{ localization.Active }}</ui5-label>
+          <ui5-switch checked [(ngModel)]="taxRule.is_active"></ui5-switch>
+        </div>
+      </div>
+
+      <ui5-label show-colon required i18n>Name</ui5-label>
+      <ui5-input
+        class="w-100"
+        [(ngModel)]="taxRule.name"
+        placeholder="Enter tax rule name"
+        i18n-placeholder
+        (input)="checkValidation($event, 'name')"
+        [attr.value-state]="valueStateOptions.name"
+        type="Text"
+      >
+        <div slot="valueStateMessage">{{ validationMessage }}</div>
+      </ui5-input>
+
+      <div class="flex flex-col gap-2 mt-2">
+        <div class="flex flex-col">
+          <ui5-label show-colon i18n>Range From</ui5-label>
+          <ui5-input class="w-full" type="Number" [(ngModel)]="taxRule.salary_from"></ui5-input>
+        </div>
+        <div class="flex flex-col">
+          <ui5-label show-colon i18n>Upto</ui5-label>
+          <ui5-input class="w-full" type="Number" [(ngModel)]="taxRule.salary_to"></ui5-input>
+        </div>
+      </div>
+
+      <div class="flex flex-col mt-2">
+        <ui5-label show-colon i18n>Percentage</ui5-label>
+        <ui5-switch [(ngModel)]="taxRule.is_percentage"></ui5-switch>
+      </div>
+
+      <div class="grid grid-cols-2 gap-x-4 mt-2">
+        <div class="flex flex-col" *ngIf="taxRule.is_percentage">
+          <ui5-label show-colon i18n>Tax Rate (%)</ui5-label>
+          <ui5-input class="w-full" type="Number" [(ngModel)]="taxRule.tax_rate"></ui5-input>
+        </div>
+        <div class="flex flex-col" *ngIf="!taxRule.is_percentage">
+          <ui5-label show-colon i18n>Fixed Amount</ui5-label>
+          <ui5-input class="w-full" type="Number" [(ngModel)]="taxRule.fixed_amount"></ui5-input>
+        </div>
+      </div>
+
+      <div class="flex flex-col gap-2 mt-2">
+        <div class="flex flex-col">
+          <ui5-label show-colon required i18n>Effective From</ui5-label>
+          <ui5-date-picker
+            class="w-full"
+            [(ngModel)]="taxRule.effective_from"
+            [attr.value-state]="valueStateOptions.effective_from"
+            (change)="checkValidation($event, 'effective_from')"
+          ></ui5-date-picker>
+        </div>
+        <div class="flex flex-col">
+          <ui5-label show-colon i18n>Upto</ui5-label>
+          <ui5-date-picker class="w-full" [(ngModel)]="taxRule.effective_to"></ui5-date-picker>
+        </div>
+      </div>
+    </section>
+  </ui5-busy-indicator>
+
+  <ui5-toolbar slot="footer">
+    <ui5-toolbar-button
+      design="Emphasized"
+      (click)="saveTaxRule()"
+      [disabled]="loading"
+      text="{{ localization.Submit }}"
+    ></ui5-toolbar-button>
+    <ui5-toolbar-button
+      design="Transparent"
+      [disabled]="loading"
+      (click)="closeDialog()"
+      text="{{ localization.Cancel }}"
+    ></ui5-toolbar-button>
+  </ui5-toolbar>
+</ui5-dialog>

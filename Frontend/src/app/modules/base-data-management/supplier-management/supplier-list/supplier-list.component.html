@@ -1,0 +1,36 @@
+<div class="h-[calc(100vh-50px)] overflow-hidden">
+  <app-ag-grid-table
+    #agGridRef
+    [columns]="columns"
+    [dataSource]="dataSource"
+    [toolbarConfig]="toolbarConfig"
+    selectionMode="Single"
+    gridId="base-data-supplier-list"
+    [isBase]="true"
+    [showIllustratedMessage]="true"
+    IllustratedName="NoData"
+    IllustratedTitle="No Suppliers Found"
+    i18n-IllustratedTitle
+    (newButtonClick)="newSupplier()"
+    (cellEdited)="onCellEdited($event)"
+    (downloadButtonClick)="downloadButtonClick($event)"
+    (uploadButtonClick)="uploadButtonClick($event)"
+  ></app-ag-grid-table>
+</div>
+
+<app-supplier-form
+  #supplierForm
+  [saveMode]="saveMode"
+  (refreshTable)="onFormSaved($event)"
+></app-supplier-form>
+
+<app-delete-entity (isSuccess)="onDeleteSuccess()" [IsDelete]="IsDelete">
+</app-delete-entity>
+
+<excel-upload-download
+  [apiUrl]="'suppliers/import'"
+  [exportApiUrl]="'export/supplier'"
+  [IsInsertXls]="IsInsertXls"
+  [IsExportXls]="IsExportXls"
+  (isSuccessChange)="onFormSaved($event)"
+></excel-upload-download>

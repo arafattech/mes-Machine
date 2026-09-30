@@ -1,0 +1,15 @@
+.ui5-uci-progress-box.ui5-progress-indicator-root,
+.ui5-uci-progress-box.ui5-uci-progress-labels {
+    display: none !important;
+}
+
+ui5-upload-collection::-webkit-scrollbar {
+    width: 6px;
+    border-radius: 8px;
+    background: transparent;
+}
+
+ui5-upload-collection::-webkit-scrollbar-thumb {
+    background: #6b7280;
+    border-radius: 8px;
+}

@@ -1,0 +1,22 @@
+<div class="h-[calc(100vh-50px)] overflow-hidden">
+  <app-ag-grid-table
+    #agGridRef
+    [columns]="columns"
+    [dataSource]="dataSource"
+    [toolbarConfig]="toolbarConfig"
+    [displayConfig]="displayConfig"
+    gridId="reminder-list"
+    [enableRowClick]="false"
+    [segmentButtonItems]="segmentButtonItems"
+    (newButtonClick)="newItem()"
+    (segmentButtonChange)="segmentButtonChange($event)"
+  ></app-ag-grid-table>
+</div>
+
+<app-reminder-form
+  #reminderForm
+  [saveMode]="saveMode"
+  [selectedData]="selectedData"
+  [context]="context"
+  (saveEvent)="saveEvent()"
+></app-reminder-form>

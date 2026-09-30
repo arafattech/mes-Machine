@@ -1,0 +1,314 @@
+<ui5-bar>
+  <div slot="startContent" class="text-xl font-semibold" i18n>Roster Management</div>
+
+  <div slot="endContent" class="flex items-center space-x-4">
+    <app-server-dropdown *ngIf="selectedEmployeeView === RosterViewType.INDIVIDUAL" class="w-60 block"
+      url="Employees"
+      [searchFields]="['employee_no', 'first_name', 'last_name']"
+      [filterQuery]="'is_active eq true'"
+      [multiple]="true"
+      [selectedItems]="selectedEmployees"
+      placeholder="Select employee"
+      [labelFn]="employeeLabelFn"
+      (selectionListChange)="onEmployeeMultiSelectChange($event)"
+    ></app-server-dropdown>
+    <ui5-combobox class="w-40" #selectViewType [value]="selectedEmployeeView"
+      (selection-change)="onEmployeeViewChange($event)">
+      <ui5-cb-item *ngFor="let type of employeeviewtypes" [text]="type"></ui5-cb-item>
+    </ui5-combobox>
+    <ui5-combobox class="w-40" #monthSelect (selection-change)="onMonthChange($event)" placeholder="Select month"
+      [value]="selectedMonth.toString()">
+      <ui5-cb-item *ngFor="let month of months index as i" [value]="i.toString()" [text]="month">
+      </ui5-cb-item>
+    </ui5-combobox>
+    <div class="flex items-center justify-center space-x-2 text-sm font-medium" style="color: var(--sapContent_LabelColor)">
+      <ui5-button icon="navigation-left-arrow" design="Transparent" class="w-8 h-8"
+        (click)="previousWeek()"></ui5-button>
+
+      <div class="flex space-x-4 rounded-lg" style="background-color: var(--sapList_Background)">
+        <div class="flex flex-col items-center text-xs cursor-pointer p-1 rounded-md transition-colors"
+          *ngFor="let day of weekDates" (click)="selectDay(day)"
+          [style.color]="day.isToday ? 'var(--sapInformationColor)' : 'var(--sapContent_LabelColor)'"
+          [style.background-color]="day.isToday ? 'var(--sapInformationBackground)' : null">
+          <span>{{ day.dayName }}</span>
+          <span class="text-base">{{ day.date }}</span>
+        </div>
+      </div>
+
+      <ui5-button icon="navigation-right-arrow" design="Transparent" class="w-8 h-8" (click)="nextWeek()"></ui5-button>
+    </div>
+
+    <ui5-combobox placeholder="Select View Type" class="w-40" [value]="shiftviewtypes[0]" #shiftViewType
+      (selection-change)="onViewTypeChange($event)">
+      <ui5-cb-item *ngFor="let shiftype of shiftviewtypes" [text]="shiftype"></ui5-cb-item>
+    </ui5-combobox>
+    <ui5-button (click)="onresetRoster()" design="Transparent">{{ localization.Reset }}</ui5-button>
+    <ui5-button (click)="onExportRoster()" class="border" design="Transparent">{{ localization.Export }}</ui5-button>
+    <ui5-button *ngIf="permission.hasPermission(permissions.HR_ROSTER_CREATE)" design="Emphasized" icon="add" icon-end
+      (click)="onNewShiftPlanning()">{{ localization.New }}</ui5-button>
+  </div>
+</ui5-bar>
+<ui5-dialog [open]="showExportConfirm" [header-text]="localization.Confirm" state="Information"
+  (close)="closeExportConfirm()">
+  <div class="px-4 py-3 text-sm" style="color: var(--sapContent_LabelColor)" i18n>Are you sure you want to export the roster?</div>
+
+  <ui5-toolbar slot="footer">
+    <ui5-toolbar-button design="Transparent" text="{{ localization.Cancel }}" (click)="closeExportConfirm()">
+    </ui5-toolbar-button>
+
+    <ui5-toolbar-button design="Emphasized" text="{{ localization.Confirm }}" (click)="confirmExportRoster()">
+    </ui5-toolbar-button>
+  </ui5-toolbar>
+</ui5-dialog>
+
+<ui5-busy-indicator [delay]="0" class="w-full h-auto" [active]="isLoading">
+  <section #rosterScrollViewport class="h-[calc(100vh-90px)] w-full overflow-y-hidden p-3"
+    [ngClass]="ViewType === 'day' ? 'overflow-x-hidden' : 'overflow-x-auto'">
+    <div class="w-full flex gap-4">
+      <ui5-card *ngFor="let rosterData of rostersLists" subheading="{{ rosterData.date }}"
+        [ngClass]="ViewType === 'day' ? 'w-full max-w-full' : 'w-auto'">
+        <ui5-bar>
+          <div slot="startContent" class="text-sm">
+            {{ rosterData.day ?? "" }}
+          </div>
+          <ui5-button
+            *ngIf="!checkIfHasRoster(rosterData) && this.permission.hasPermission(permissions.HR_ROSTER_CREATE)"
+            (click)="onNewSingleRoster(rosterData.day)" design="Emphasized" slot="endContent" i18n>Create
+            Roster</ui5-button>
+
+          <ui5-button *ngIf="checkIfHasRoster(rosterData) && permission.hasPermission(permissions.HR_ROSTER_EDIT)"
+            icon="edit" design="Transparent" (click)="editRoster(rosterData)" design="Transparent" slot="endContent">
+          </ui5-button>
+        </ui5-bar>
+
+        <div class="px-2 py-2">
+          <div #shiftScrollContainer class="flex items-start gap-3"
+            [ngClass]="ViewType === 'day' ? 'max-w-full overflow-x-auto pb-2' : ''" cdkDropListGroup>
+            <ng-container *ngIf="checkIfHasRoster(rosterData) else noShiftData">
+              <div *ngFor="let shift of rosterData.shifts" [id]="shift.id"
+                class="w-[400px] rounded-xl shadow-lg p-4 flex-shrink-0 relative overflow-hidden h-[calc(100vh-190px)]"
+                [ngStyle]="theme.currentThemeStyle()">
+                <div class="mb-4 relative">
+                  <div class="flex justify-between items-start mb-3">
+                    <div>
+                      <div class="text-xl font-bold" [style.color]="shift.color">
+                        {{ shift.shift_name }} ({{ shift.employees.length }})
+                      </div>
+                      <span class="text-sm">
+                        {{ shift.groups?.length ? '(' + formatShiftGroups(shift) + ')' : '' }}
+                      </span>
+                      <span class="text-sm font-medium pt-2" style="color: var(--sapContent_LabelColor)">
+                        {{ shift.start_time | date: 'h:mm a' }} to {{
+                        shift.end_time | date: 'h:mm a' }}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div class="flex mt-2 mb-1 w-full relative items-center  overflow-hidden">
+
+                    <div
+                      class="absolute inset-y-0 right-0 z-30 flex gap-1 items-center pl-2 transition-all duration-300 ease-in-out"
+                      style="background-color: var(--sapTile_Background)"
+                      [ngClass]="isSearchVisible[shift.shift_id] ? 'opacity-0 invisible translate-x-10' : 'opacity-100 visible translate-x-0'">
+                      <ui5-button *ngIf="countOverrides(shift, ShiftType.SWAP)"
+                        class="text-[10px] h-7 px-1 rounded-md border-none shadow-sm"
+                        style="background-color: var(--sapInformationBackground); color: var(--sapInformationColor)"
+                        design="Transparent">Swap({{countOverrides(shift, ShiftType.SWAP)}})</ui5-button>
+                      <ui5-button *ngIf="countOverrides(shift, 'Weekend')"
+                        class="text-[10px] h-7 px-1 rounded-md border-none shadow-sm"
+                        style="background-color: var(--sapErrorBackground); color: var(--sapErrorColor)"
+                        design="Transparent">Weekend({{countOverrides(shift, "Weekend")}})</ui5-button>
+                      <ui5-button *ngIf="countOverrides(shift, ShiftType.EXTRA)"
+                        class="text-[10px] h-7 px-1 rounded-md border-none shadow-sm"
+                        style="background-color: var(--sapSuccessBackground); color: var(--sapSuccessColor)"
+                        design="Transparent">Extra({{countOverrides(shift, ShiftType.EXTRA)}})</ui5-button>
+                      <ui5-button *ngIf="countOverrides(shift, ShiftType.REPLACEMENT)"
+                        class="text-[10px] h-7 px-1 rounded-md border-none shadow-sm"
+                        style="background-color: var(--sapWarningBackground); color: var(--sapWarningColor)"
+                        design="Transparent">Replace({{countOverrides(shift, ShiftType.REPLACEMENT)}})</ui5-button>
+
+                      <ui5-button
+                        class="h-7 px-2 rounded-md border-none shadow-sm"
+                        style="background-color: var(--sapList_Background); color: var(--sapContent_LabelColor)"
+                        design="Transparent" icon="search" (click)="toggleSearch(shift.shift_id)">
+                      </ui5-button>
+                    </div>
+
+                    <div class="w-full z-10 transition-all duration-300"
+                      [ngClass]="countOverrides(shift, ShiftType.REPLACEMENT) ==0 && countOverrides(shift, ShiftType.EXTRA) ==0 && countOverrides(shift, ShiftType.SWAP) == 0  && countOverrides(shift, 'Weekend')==0 || isSearchVisible[shift.shift_id] ? 'opacity-100 scale-100' : 'opacity-0 scale-95'">
+                      <div class=" relative w-full">
+                        <input type="text" [(ngModel)]="employeeSearchText[shift.shift_id]"
+                          placeholder="Search employee..."
+                          style="background-color: var(--sapField_Background); color: var(--sapTextColor); border-color: var(--sapField_BorderColor)"
+                          class="w-full rounded-lg border pl-3 pr-10 py-1.5 text-xs focus:outline-none focus:ring-2" />
+
+                        <ui5-icon name="decline"
+                          class="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer"
+                          style="color: var(--sapContent_LabelColor)"
+                          (click)="toggleSearch(shift.shift_id)">
+                        </ui5-icon>
+                      </div>
+                    </div>
+                  </div>
+
+
+                  <div *ngIf="showActionPopover &&
+                    actionPopoverTargetShiftId === shift.shift_id &&
+                    currentActionDate === rosterData.day"
+                    class="absolute inset-0 z-30 flex items-center justify-center backdrop-blur-sm p-4"
+                    style="background-color: var(--_ui5-v2-0-1_popup_block_layer_background)">
+                    <div
+                      class="w-full max-w-md rounded-2xl shadow-2xl border overflow-hidden animate-fadeIn"
+                      style="background-color: var(--sapGroup_ContentBackground); border-color: var(--sapList_BorderColor)">
+                      <div class="px-6 pt-6 pb-4 border-b text-center" style="border-color: var(--sapList_BorderColor)">
+                        <h3 class="text-xl font-bold" style="color: var(--sapTextColor)">
+                          {{ localization.Assign }}
+                          <span style="color: var(--sapInformationColor)">{{
+                            pendingDraggedData?.employee?.employee_details.name
+                            }}</span>
+                        </h3>
+                        <p class="text-sm mt-1" style="color: var(--sapContent_LabelColor)" i18n>Choose how you want to assign this employee to the
+                          shift</p>
+                      </div>
+                      <div class="px-6 py-5 space-y-5">
+                        <button (click)="executeShiftAction('extra', rosterData.day)"
+                          class="w-full flex items-center justify-center gap-2 px-4 py-3 border rounded-xl hover:shadow-sm transition-all font-semibold"
+                          style="color: var(--sapInformationColor); background-color: var(--sapInformationBackground); border-color: var(--sapInformationBorderColor)"
+                          i18n><ui5-icon name="add"></ui5-icon>Add to This Shift </button>
+                        <div class="flex items-center gap-2 text-xs uppercase tracking-wider" style="color: var(--sapContent_LabelColor)">
+                          <hr class="flex-1" style="border-color: var(--sapList_BorderColor)" />
+                        </div>
+                        <div>
+                          <label class="block text-sm font-medium mb-2" style="color: var(--sapContent_LabelColor)" i18n>Select Employee to
+                            swap</label>
+                          <ui5-combobox placeholder="Select Employee" class="w-full"
+                            (selection-change)="onTargetEmployeeToOverrides($event)">
+                            <ui5-cb-item *ngFor="let emp of filteredEmployees(shift.employees)"
+                              [id]="emp.employee_details.id"
+                              [text]="emp.employee_details.name + ' - ' + emp.employee_details.employee_no"></ui5-cb-item>
+                          </ui5-combobox>
+                        </div>
+                        <div class="flex gap-3">
+                          <ui5-button (click)="executeShiftAction('swap', rosterData.day)"
+                            [disabled]="isSwapContinerEmployeeMatch" design="Emphasized"
+                            class="flex-1 hover:shadow-md transition-all">
+                            <ui5-icon name="synchronize"></ui5-icon>
+                            {{ localization.Swap }}
+                          </ui5-button>
+
+                          <ui5-button (click)="executeShiftAction('replace', rosterData.day)" design="Negative"
+                            class="flex-1 hover:shadow-md transition-all">
+                            <ui5-icon name="refresh" class="mr-1"></ui5-icon>
+                            {{ localization.Replace }}
+                          </ui5-button>
+                        </div>
+                        <button (click)="resetActionState()"
+                          class="w-full py-2.5 border rounded-xl hover:shadow-sm transition-all text-sm font-medium"
+                          style="border-color: var(--sapList_BorderColor); color: var(--sapContent_LabelColor)">
+                          {{ localization.Cancel }} {{ localization.Drop }}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="pt-3 space-y-4 -mx-6 border-t" style="border-color: var(--sapList_BorderColor)"></div>
+                  <div class="pt-3 pb-3 space-y-4 overflow-y-auto h-[calc(100vh-350px)]" cdkDropList
+                    [cdkDropListData]="shift.employees" [id]="shift.shift_id"
+                    (cdkDropListDropped)="onShiftDrop($event, rosterData.day , shift.roster_id)">
+                    <div *ngFor="let employee of getFilteredEmployees(shift)" cdkDrag [cdkDragData]="{
+                      employee: employee,
+                      sourceShiftId: shift.shift_id
+                    }" (cdkDragMoved)="onEmployeeDragMoved($event, shiftScrollContainer, rosterScrollViewport)"
+                      (cdkDragEnded)="onEmployeeDragEnded($event)"
+                      [cdkDragDisabled]="employee.employee_details.holiday_status &&
+                          (employee.employee_details.holiday_status.toUpperCase() === OffDayType.WEEKEND ||
+                          employee.employee_details.holiday_status.toUpperCase() === 'LEAVE') || !permission.hasPermission(permissions.HR_ROSTER_SWAP)"
+                      class=" shadow-sm hover:shadow-md rounded-xl px-2 py-1 transition relative cursor-grab"
+                      [ngStyle]="theme.currentThemeStyle()"
+                      [style.background-color]="employee.employee_details.holiday_status &&
+                          (employee.employee_details.holiday_status.toUpperCase() === OffDayType.WEEKEND ||
+                          employee.employee_details.holiday_status.toUpperCase() === 'LEAVE')
+                            ? 'var(--sapErrorBackground)'
+                            : null">
+                      <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-3 p-2">
+                          <div class="w-9 h-9 rounded-full flex items-center justify-center font-bold text-sm"
+                            [ngStyle]="
+                            profilebgChange(
+                              employee.employee_details.name.charAt(0),
+                              employee.employee_details.name.charAt(1)
+                            )
+                          ">
+                            {{ employee.employee_details.name.charAt(0)
+                            }}{{ employee.employee_details.name.charAt(1) }}
+                          </div>
+                          <div>
+                            <div class="font-semibol" [style.color]="theme.currentThemeStyle().color">
+                              {{ employee.employee_details.name }}
+                            </div>
+                            <div class="text-xs" style="color: var(--sapContent_LabelColor)">
+                              {{ employee.employee_details.employee_no ?? '' }}
+                              <span *ngIf="employee.employee_details.group">
+                                {{ employee.employee_details.group ? '(' + employee.employee_details.group + ')' : '' }}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                        <span class="px-3 py-1 text-xs font-semibold rounded-full shadow-sm"
+                          [style.background-color]="employee.status === 'Regular'
+                            ? 'var(--sapInformationBackground)'
+                            : employee.status === 'SWAP'
+                            ? 'var(--sapErrorBackground)'
+                            : 'var(--sapSuccessBackground)'"
+                          [style.color]="employee.status === 'Regular'
+                            ? 'var(--sapInformationColor)'
+                            : employee.status === 'SWAP'
+                            ? 'var(--sapErrorColor)'
+                            : 'var(--sapSuccessColor)'">
+                          {{ employee.status }}
+                        </span>
+                        <ui5-button *ngIf="
+                          employee.status === ShiftType.SWAP ||
+                          employee.status === ShiftType.REPLACEMENT ||
+                          employee.status === ShiftType.EXTRA
+                        " icon="decline" [disabled]="!permission.hasPermission(permissions.HR_ROSTER_SWAP)"
+                          (click)="onRemoveOverrides(employee.override_info)"></ui5-button>
+                      </div>
+                      <div class="flex justify-end text-xs font-medium" style="color: var(--sapErrorColor)">
+                        <span class="px-1" *ngIf="
+                            employee.employee_details.holiday_status === 'Weekend' ||
+                            employee.employee_details.holiday_status === 'Leave'
+                          ">{{ employee.employee_details.holiday_status }}
+                        </span>
+                      </div>
+                      <div *cdkDragPreview
+                        class="drag-preview border p-2 rounded-lg shadow-xl"
+                        style="background-color: var(--sapTile_Background); border-color: var(--sapList_BorderColor); color: var(--sapTextColor)">
+                        {{ employee.employee_details.name }}
+                      </div>
+                    </div>
+
+                    <div *ngIf="shift.employees.length === 0"
+                      class="text-center p-8 border-dashed border-2 rounded-xl"
+                      style="color: var(--sapContent_LabelColor); border-color: var(--sapList_BorderColor)" i18n>Drop
+                      employee here to start this shift.</div>
+                  </div>
+                </div>
+              </div>
+            </ng-container>
+            <ng-template #noShiftData>
+              <div
+                class="w-full max-w-full rounded-xl shadow-lg p-4 relative overflow-hidden h-[calc(100vh-190px)] flex items-center justify-center"
+                style="background-color: var(--sapTile_Background)">
+                <ui5-illustrated-message name="NoData" [attr.title-text]="titleText">
+                </ui5-illustrated-message>
+              </div>
+            </ng-template>
+          </div>
+        </div>
+      </ui5-card>
+    </div>
+  </section>
+</ui5-busy-indicator>
+
+<app-shift-planning #shiftPlanningDialog (refreshEmit)="initRosters()">
+</app-shift-planning>

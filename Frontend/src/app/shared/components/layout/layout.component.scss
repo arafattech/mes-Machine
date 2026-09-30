@@ -1,0 +1,92 @@
+@import "styles.sass";
+
+ui5-popover {
+  width: $user-popover-w;
+}
+.nav_button{
+  position: relative;
+  left: -15px;
+}
+.I18N-select {
+  width: $I18N-select-width;
+}
+.ui5-popup-footer-root {
+  justify-content: end;
+}
+ui5-bar {
+  height: $layout-header-height;
+}
+
+.logo {
+  width: $logo-width;
+  cursor: $c-pointer;
+}
+
+.tool-layout {
+  // padding-top: $p-sm;
+}
+img {
+    width: 35px;
+    height: 35px!important;
+}
+.content {
+  width: $w-100;
+  padding-top: $p-none;
+  height: $main-content-height;
+  overflow: hidden;
+}
+// Tablet (≤ 1280px)
+@media screen and (max-width: 1280px) {
+  .content {
+    height: auto;
+    overflow: auto;
+  }
+
+  .tool-layout {
+  }
+
+  .logo {
+    width: 100px;
+  }
+
+  .I18N-select {
+    width: 100%;
+  }
+}
+
+// Mobile (≤ 800px)
+@media screen and (max-width: 800px) {
+  ui5-bar {
+    flex-direction: column;
+    height: auto;
+    padding: 0.5rem;
+  }
+
+  .logo {
+    width: 80px;
+    margin-bottom: 0.5rem;
+  }
+
+  .content {
+    padding: 0.5rem;
+    height: auto;
+  }
+
+  .tool-layout {
+    flex-direction: column;
+  }
+
+  .I18N-select {
+    width: 100%;
+  }
+
+  ui5-popover {
+    width: 90vw;
+  }
+}
+ui5-popover::part(content) {
+  padding: 0 !important;
+}
+:host ::ng-deep .ui5-tc-root > .ui5-tc__content {
+  padding: 0 !important;
+}

@@ -1,0 +1,166 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  overflow: visible;
+  width: 100%;
+}
+
+.hdr-title {
+  align-items: center;
+  color: var(--ag-header-text-color, #0f172a);
+  cursor: pointer;
+  display: flex;
+  font-size: 13px;
+  font-weight: 600;
+  gap: 4px;
+  height: 100%;
+  padding: 0 6px;
+  user-select: none;
+
+  &--nosort {
+    cursor: default;
+  }
+}
+
+// Select-all checkbox header (selection column) — fills the cell and centers the checkbox
+// so it lines up with the centered row selection checkboxes.
+
+.hdr-select-all {
+  margin-left: 12px !important;
+  width: 48%;
+}
+
+.hdr-title__text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hdr-title__sort {
+  color: #0066cc;
+  flex-shrink: 0;
+  font-size: 11px;
+
+  &--faint {
+    opacity: 0.3;
+  }
+}
+
+.hdr-filter-btn {
+  align-items: center;
+  background: transparent;
+  border: none;
+  border-radius: 3px;
+  color: #94a3b8;
+  cursor: pointer;
+  display: flex;
+  flex-shrink: 0;
+  height: 22px;
+  justify-content: center;
+  padding: 2px;
+  transition:
+    color 0.15s,
+    background 0.15s;
+  width: 22px;
+
+  &:hover {
+    background: #e2e8f0;
+    color: #475569;
+  }
+  &--active {
+    background: #1d6fcf;
+    border-radius: 4px;
+    color: #fff;
+
+    &:hover {
+      background: #1558a8;
+      color: #fff;
+    }
+  }
+
+  &__icon {
+    height: 12px;
+    pointer-events: none;
+    width: 12px;
+  }
+}
+
+.hdr-popup {
+  background: #fff;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  box-shadow:
+    0 8px 24px rgba(0, 0, 0, 0.12),
+    0 2px 8px rgba(0, 0, 0, 0.08);
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px;
+  position: fixed;
+  z-index: 9999;
+
+  &--hidden {
+    opacity: 0;
+    pointer-events: none;
+    visibility: hidden;
+  }
+
+  &__input {
+    background: #fff;
+    border: 1px solid #cbd5e1;
+    border-radius: 5px;
+    box-sizing: border-box;
+    color: #0f172a;
+    font-size: 13px;
+    height: 32px;
+    outline: none;
+    padding: 0 8px;
+    width: 100%;
+
+    &:focus {
+      border-color: #0066cc;
+      box-shadow: 0 0 0 2px rgba(0, 102, 204, 0.12);
+    }
+    &--right {
+      text-align: right;
+    }
+  }
+
+  &__ui5 {
+    width: 100%;
+    --_ui5-combobox-input-height: 32px;
+  }
+
+  &__footer {
+    border-top: 1px solid #f1f5f9;
+    display: flex;
+    justify-content: flex-end;
+    padding-top: 6px;
+  }
+
+  &__clear {
+    background: transparent;
+    border: 1px solid #cbd5e1;
+    border-radius: 4px;
+    color: #64748b;
+    cursor: pointer;
+    font-size: 12px;
+    padding: 3px 10px;
+    transition:
+      background 0.15s,
+      color 0.15s;
+
+    &:hover:not(:disabled) {
+      background: #fee2e2;
+      border-color: #fca5a5;
+      color: #dc2626;
+    }
+    &:disabled {
+      cursor: default;
+      opacity: 0.4;
+    }
+  }
+}

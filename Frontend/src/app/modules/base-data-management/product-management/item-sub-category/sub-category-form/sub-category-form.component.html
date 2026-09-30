@@ -1,0 +1,73 @@
+<ui5-dialog
+  class="ui5-xl-without-tab"
+  [open]="open"
+  [attr.header-text]="
+    this.saveMode === 'POST' ? localization.New : localization.Edit
+  "(before-close)="CloseDialog()"
+>
+  <ui5-busy-indicator
+    class="w-full bg-red"
+    [delay]="0"
+    [active]="loading"
+    size="M"
+  >
+    <section class="w-full">
+      <div class="flex flex-col">
+        <ui5-label showColon class="w-100">{{ localization.Active }}</ui5-label>
+        <ui5-switch
+          checked
+          [(ngModel)]="itemSubCategory.is_active"
+        ></ui5-switch>
+      </div>
+
+      <ui5-label show-colon required i18n>Select Category</ui5-label>
+      <ui5-combobox
+        placeholder="Select a category"
+        i18n-placeholder
+        [value]="categoryTitle || ''"
+        (selectionChange)="onCategoryChange($event)"
+        class="w-full"
+        [attr.value-state]="valueStateOptions.category"
+        (input)="checkValidation($event , 'category')"
+      >
+        <ui5-cb-item
+          *ngFor="let category of ItemCategories"
+          [text]="category.name"
+          [id]="category.id"
+        ></ui5-cb-item>
+        <div slot="valueStateMessage">
+          {{ validationMessage }}
+        </div>
+      </ui5-combobox>
+
+      <ui5-label show-colon required i18n>Sub Category Name</ui5-label>
+      <ui5-input
+        class="w-100"
+        [(ngModel)]="itemSubCategory.name"
+        placeholder="Enter sub category name"
+        i18n-placeholder
+        (input)="checkValidation($event, 'name')"
+        [attr.value-state]="valueStateOptions.name"
+        type="Text"
+      >
+        <div slot="valueStateMessage">
+          {{ validationMessage }}
+        </div>
+      </ui5-input>
+    </section>
+  </ui5-busy-indicator>
+  <ui5-toolbar slot="footer">
+    <ui5-toolbar-button
+      design="Emphasized"
+      (click)="onSaveType()"
+      [disabled]="loading"
+      text="{{ localization.Submit }}"
+    ></ui5-toolbar-button>
+    <ui5-toolbar-button
+      design="Transparent"
+      [disabled]="loading"
+      (click)="CloseDialog()"
+      text="{{ localization.Cancel }}"
+    ></ui5-toolbar-button>
+  </ui5-toolbar>
+</ui5-dialog>

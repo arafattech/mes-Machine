@@ -1,0 +1,59 @@
+<div class="relative grid gap-2" [ngClass]="{
+      'grid-cols-1': isListCollapsed || isTabCollapsed,
+      'grid-cols-2': !isListCollapsed && !isTabCollapsed,
+    }">
+
+  <div class="h-[calc(100vh-55px)]" [class.hidden]="isListCollapsed === true">
+    <app-ag-grid-table
+      #agGridRef
+      [columns]="columns"
+      [dataSource]="dataSource"
+      [toolbarConfig]="toolbarConfig"
+      [displayConfig]="displayConfig"
+      selectionMode="Single"
+      selectionRowBehavior="RowOnly"
+      [selectedRowsId]="selectedGridRowsId"
+      gridId="base-data-item-variants"
+      [isBase]="true"
+      [showAction]="hasDeletePermission"
+      [showDeleteButton]="true"
+      [showEditButton]="false"
+      [customActionButtons]="customActionButtons"
+      (rowClick)="handleRowSelect($event)"
+      (deleteClick)="onDeleteClick($event)"
+      (processData)="onGridDataLoaded($event)"
+    ></app-ag-grid-table>
+
+    <div class="flex flex-col absolute top-1/2 -translate-x-1/2 -translate-y-1/2 z-50" [ngClass]="{
+        'left-[99%]': isTabCollapsed,
+        'left-[50%]': !isTabCollapsed,
+      }">
+      <ui5-avatar class="relative top-[-40px] border border-slate-400 bg-white" [icon]="
+          isTabCollapsed ? 'navigation-left-arrow' : 'navigation-right-arrow'
+        " interactive size="XS" color-scheme="Placeholder" (click)="onCLickTabCollapsed()"></ui5-avatar>
+    </div>
+  </div>
+
+  <div [class.hidden]="isTabCollapsed === true">
+
+    <div class="flex flex-col absolute top-1/2 -translate-x-1/2 -translate-y-1/2 z-50" [ngClass]="{
+        'left-[1%]': isListCollapsed,
+        'left-[50%]': !isListCollapsed,
+        'top-[45%]': isListCollapsed,
+      }">
+      <ui5-avatar class="border border-slate-400 bg-white" [icon]="
+          isListCollapsed ? 'navigation-right-arrow' : 'navigation-left-arrow'
+        " interactive size="XS" color-scheme="Placeholder" (click)="onCLickListCollapsed()"></ui5-avatar>
+    </div>
+
+    <app-item-form #itemForm [saveMode]="saveMode" [isVariantList]="true" [product]="product"
+      (RefreshTable)="processData($event)"
+      (closeFrom)="cancelEdit()"
+      (isSuccessChange)="processData($event)">
+    </app-item-form>
+
+  </div>
+</div>
+
+<app-delete-entity (isSuccess)="processData()" [IsDelete]="IsDelete">
+</app-delete-entity>

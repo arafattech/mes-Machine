@@ -1,0 +1,101 @@
+<div class="h-[calc(100vh-55px)]">
+  <app-ag-grid-table
+    #agGridRef
+    [dataSource]="dataSource"
+    [toolbarConfig]="toolbarConfig"
+    [columns]="columns"
+    [isBase]="true"
+    gridId="hr-policy-list"
+    [showAction]="true"
+    [showEditButton]="true"
+    [showDeleteButton]="true"
+    selectionMode="Single"
+    [showIllustratedMessage]="true"
+    IllustratedName="NoData"
+    IllustratedTitle="No Policies Found"
+    i18n-IllustratedTitle
+    (newButtonClick)="newPolicy()"
+    (editClick)="editPolicy($event)"
+    (deleteClick)="deleteClick($event.id)"
+  ></app-ag-grid-table>
+</div>
+
+<app-delete-entity
+  (isSuccess)="agGridRef?.refreshGridData(true)"
+  [IsDelete]="IsDelete"
+></app-delete-entity>
+
+<ui5-dialog
+  class="ui5-xl-without-tab"
+  [open]="open"
+  [attr.header-text]="
+    saveMode === 'POST' ? localization.New : localization.Edit
+  "
+  (before-close)="CloseDialog()"
+>
+  <ui5-busy-indicator class="w-full" [delay]="0" [active]="loading" size="M">
+    <section class="w-full">
+      <div class="flex flex-col">
+        <ui5-label show-colon>{{ localization.Active }}</ui5-label>
+        <ui5-switch checked [(ngModel)]="policy.is_active"></ui5-switch>
+      </div>
+
+      <ui5-label show-colon required i18n>Title</ui5-label>
+      <ui5-input
+        class="w-100"
+        [(ngModel)]="policy.title"
+        placeholder="Enter policy title"
+        i18n-placeholder
+        (input)="checkValidation($event, 'title')"
+        [attr.value-state]="valueStateOptions.title"
+      >
+        <div slot="valueStateMessage">{{ validationMessage }}</div>
+      </ui5-input>
+
+      <ui5-label>Description</ui5-label>
+      <ui5-textarea
+        class="w-100"
+        [(ngModel)]="policy.description"
+        placeholder="Enter description"
+        i18n-placeholder
+      ></ui5-textarea>
+
+      <ui5-label show-colon required i18n>Terms</ui5-label>
+      <ui5-textarea
+        class="w-100"
+        [(ngModel)]="policy.terms"
+        placeholder="Enter terms"
+        i18n-placeholder
+        (input)="checkValidation($event, 'terms')"
+        [attr.value-state]="valueStateOptions.terms"
+      ></ui5-textarea>
+
+      <ui5-label show-colon required i18n>Condition</ui5-label>
+      <ui5-textarea
+        class="w-100"
+        [(ngModel)]="policy.condition"
+        placeholder="Enter condition"
+        i18n-placeholder
+        (input)="checkValidation($event, 'condition')"
+        [attr.value-state]="valueStateOptions.condition"
+      ></ui5-textarea>
+    </section>
+  </ui5-busy-indicator>
+
+  <ui5-toolbar slot="footer">
+    <ui5-toolbar-button
+      design="Emphasized"
+      (click)="savePolicy()"
+      [disabled]="loading"
+      text="{{ localization.Submit }}"
+    >
+    </ui5-toolbar-button>
+    <ui5-toolbar-button
+      design="Transparent"
+      [disabled]="loading"
+      (click)="CloseDialog()"
+      text="{{ localization.Cancel }}"
+    >
+    </ui5-toolbar-button>
+  </ui5-toolbar>
+</ui5-dialog>

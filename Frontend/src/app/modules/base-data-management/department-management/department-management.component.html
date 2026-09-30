@@ -1,0 +1,69 @@
+<div class="h-[calc(100vh-55px)]">
+  <app-ag-grid-table
+    #agGridRef
+    [columns]="columns"
+    [dataSource]="dataSource"
+    [toolbarConfig]="toolbarConfig"
+    selectionMode="Single"
+    [isBase]="true"
+    [gridId]="gridId"
+    [showAction]="true"
+    [showEditButton]="checkPermission(permissions.BASE_DATA_DEPARTMENT_EDIT)"
+    [showDeleteButton]="checkPermission(permissions.BASE_DATA_DEPARTMENT_DELETE)"
+    (newButtonClick)="newDepartment()"
+    (editClick)="editDepartment($event)"
+    (deleteClick)="deleteClick($event)"
+    (rowClick)="editDepartment($event)"
+    [showIllustratedMessage]="true"
+    IllustratedName="NoData"
+    IllustratedTitle="No Asset Groups Found"
+    IllustratedSubtitle="Try adjusting your search or active status."
+  ></app-ag-grid-table>
+</div>
+
+<ui5-dialog
+  [open]="isDialogOpen"
+  [attr.header-text]="
+    this.saveMode === 'POST' ? localization.New : localization.Edit
+  "
+  (before-close)="CloseDialog()"
+>
+  <div class="flex flex-col">
+    <div class="col-md-12">
+      <ui5-label showColon class="w-100">{{ localization.Active }}</ui5-label>
+      <ui5-switch checked [(ngModel)]="department.is_active"></ui5-switch>
+    </div>
+    <ui5-label show-colon required i18n>Department Name</ui5-label>
+    <ui5-input
+      class="w-100"
+      [(ngModel)]="department.name"
+      placeholder="Enter department name"
+      (input)="checkValidation($event, 'name')"
+      [attr.value-state]="valueStateOptions.name"
+      type="Text"
+      i18n-placeholder
+    >
+      <div slot="valueStateMessage">
+        {{ validationMessage }}
+      </div>
+    </ui5-input>
+  </div>
+
+  <ui5-toolbar slot="footer">
+    <ui5-toolbar-button
+      design="Emphasized"
+      (click)="saveDepartment()"
+      [disabled]="isLoading"
+      text="{{ localization.Submit }}"
+    ></ui5-toolbar-button>
+    <ui5-toolbar-button
+      design="Transparent"
+      [disabled]="isLoading"
+      (click)="CloseDialog()"
+      text="{{ localization.Cancel }}"
+    ></ui5-toolbar-button>
+  </ui5-toolbar>
+</ui5-dialog>
+
+<app-delete-entity [IsDelete]="IsDelete" (isSuccess)="processData($event)">
+</app-delete-entity>

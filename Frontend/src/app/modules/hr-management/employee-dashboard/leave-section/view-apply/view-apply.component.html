@@ -1,0 +1,165 @@
+<app-ag-grid-table
+  #agGridRef
+  [dataSource]="dataSource"
+  [toolbarConfig]="toolbarConfig"
+  [displayConfig]="displayConfig"
+  [columns]="leaveColumns"
+  [isBase]="true"
+  gridId="hr-view-apply"
+  [showAction]="false"
+  selectionMode="Single"
+  [showIllustratedMessage]="true"
+  IllustratedName="NoData"
+  IllustratedTitle="No Leave Requests Found"
+  i18n-IllustratedTitle
+  (processData)="onGridDataLoaded($event)"
+  (moreRowsLoaded)="onGridDataLoaded($event)"
+></app-ag-grid-table>
+
+<ui5-dialog [open]="isViewOpen" [attr.header-text]="localization.View" class="w-[70vw] h-[86vh]"
+  (before-close)="CloseDialog()">
+  <ui5-busy-indicator class="w-full h-[72vh]" [delay]="0" [active]="loadingLeaveApprovalSteps">
+    <div class="p-2 h-full flex flex-col">
+      <ui5-wizard
+        class="w-full h-[72vh] block"
+        content-layout="SingleStep"
+        (step-change)="onWizardStepChange($event)"
+      >
+        <!-- ─── Step 1: Leave Details ────────────────────────────────────── -->
+        <ui5-wizard-step
+          [attr.data-step]="1"
+          title-text="Leave Details"
+          i18n-title-text
+          icon="document-text"
+          [selected]="currentStep === 1"
+        >
+          <section class="grid grid-cols-3">
+            <div class="">
+              <ui5-label show-colon required i18n>Leave Type</ui5-label>
+
+              <div class="mb-2">
+                <ui5-combobox #leaveTypeCombo class="w-100" [value]="getLeaveTypeName(LeaveRequest.leave_type_id ?? 0)"
+                  [readonly]="true" placeholder="Select leave type" i18n-placeholder required>
+                  <ui5-cb-item *ngFor="let type of leaveTypes" [text]="type.name" [value]="type.id">
+                  </ui5-cb-item>
+                </ui5-combobox>
+              </div>
+
+              <app-calendar size="small" #calendarComponent [preSelectedDates]="preSelectedLeaveDays"
+                [disabledDates]="takenLeaveDates" [specialDates]="calendarSpecialDates" [updateCalender]="updateCalendar">
+              </app-calendar>
+            </div>
+
+            <div class="col-span-2 ml-4">
+              <div class="flex flex-col">
+                <ui5-label show-colon required i18n>Reason</ui5-label>
+
+                <app-angular-editor [(ngModel)]="htmlContent" [isReadonly]="isReadOnly">
+                </app-angular-editor>
+              </div>
+            </div>
+          </section>
+
+          <div class="flex justify-end pt-2">
+            <ui5-button design="Emphasized" icon="slim-arrow-right" icon-end (click)="nextStep()" i18n>Next</ui5-button>
+          </div>
+        </ui5-wizard-step>
+
+        <!-- ─── Attachment (the document uploaded when this leave was applied for) ── -->
+        <ui5-wizard-step
+          [attr.data-step]="viewAttachmentStepIndex"
+          title-text="Attachment"
+          i18n-title-text
+          icon="attachment"
+          [selected]="currentStep === viewAttachmentStepIndex"
+        >
+          <div class="w-full h-full py-2 flex flex-col gap-2">
+            <div class="h-96">
+              <app-attachment-upload
+                #viewAttachmentUploadRef
+                model="LeaveRequest"
+                apiUrl="LeaveRequests"
+                [id]="LeaveRequest.id ?? null"
+                [isEdit]="true"
+              ></app-attachment-upload>
+            </div>
+
+            <div class="flex justify-between pt-1 shrink-0">
+              <ui5-button design="Transparent" icon="slim-arrow-left" (click)="prevStep()" i18n>Back</ui5-button>
+              <ui5-button *ngIf="hasApprovalChain" design="Emphasized" icon="slim-arrow-right" icon-end
+                (click)="nextStep()" i18n>Next</ui5-button>
+            </div>
+          </div>
+        </ui5-wizard-step>
+
+        <!-- ─── Approvers ────────────────────────────────────────────────── -->
+        <ui5-wizard-step
+          *ngIf="hasApprovalChain"
+          [attr.data-step]="viewApproversStepIndex"
+          title-text="Approvers"
+          i18n-title-text
+          icon="employee"
+          [selected]="currentStep === viewApproversStepIndex"
+        >
+          <div class="w-full h-full py-2 flex flex-col gap-2">
+            <p *ngIf="!loadingLeaveApprovalSteps && !leaveApprovalSteps.length" class="text-sm text-slate-500" i18n>
+              No approvers configured yet.
+            </p>
+
+            <div *ngIf="leaveApprovalSteps.length" class="grid grid-cols-4 gap-y-4">
+              <ng-container *ngFor="let step of leaveApprovalSteps; let i = index; let last = last">
+                <div class="flex items-start">
+                  <div class="flex flex-col items-center gap-1 w-24">
+                    <div
+                      class="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold border-2 shrink-0"
+                      [ngClass]="{
+                        'bg-green-500 border-green-500 text-white': step.status === 'approved',
+                        'bg-red-500 border-red-500 text-white': step.status === 'rejected',
+                        'border-sky-500 text-sky-600 bg-white': step.status === 'pending' && step.isCurrentStep,
+                        'border-slate-300 text-slate-400 bg-white': step.status === 'pending' && !step.isCurrentStep
+                      }"
+                    >
+                      <ui5-icon *ngIf="step.status === 'approved'" name="accept"></ui5-icon>
+                      <ui5-icon *ngIf="step.status === 'rejected'" name="decline"></ui5-icon>
+                      <span *ngIf="step.status === 'pending'">{{ i + 1 }}</span>
+                    </div>
+                    <ui5-avatar [image]="step.photoUrl" initials="employee" size="XS" color-scheme="Accent6"></ui5-avatar>
+                    <span class="text-xs font-semibold text-center break-words">{{ step.name }}</span>
+                    <span class="text-[10px] text-slate-500 text-center break-words">{{ step.designation }}</span>
+                    <ui5-badge [colorScheme]="step.isRequired ? '1' : '8'">
+                      <span *ngIf="step.isRequired" i18n>Required</span>
+                      <span *ngIf="!step.isRequired" i18n>Optional</span>
+                    </ui5-badge>
+                  </div>
+                  <div
+                    *ngIf="!last && (i + 1) % 4 !== 0"
+                    class="h-0.5 flex-1 mt-4"
+                    [ngClass]="step.status === 'approved' ? 'bg-green-500' : 'bg-slate-300'"
+                  ></div>
+                </div>
+              </ng-container>
+            </div>
+
+            <div class="flex justify-start pt-1 shrink-0">
+              <ui5-button design="Transparent" icon="slim-arrow-left" (click)="prevStep()" i18n>Back</ui5-button>
+            </div>
+          </div>
+        </ui5-wizard-step>
+      </ui5-wizard>
+    </div>
+  </ui5-busy-indicator>
+
+  <ui5-toolbar slot="footer">
+    @if (canActOnLeaveApprovalStep) {
+      <ui5-toolbar-button design="Negative" [disabled]="approvingLeaveStep" (click)="rejectAsCurrentUser()"
+        text="{{ localization.Reject }}">
+      </ui5-toolbar-button>
+      <ui5-toolbar-button design="Positive" [disabled]="approvingLeaveStep" (click)="approveAsCurrentUser()"
+        text="{{ localization.Approve }}">
+      </ui5-toolbar-button>
+    }
+    <ui5-toolbar-button design="Transparent" (click)="CloseDialog()"
+      text="{{ localization.Cancel }}">
+    </ui5-toolbar-button>
+  </ui5-toolbar>
+</ui5-dialog>

@@ -1,0 +1,93 @@
+<div class="relative flex h-[calc(100vh-55px)]" [style.gap]="!isListCollapsed && !isTabCollapsed ? '3px' : '0'">
+
+  <!-- Assets table -->
+  <div class="overflow-hidden flex-shrink-0 transition-all duration-200 ease-out"
+       [style.width]="isListCollapsed ? '0' : (isTabCollapsed ? '100%' : '50%')">
+    <app-ag-grid-table
+      #assetTableRef
+      [dataSource]="assetDataSource"
+      [toolbarConfig]="assetToolbarConfig"
+      [displayConfig]="assetDisplayConfig"
+      [columns]="assetColumns"
+      [showAction]="false"
+      selectionMode="Single"
+      selectionRowBehavior="Row"
+      gridId="hr-asset-list"
+      (rowClick)="onAssetRowClick($event)"
+      (dataLoaded)="onAssetDataLoaded($event)"
+      (newButtonClick)="newAsset()"
+    ></app-ag-grid-table>
+  </div>
+
+  <!-- Panel toggle -->
+  <div class="flex items-center absolute top-1/2 -translate-y-1/2 z-50"
+       [style.left]="isListCollapsed ? '0' : (isTabCollapsed ? 'calc(100% - 20px)' : 'calc(50% - 10px)')">
+    <ui5-avatar
+      class="border border-slate-400 bg-white"
+      [icon]="isTabCollapsed ? 'navigation-left-arrow' : 'navigation-right-arrow'"
+      interactive size="XS" color-scheme="Placeholder"
+      (click)="onCLickTabCollapsed()">
+    </ui5-avatar>
+  </div>
+
+  <!-- Employees using asset table -->
+  <div class="flex-1 overflow-hidden transition-all duration-200 ease-out"
+       [class.hidden]="isTabCollapsed">
+    <app-ag-grid-table
+      [dataSource]="employeeDataSource"
+      [toolbarConfig]="employeeToolbarConfig"
+      [displayConfig]="employeeDisplayConfig"
+      [columns]="employeeColumns"
+      [showAction]="true"
+      [showEditButton]="false"
+      [showDeleteButton]="false"
+      [customActionButtons]="employeeActionButtons"
+      selectionMode="None"
+      gridId="hr-asset-employees"
+    ></app-ag-grid-table>
+  </div>
+
+</div>
+
+<ui5-dialog
+  [open]="isViewOpen"
+  [attr.header-text]="localization.Details"
+  class="w-[min(680px,calc(100vw-2rem))] [&::part(content)]:!px-6 [&::part(content)]:!py-4"
+  (before-close)="CloseDialog()"
+>
+  <section class="w-full space-y-3">
+    <div class="grid grid-cols-2 gap-x-6 gap-y-3">
+      <div class="flex flex-col">
+        <ui5-label show-colon i18n>Asset Name</ui5-label>
+        <ui5-input [value]="selectedAsset?.name ?? ''" readonly class="w-full"></ui5-input>
+      </div>
+      <div class="flex flex-col">
+        <ui5-label show-colon i18n>Employee Name</ui5-label>
+        <ui5-input [value]="selectedEmployeeRow?.name ?? ''" readonly class="w-full"></ui5-input>
+      </div>
+      <div class="flex flex-col">
+        <ui5-label show-colon i18n>Note</ui5-label>
+        <ui5-input [value]="EmployeeAssetsList.note ?? ''" readonly class="w-full"></ui5-input>
+      </div>
+      <div class="flex flex-col">
+        <ui5-label show-colon i18n>Issued Date</ui5-label>
+        <ui5-input [value]="EmployeeAssetsList.issued_date ?? ''" readonly class="w-full"></ui5-input>
+      </div>
+      <div class="flex flex-col">
+        <ui5-label show-colon i18n>Return Date</ui5-label>
+        <ui5-input [value]="EmployeeAssetsList.return_date ?? ''" readonly class="w-full"></ui5-input>
+      </div>
+    </div>
+    <div class="flex flex-col">
+      <ui5-label show-colon i18n>Remark</ui5-label>
+      <ui5-textarea [value]="EmployeeAssetsList.remarks ?? ''" readonly class="w-full h-[80px]"></ui5-textarea>
+    </div>
+  </section>
+  <ui5-toolbar slot="footer">
+    <ui5-toolbar-button design="Transparent" (click)="CloseDialog()" text="{{ localization.Cancel }}">
+    </ui5-toolbar-button>
+  </ui5-toolbar>
+</ui5-dialog>
+
+<app-asset-form #assetsForm [saveMode]="saveMode" (RefreshTable)="processData($event)">
+</app-asset-form>

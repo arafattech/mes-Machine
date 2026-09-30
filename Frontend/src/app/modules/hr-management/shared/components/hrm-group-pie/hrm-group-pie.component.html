@@ -1,0 +1,26 @@
+<div class="flex flex-row items-center justify-between w-full h-[250px] gap-4 p-2 overflow-hidden">
+
+  <div class="relative w-1/2 h-full flex justify-center items-center">
+            <div class="absolute flex flex-col items-center justify-center pointer-events-none">
+      <span class="text-[10px] uppercase text-gray-400 font-bold" i18n>Employee</span>
+      <span class="text-sm font-extrabold text-gray-800" i18n>Groups</span>
+    </div>
+    <div class="w-full h-full">
+      <canvas baseChart [data]="pieChartData" [options]="pieChartOptions" [type]="'doughnut'"></canvas>
+    </div>
+
+  </div>
+
+  <div class="w-1/2 h-full overflow-y-auto pr-2 flex flex-col justify-center">
+    <div class="flex flex-col gap-2">
+      <div *ngFor="let lbl of labels; let i = index"
+           class="flex items-center justify-between p-2 rounded-xl bg-gray-50 border border-gray-100">
+        <div class="flex items-center gap-2 overflow-hidden">
+          <span class="shrink-0 w-2.5 h-2.5 rounded-full" [style.background]="colors[i]"></span>
+          <span class="text-[11px] font-semibold text-gray-600 truncate">{{ lbl }}</span>
+        </div>
+        <span class="text-[11px] font-bold text-blue-600">{{ data[i] }}</span>
+      </div>
+    </div>
+  </div>
+</div>

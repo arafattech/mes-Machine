@@ -1,0 +1,51 @@
+<ui5-dialog class="ui5-xl-without-tab" [open]="open"
+  [attr.header-text]="this.saveMode === 'POST' ? localization.New : localization.Edit" (before-close)="closeDialog()">
+  <ui5-busy-indicator class="w-full" [delay]="0" [active]="loading" size="M">
+    <section class="w-full">
+      <div class="flex flex-col">
+        <ui5-label show-colon class="w-100" i18n>Active</ui5-label>
+        <ui5-switch [(ngModel)]="approvalType.is_active"></ui5-switch>
+      </div>
+
+      <ui5-label show-colon i18n class="mt-2">Code</ui5-label>
+      <ui5-input
+        class="w-100"
+        [(ngModel)]="approvalType.code"
+        placeholder="Enter code"
+        i18n-placeholder
+        (input)="onCodeInput($event)"
+        type="Text"
+      >
+      </ui5-input>
+
+      <ui5-label show-colon required i18n class="mt-2">Approval Type Name</ui5-label>
+      <ui5-input
+        class="w-100"
+        [(ngModel)]="approvalType.name"
+        placeholder="Enter approval type name"
+        i18n-placeholder
+        (input)="checkValidation($event)"
+        [attr.value-state]="valueStateOptions.name"
+        type="Text"
+      >
+        <div slot="valueStateMessage">
+          {{ validationMessage }}
+        </div>
+      </ui5-input>
+    </section>
+  </ui5-busy-indicator>
+  <ui5-toolbar slot="footer">
+    <ui5-toolbar-button
+      design="Emphasized"
+      (click)="save()"
+      [disabled]="loading"
+      text="{{ localization.Submit }}"
+    ></ui5-toolbar-button>
+    <ui5-toolbar-button
+      design="Transparent"
+      [disabled]="loading"
+      (click)="closeDialog()"
+      text="{{ localization.Cancel }}"
+    ></ui5-toolbar-button>
+  </ui5-toolbar>
+</ui5-dialog>

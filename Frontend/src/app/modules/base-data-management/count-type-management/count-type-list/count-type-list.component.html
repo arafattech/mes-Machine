@@ -1,0 +1,32 @@
+<div class="h-[calc(100vh-55px)]">
+  <app-ag-grid-table
+    #agGridRef
+    [columns]="columns"
+    [dataSource]="dataSource"
+    [toolbarConfig]="toolbarConfig"
+    selectionMode="Single"
+    [isBase]="true"
+    [gridId]="gridId"
+    [showAction]="true"
+    [showEditButton]="rolePermissionService.hasPermission(permissions.BASE_DATA_COUNT_TYPE_EDIT)"
+    [showDeleteButton]="rolePermissionService.hasPermission(permissions.BASE_DATA_COUNT_TYPE_DELETE)"
+    (newButtonClick)="newCountType()"
+    (editClick)="editCountType($event)"
+    (deleteClick)="deleteClick($event.id)"
+    (rowClick)="editCountType($event)"
+    [showIllustratedMessage]="true"
+    IllustratedName="NoData"
+    IllustratedTitle="No Count Types Found"
+    IllustratedSubtitle="Try adjusting your search."
+  ></app-ag-grid-table>
+</div>
+
+<app-count-type-form
+  #countTypeForm
+  [saveMode]="saveMode"
+  [countType]="countType"
+  (RefreshTable)="processData($event)"
+></app-count-type-form>
+
+<app-delete-entity [IsDelete]="IsDelete" (isSuccess)="processData($event)">
+</app-delete-entity>

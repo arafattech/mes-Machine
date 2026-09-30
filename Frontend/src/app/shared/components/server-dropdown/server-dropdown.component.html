@@ -1,0 +1,68 @@
+<div #inputWrapper class="relative w-full">
+  <ui5-input
+    class="w-full"
+    [placeholder]="placeholder"
+    [value]="displayValue"
+    [disabled]="disabled"
+    (input)="onInput($event)"
+    (focusin)="onFocus()"
+  >
+    <ui5-busy-indicator *ngIf="loading || loadingMore" slot="icon" active [delay]="0" size="S"></ui5-busy-indicator>
+    <ui5-icon
+      *ngIf="!loading && !loadingMore"
+      slot="icon"
+      class="cursor-pointer"
+      [name]="showClearIcon ? 'decline' : 'slim-arrow-down'"
+      (click)="showClearIcon ? clearValue() : onFocus()"
+    ></ui5-icon>
+  </ui5-input>
+
+  <div
+    *ngIf="open"
+    class="fixed z-[999999]"
+    [style.top]="panelStyle.top"
+    [style.bottom]="panelStyle.bottom"
+    [style.left]="panelStyle.left"
+    [style.width]="panelStyle.width"
+  >
+    <div
+      class="rounded-md shadow-lg border border-[var(--sapList_BorderColor,#d9d9d9)] overflow-hidden isolate"
+      style="background-color: var(--sapGroup_ContentBackground, #fff)"
+    >
+      <div
+        class="overflow-y-auto"
+        [style.max-height.px]="panelMaxHeight"
+        style="background-color: var(--sapGroup_ContentBackground, #fff)"
+      >
+        <div *ngIf="loading" class="flex items-center justify-center py-3">
+          <ui5-busy-indicator active [delay]="0" size="S"></ui5-busy-indicator>
+        </div>
+
+        <div *ngIf="!loading && !hasSearched" class="px-3 py-4 text-sm text-center text-[var(--sapContent_LabelColor,#64748b)]" i18n>
+          Type to search
+        </div>
+
+        <ng-container *ngIf="!loading && hasSearched">
+          <div
+            *ngFor="let item of items"
+            (click)="selectItem(item)"
+            [class]="'flex items-center gap-2 px-3 text-sm cursor-pointer border-b border-[var(--sapList_BorderColor,#d9d9d9)] last:border-b-0 text-[var(--sapTextColor,#1d2d3e)] hover:bg-[var(--sapList_Hover_Background,#f2f2f2)] transition-colors ' + (multiple ? 'py-1' : 'py-2')"
+          >
+            <ui5-checkbox *ngIf="multiple" [checked]="isSelected(item)" class="pointer-events-none"></ui5-checkbox>
+            <span>{{ labelFn(item) }}</span>
+          </div>
+
+          <div *ngIf="!items.length" class="px-3 py-1.5 text-sm text-center text-[var(--sapContent_LabelColor,#64748b)]" i18n>
+            No results found
+          </div>
+
+          <div #sentinel class="h-px"></div>
+        </ng-container>
+
+        <div *ngIf="loadingMore" class="flex items-center justify-center py-2">
+          <ui5-busy-indicator active [delay]="0" size="S"></ui5-busy-indicator>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

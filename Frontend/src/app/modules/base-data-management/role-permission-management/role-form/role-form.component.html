@@ -1,0 +1,40 @@
+<ui5-dialog
+  [open]="open"
+  [attr.header-text]="
+    this.saveMode === 'POST' ? localization.New : localization.Edit
+  "(before-close)="CloseDialog()"
+>
+  <ui5-busy-indicator [active]="loading" size="M" class="w-100" [delay]="0">
+    <section>
+      <ui5-label show-colon required i18n>Role Name</ui5-label>
+      <ui5-input
+        class="w-100"
+        [(ngModel)]="role.name"
+        placeholder="Enter Name"
+        (input)="checkValidation($event)"
+        [attr.value-state]="valueStateOptions.name"
+        type="Text"
+        i18n-placeholder
+      >
+        <div slot="valueStateMessage">
+          {{ validationMessage }}
+        </div>
+      </ui5-input>
+    </section>
+  </ui5-busy-indicator>
+
+  <ui5-toolbar slot="footer">
+    <ui5-toolbar-button
+      design="Emphasized"
+      [disabled]="loading"
+      (click)="addRole()"
+      text="{{ localization.Submit }}"
+    ></ui5-toolbar-button>
+    <ui5-toolbar-button
+      design="Transparent"
+      text="{{ localization.Cancel }}"
+      [disabled]="loading"
+      (click)="CloseDialog()"
+    ></ui5-toolbar-button>
+  </ui5-toolbar>
+</ui5-dialog>

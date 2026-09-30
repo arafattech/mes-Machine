@@ -1,0 +1,76 @@
+<ui5-dialog
+  [open]="open"
+  id="dialog"
+  class="xl:w-[30%] xl:max-w-[35%] xl:min-w-[30%] w-auto xl:min-h-[60vh]"
+  (before-close)="closeDialog()"
+>
+  <div slot="header" design="Header" class="w-100">
+    <div class="d-flex justify-content-between mt-1">
+      <ui5-title level="H5" i18n> Associate</ui5-title>
+      <div class="d-flex" *ngIf="isMultiselect">
+        <ui5-button (click)="DselectAll()" design="Default"
+        i18n>Deselect All</ui5-button
+        >
+        <ui5-button (click)="SelectAll()" design="Default" class="ms-2"
+        i18n>Select All</ui5-button
+        >
+          <ui5-button
+          *ngIf="isAddMore"
+          icon="add"
+          (click)="onAddClick()"
+        >
+        {{localization.add}}
+        </ui5-button>
+      </div>
+    </div>
+
+    <div class="mt-1 w-100">
+      <ui5-input
+        id="searchInput"
+        #searchInput
+        (input)="handleSearch($event)"
+        placeholder="Enter search "
+        i18n-placeholder
+        class="w-full"
+      >
+        <ui5-icon id="searchIcon" slot="icon" name="search"></ui5-icon>
+      </ui5-input>
+    </div>
+  </div>
+
+  <section class="main-content">
+    <ui5-list
+      growing="Scroll"
+      loading-delay="0"
+      [attr.selection-mode]="isMultiselect ? 'Multiple' : 'SingleStart'"
+      (selection-change)="SelectionChange($event)"
+      (load-more)="onScroll($event)"
+      [loading]="loading"
+    >
+      <ui5-li
+        *ngFor="let item of GetAssociateData"
+        [value]="item"
+        [selected]="isSelected(item)"
+      >
+        <ng-container *ngFor="let col of tableColumn; let last = last">
+          {{ item[col.accessor] }}{{ !last ? " | " : "" }}
+        </ng-container>
+      </ui5-li>
+    </ui5-list>
+  </section>
+
+  <ui5-toolbar slot="footer">
+    <ui5-toolbar-button
+      design="Emphasized"
+      (click)="Assign()"
+      [disabled]=""
+      text="{{ localization.Submit }}"
+    ></ui5-toolbar-button>
+    <ui5-toolbar-button
+      design="Transparent"
+      [disabled]=""
+      text="{{ localization.Cancel }}"
+      (click)="closeDialog()"
+    ></ui5-toolbar-button>
+  </ui5-toolbar>
+</ui5-dialog>

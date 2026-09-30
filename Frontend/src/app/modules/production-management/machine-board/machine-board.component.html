@@ -1,0 +1,134 @@
+@if (productionService.isMachinesLoading) {
+  <div class="flex h-[71px] w-full items-center justify-center pb-1">
+    <ui5-busy-indicator [active]="true" [delay]="0" size="M"></ui5-busy-indicator>
+  </div>
+} @else {
+  <div>
+    <div class="grid grid-cols-1 md:grid-cols-6 gap-1 pb-1">
+      <status-card
+        *ngFor="let c of cards(); trackBy: trackByCardType"
+        [percent]="c.percent"
+        [progress]="c.progress"
+        [count]="c.counts ?? 0"
+        [totalMachines]="totalMachines()"
+        [label]="c.label"
+        [type]="c.type"
+      >
+      </status-card>
+    </div>
+  </div>
+}
+
+<div class="h-[calc(100vh-145px)] rounded-lg overflow-y-auto">
+  <ui5-bar
+    design="Header"
+    class="mb-2 rounded-t-lg shadow-sm sticky top-0 z-10"
+  >
+    <ui5-label
+      id="basic-label"
+      slot="startContent"
+      class="text-lg font-semibold sm:text-sm"
+      i18n
+      >Machine Monitoring Dashboard</ui5-label
+    >
+    <ui5-combobox
+      placeholder="Select Hall"
+      i18n-placeholder
+      class="w-70"
+      slot="endContent"
+      (selection-change)="hallChange($event)"
+      *ngIf="viewType() === viewModeEnum.FULL_SCREEN"
+    >
+      <ui5-cb-item
+        *ngFor="let items of halls()"
+        [text]="items.name"
+        [value]="items.id"
+      ></ui5-cb-item>
+    </ui5-combobox>
+    <ui5-segmented-button
+      accessible-name="View Mode"
+      slot="endContent"
+      class="border-1 border-blue-300 rounded-lg"
+      (selection-change)="onSegmentChange($event)"
+    >
+      <ui5-segmented-button-item
+        icon="business-suite/2x2-grid-layout"
+        [value]="'card'"
+        [ngClass]="{
+          'border-1 border-blue-500 rounded-lg':
+            viewType() === viewModeEnum.DETAILED,
+        }"
+        i18n
+        >Card</ui5-segmented-button-item
+      >
+      <ui5-segmented-button-item
+        icon="business-suite/4x4-grid-layout"
+        id="compact"
+        [value]="'compact'"
+        [ngClass]="{
+          'border-1 border-blue-500 rounded-lg':
+            viewType() === viewModeEnum.COMPACT,
+        }"
+        i18n
+        >Compact</ui5-segmented-button-item
+      >
+      <ui5-segmented-button-item
+        icon="sys-monitor"
+        id="fullScreen"
+        [value]="'fullScreen'"
+        [ngClass]="{
+          'border-1 border-blue-500 rounded-lg':
+            viewType() === viewModeEnum.FULL_SCREEN,
+        }"
+        i18n
+        >Full Screen</ui5-segmented-button-item
+      >
+    </ui5-segmented-button>
+  </ui5-bar>
+
+  <ui5-busy-indicator
+    [active]="productionService.isMachinesLoading"
+    [delay]="0"
+    class="w-full p-2"
+    [ngClass]="{ 'h-[calc(100vh-140px)]': productionService.isMachinesLoading }"
+  >
+    @if (machines().length > 0) {
+      <div class="min-h-full flex items-start justify-start w-full">
+        <div
+          class="grid grid-cols-1 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 [@media(min-width:769px)_and_(max-width:900px)]:grid-cols-1 gap-3 p-2 w-full place-items-center"
+        >
+          <machine-status-card
+            class="w-full"
+            *ngFor="let machine of results(); trackBy: trackByMachine"
+            [activity]="machine.status"
+            [temp]="machine.temp"
+            [id]="machine.custom_id"
+            [rpm]="machine.load"
+            [maxRate]="3000"
+            [maxTemp]="50"
+            [has_temperature]="machine.has_temperature ?? false"
+            [has_rpm]="machine.has_rpm ?? false"
+            [label]="machine.machine_name"
+            [viewMode]="viewType()"
+            [runTime]="machine.hours ?? 0"
+            [oee]="machine.oee"
+            [hallName]="machine.machinehalls?.[0]?.name"
+            [groupName]="machine.machinegroups?.[0]?.name"
+            [shotCount]="machine.shotCount"
+            [durations]="machine.durations"
+            (click)="detailsPage(machine)"
+          >
+          </machine-status-card>
+        </div>
+      </div>
+    } @else {
+      <ui5-illustrated-message
+        name="NoEntries"
+        class="w-full h-[calc(100vh-25vh)]"
+      >
+        <ui5-title slot="title" level="H5">{{ localization.NoData }}</ui5-title>
+        <div slot="subtitle">{{ localization.NoDataView }}</div>
+      </ui5-illustrated-message>
+    }
+  </ui5-busy-indicator>
+</div>

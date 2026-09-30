@@ -1,0 +1,33 @@
+:host {
+  display: block;
+  height: 100%;
+}
+
+:host ::ng-deep .ui5-tc-root > .ui5-tc__content {
+  padding: 0 !important;
+}
+
+:host ::ng-deep ui5-tabcontainer::part(content) {
+  padding: 0 !important;
+}
+
+.panel {
+  background: var(--sapTile_Background, #fff);
+  border: 1px solid var(--sapTile_BorderColor, #d9d9d9);
+}
+
+.panel-title {
+  color: var(--sapTextColor, #1d2d3e);
+}
+
+.panel-subtle {
+  color: var(--sapContent_LabelColor, #556b82);
+}
+
+.track {
+  background: var(--sapList_Background, #f2f2f2);
+}
+
+.divider {
+  border-color: var(--sapToolbar_SeparatorColor, #e5e5e5);
+}

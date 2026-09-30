@@ -1,0 +1,58 @@
+<ui5-dynamic-page id="page" show-footer>
+  <ui5-dynamic-page-title slot="titleArea">
+    <ui5-title slot="heading" i18n>Operation Details</ui5-title>
+    <ui5-toolbar
+      class="actionsBar"
+      id="actionsToolbar"
+      slot="actionsBar"
+      design="Transparent"
+    >
+    </ui5-toolbar>
+  </ui5-dynamic-page-title>
+
+  <ui5-dynamic-page-header slot="headerArea">
+    <div>
+      <ui5-label
+        >{{ this.customId }}: <b>{{ oparations.custom_id }}</b>
+      </ui5-label>
+    </div>
+    <div>
+      <ui5-label
+        >{{ this.operationName }}: <b>{{ oparations.operation_name }}</b>
+      </ui5-label>
+    </div>
+    <div>
+      <ui5-label
+        >{{ this.operationCycle }}: <b>{{ oparations.standard_cycle_time }}</b>
+      </ui5-label>
+    </div>
+  </ui5-dynamic-page-header>
+
+  <app-ag-grid-table
+    #agGridRef
+    [columns]="columns"
+    [dataSource]="dataSource"
+    [toolbarConfig]="toolbarConfig"
+    selectionMode="Single"
+    [isBase]="true"
+    [gridId]="gridId"
+    [showAction]="false"
+    (newButtonClick)="newInfoOperation()"
+    (rowClick)="editInfoOperation($event)"
+    [showIllustratedMessage]="true"
+    IllustratedName="NoData"
+    IllustratedTitle="No Operation Positions Found"
+    IllustratedSubtitle="Try adjusting your search or active status."
+  ></app-ag-grid-table>
+</ui5-dynamic-page>
+
+<app-delete-entity [IsDelete]="IsDelete" (isSuccess)="processData($event)">
+</app-delete-entity>
+
+<app-operation-management-info-form
+  #operationInfoForm
+  [saveMode]="saveMode"
+  [operationId]="operationId"
+  [operations]="oparations"
+  (RefreshTable)="processData($event)"
+></app-operation-management-info-form>

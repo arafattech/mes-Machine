@@ -1,0 +1,215 @@
+<div class="h-[96vh] overflow-y-auto custom-scroll flex flex-col gap-2 p-2 pb-4" style="background-color: var(--sapBackgroundColor, #fff)">
+  <div class="grid grid-cols-1 md:grid-cols-12 gap-2 items-center shrink-0">
+    <div class="md:col-span-3">
+      <h1 class="text-xl font-bold" style="color: var(--sapTextColor, #1d2d3e)" i18n>Store Analytics</h1>
+    </div>
+    <div class="md:col-span-9 rounded-xl px-2 py-1 border" style="background-color: var(--sapGroup_ContentBackground, #fff)" [style.border-color]="useNativeCardChrome ? 'transparent' : cardBorderColor">
+      <div class="flex flex-col md:flex-row md:items-center gap-2">
+        <ui5-daterange-picker class="w-full md:flex-1" #dateRangePicker format-pattern="dd/MM/yyyy"
+          placeholder="Date Range" i18n-placeholder (change)="dateRangePickerChange($event)"
+          [max-date]="currentDate" [value]="dateRangeValue">
+        </ui5-daterange-picker>
+        <ui5-combobox class="w-full md:flex-1" placeholder="Select Department" i18n-placeholder
+          [value]="selectedDeptText" (selection-change)="onDepartmentChange($event)">
+          <ui5-cb-item *ngFor="let item of DepartmentList" [text]="item.name" [additional-text]="item.id"></ui5-cb-item>
+        </ui5-combobox>
+        <ui5-combobox class="w-full md:flex-1" placeholder="Select Supplier" i18n-placeholder
+          [value]="selectedSupplierText" (selection-change)="onSupplierChange($event)">
+          <ui5-cb-item *ngFor="let item of SuppliersList" [text]="item.name" [additional-text]="item.id"></ui5-cb-item>
+        </ui5-combobox>
+        <ui5-button design="Emphasized" (click)="applyFilter()" i18n>Apply</ui5-button>
+        <ui5-button design="Transparent" icon="reset" (click)="resetFilter()" i18n>Reset</ui5-button>
+      </div>
+    </div>
+  </div>
+
+  <div *ngIf="pageLoading" class="grid grid-cols-2 md:grid-cols-4 gap-1.5 shrink-0">
+    <div
+      *ngFor="let s of skeletonTiles"
+      class="rounded-lg border shadow-sm px-3 py-2 flex items-center gap-2 animate-pulse"
+      style="background-color: var(--sapGroup_ContentBackground, #fff)" [style.border-color]="useNativeCardChrome ? 'transparent' : cardBorderColor"
+    >
+      <div class="w-8 h-8 rounded-xl shrink-0" style="background-color: var(--sapList_BorderColor, #d9d9d9)"></div>
+      <div class="flex flex-col min-w-0 gap-1.5 flex-1">
+        <div class="h-5 w-12 rounded" style="background-color: var(--sapList_BorderColor, #d9d9d9)"></div>
+        <div class="h-2.5 w-20 rounded" style="background-color: var(--sapList_BorderColor, #d9d9d9)"></div>
+      </div>
+    </div>
+  </div>
+
+  <div *ngIf="!pageLoading" class="grid grid-cols-2 md:grid-cols-4 gap-1.5 shrink-0">
+    <div
+      *ngFor="let tile of statTiles; trackBy: trackByLabel"
+      class="rounded-lg border shadow-sm px-3 py-2 flex items-center gap-2"
+      style="background-color: var(--sapGroup_ContentBackground, #fff)" [style.border-color]="useNativeCardChrome ? 'transparent' : cardBorderColor"
+    >
+      <div class="w-8 h-8 rounded-xl flex items-center justify-center shrink-0" [style.background-color]="tile.iconBg">
+        <ui5-icon [name]="tile.icon" [style.color]="tile.iconColor"></ui5-icon>
+      </div>
+      <div class="flex flex-col min-w-0">
+        <span class="text-xl font-bold leading-none" style="color: var(--sapTextColor, #1d2d3e)">{{ tile.value }}</span>
+        <span class="text-[10px] font-bold tracking-tight truncate" style="color: var(--sapContent_LabelColor, #64748b)">{{ tile.label }}</span>
+      </div>
+    </div>
+  </div>
+
+  <div *ngIf="pageLoading" class="flex-1 min-h-0 flex flex-col gap-2">
+    <div class="flex-[0.85] min-h-0 grid grid-cols-1 lg:grid-cols-3 gap-2">
+      <div *ngFor="let s of [0, 1]" class="rounded-2xl shadow-sm overflow-hidden border animate-pulse" style="background-color: var(--sapGroup_ContentBackground, #fff)" [style.border-color]="useNativeCardChrome ? 'transparent' : cardBorderColor">
+        <div class="p-3 h-full flex flex-col gap-3">
+          <div class="h-4 w-1/3 rounded" style="background-color: var(--sapList_BorderColor, #d9d9d9)"></div>
+          <div class="flex-1 rounded" style="background-color: var(--sapList_Background, #f5f6f7)"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="flex-[0.85] min-h-0 grid grid-cols-1 lg:grid-cols-3 gap-2">
+      <div *ngFor="let s of [0, 1, 2]" class="rounded-2xl shadow-sm overflow-hidden border animate-pulse" style="background-color: var(--sapGroup_ContentBackground, #fff)" [style.border-color]="useNativeCardChrome ? 'transparent' : cardBorderColor">
+        <div class="p-3 h-full flex flex-col gap-3">
+          <div class="h-4 w-1/3 rounded" style="background-color: var(--sapList_BorderColor, #d9d9d9)"></div>
+          <div class="flex-1 rounded" style="background-color: var(--sapList_Background, #f5f6f7)"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="flex-[1.3] min-h-0 grid grid-cols-1 lg:grid-cols-3 gap-2">
+      <div *ngFor="let s of [0, 1, 2]" class="rounded-2xl shadow-sm overflow-hidden border animate-pulse" style="background-color: var(--sapGroup_ContentBackground, #fff)" [style.border-color]="useNativeCardChrome ? 'transparent' : cardBorderColor">
+        <div class="p-3 h-full flex flex-col gap-3">
+          <div class="h-4 w-1/3 rounded" style="background-color: var(--sapList_BorderColor, #d9d9d9)"></div>
+          <div class="flex-1 rounded" style="background-color: var(--sapList_Background, #f5f6f7)"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div *ngIf="!pageLoading" class="flex-1 min-h-0 flex flex-col gap-2">
+    <div class="flex-[0.85] min-h-0 grid grid-cols-1 lg:grid-cols-3 gap-2">
+      <div class="rounded-2xl shadow-sm overflow-hidden border flex flex-col min-h-0" style="background-color: var(--sapGroup_ContentBackground, #fff)" [style.border-color]="useNativeCardChrome ? 'transparent' : cardBorderColor">
+        <ui5-card class="relative w-full h-full flex flex-col" [ngClass]="{ 'border-none shadow-none': !useNativeCardChrome }">
+          <ui5-card-header slot="header" title-text="Department-wise SR Ratio" i18n-title-text
+            class="!border-b-0 shrink-0"></ui5-card-header>
+          <div class="absolute inset-x-0 top-[49px] bottom-0 p-1">
+            <app-shared-donut-chart class="block h-full" [data]="srDepartmentWise" [labelField]="'department_name'" [valueField]="'percentage'"
+              [colors]="sapChartColors" [innerRadius]="'50%'" [tooltipMode]="'percent'" [showSliceLabels]="false" [showSliceTicks]="false"
+              [showLegend]="false" [chartHeight]="'100%'" [showCenterOverlay]="true" [showSideList]="true">
+            </app-shared-donut-chart>
+          </div>
+        </ui5-card>
+      </div>
+
+      <div class="rounded-2xl shadow-sm overflow-hidden lg:col-span-2 border flex flex-col min-h-0" style="background-color: var(--sapGroup_ContentBackground, #fff)" [style.border-color]="useNativeCardChrome ? 'transparent' : cardBorderColor">
+        <ui5-card class="relative w-full h-full flex flex-col" [ngClass]="{ 'border-none shadow-none': !useNativeCardChrome }">
+          <ui5-card-header slot="header" title-text="Inbound and Outbound" i18n-title-text
+            class="!border-b-0 shrink-0"></ui5-card-header>
+          <div class="absolute inset-x-0 top-[49px] bottom-0 p-2">
+            <app-shared-line-chart class="block h-full" [data]="monthlySales" [categoryField]="'month'" [valueField]="'inbound_count'"
+              [valueName]="'Inbound'" i18n-valueName [series]="purchaseTrendSeries" [chartHeight]="'100%'" [lineColor]="'#22c55e'">
+            </app-shared-line-chart>
+          </div>
+        </ui5-card>
+      </div>
+    </div>
+
+    <div class="flex-[0.85] min-h-0 grid grid-cols-1 lg:grid-cols-3 gap-2">
+      <div class="rounded-2xl shadow-sm overflow-hidden border flex flex-col min-h-0" style="background-color: var(--sapGroup_ContentBackground, #fff)" [style.border-color]="useNativeCardChrome ? 'transparent' : cardBorderColor">
+        <ui5-card class="relative w-full h-full flex flex-col" [ngClass]="{ 'border-none shadow-none': !useNativeCardChrome }">
+          <ui5-card-header slot="header" title-text="SR Overview" i18n-title-text
+            class="!border-b-0 shrink-0"></ui5-card-header>
+          <div class="absolute inset-x-0 top-[49px] bottom-0 p-2">
+            <app-shared-bar-chart class="block h-full" [data]="srStatusBreakdown" [categoryField]="'status'" [valueField]="'count'"
+              [chartHeight]="'100%'" [barColor]="sapChartColors[2]">
+            </app-shared-bar-chart>
+          </div>
+        </ui5-card>
+      </div>
+
+      <div class="rounded-2xl shadow-sm overflow-hidden border flex flex-col min-h-0" style="background-color: var(--sapGroup_ContentBackground, #fff)" [style.border-color]="useNativeCardChrome ? 'transparent' : cardBorderColor">
+        <ui5-card class="relative w-full h-full flex flex-col" [ngClass]="{ 'border-none shadow-none': !useNativeCardChrome }">
+          <ui5-card-header slot="header" title-text="MRR Status Breakdown" i18n-title-text
+            class="!border-b-0 shrink-0"></ui5-card-header>
+          <div class="absolute inset-x-0 top-[49px] bottom-0 p-1">
+            <app-shared-donut-chart class="block h-full" [data]="mrrStatusBreakdown" [labelField]="'status'" [valueField]="'count'"
+              [colors]="sapChartColors" [innerRadius]="'50%'" [tooltipMode]="'label'" [showSliceLabels]="false" [showSliceTicks]="false"
+              [showLegend]="false" [chartHeight]="'100%'" [showCenterOverlay]="true" centerOverlayLabel="MRR" centerOverlayValueSuffix="" [showSideList]="true" sideListValueSuffix="">
+            </app-shared-donut-chart>
+          </div>
+        </ui5-card>
+      </div>
+
+      <div class="rounded-2xl shadow-sm overflow-hidden border flex flex-col min-h-0" style="background-color: var(--sapGroup_ContentBackground, #fff)" [style.border-color]="useNativeCardChrome ? 'transparent' : cardBorderColor">
+        <ui5-card class="relative w-full h-full flex flex-col" [ngClass]="{ 'border-none shadow-none': !useNativeCardChrome }">
+          <ui5-card-header slot="header" title-text="Return MRR Overview" i18n-title-text
+            class="!border-b-0 shrink-0"></ui5-card-header>
+          <div class="absolute inset-x-0 top-[49px] bottom-0 p-2">
+            <app-shared-bar-chart class="block h-full" [data]="returnMrrBreakdown" [categoryField]="'type'" [valueField]="'count'"
+              [chartHeight]="'100%'" [barColor]="sapChartColors[4]">
+            </app-shared-bar-chart>
+          </div>
+        </ui5-card>
+      </div>
+    </div>
+
+    <div class="flex-[1.3] min-h-0 grid grid-cols-1 lg:grid-cols-3 gap-2">
+      <div class="rounded-2xl shadow-sm overflow-hidden border flex flex-col min-h-0" style="background-color: var(--sapGroup_ContentBackground, #fff)" [style.border-color]="useNativeCardChrome ? 'transparent' : cardBorderColor">
+        <ui5-card class="relative w-full h-full flex flex-col" [ngClass]="{ 'border-none shadow-none': !useNativeCardChrome }">
+          <ui5-bar design="Header" class="shrink-0">
+            <ui5-title slot="startContent" level="H5"><span i18n>Latest PO</span></ui5-title>
+          </ui5-bar>
+          <div class="absolute inset-x-0 top-10 bottom-0 overflow-y-auto custom-scroll">
+            <ui5-list class="w-full" separators="None">
+              <ui5-li-custom *ngFor="let item of latestPos" class="py-2 border-b" style="border-color: var(--sapList_BorderColor, #d9d9d9)">
+                <div class="flex items-center justify-between w-full px-4">
+                  <div class="flex flex-col">
+                    <div class="flex items-center gap-2">
+                      <ui5-label class="font-semibold">{{ item.custom_id }}</ui5-label>
+                      <ui5-badge color-scheme="8">{{ item.status }}</ui5-badge>
+                    </div>
+                    <ui5-label class="text-[10px]" style="color: var(--sapContent_LabelColor, #64748b)">{{ item.department_name }} — {{ item.supplier_name }}</ui5-label>
+                    <ui5-label class="text-[10px]" style="color: var(--sapContent_LabelColor, #64748b)">{{ item.po_date | date:'dd MMM yyyy' }}</ui5-label>
+                  </div>
+                  <ui5-badge color-scheme="8">{{ item.quantity }}</ui5-badge>
+                </div>
+              </ui5-li-custom>
+            </ui5-list>
+          </div>
+        </ui5-card>
+      </div>
+
+      <div class="rounded-2xl shadow-sm overflow-hidden border flex flex-col min-h-0" style="background-color: var(--sapGroup_ContentBackground, #fff)" [style.border-color]="useNativeCardChrome ? 'transparent' : cardBorderColor">
+        <ui5-card class="w-full h-full flex flex-col" [ngClass]="{ 'border-none shadow-none': !useNativeCardChrome }">
+          <ui5-card-header slot="header" title-text="Indent Activity" i18n-title-text
+            class="!border-b-0 shrink-0"></ui5-card-header>
+          <div class="p-2 flex-1 min-h-0 overflow-auto custom-scroll">
+            <app-shared-activity-heatmap [data]="dailyPurchases" [dateField]="'date'" [valueField]="'count'"
+              [endDate]="end" [color]="sapChartColors[0]">
+            </app-shared-activity-heatmap>
+          </div>
+        </ui5-card>
+      </div>
+
+      <div class="rounded-2xl shadow-sm overflow-hidden border flex flex-col min-h-0" style="background-color: var(--sapGroup_ContentBackground, #fff)" [style.border-color]="useNativeCardChrome ? 'transparent' : cardBorderColor">
+        <ui5-card class="relative w-full h-full flex flex-col" [ngClass]="{ 'border-none shadow-none': !useNativeCardChrome }">
+          <ui5-bar design="Header" class="shrink-0">
+            <ui5-title slot="startContent" level="H5"><span i18n>Top Suppliers</span></ui5-title>
+          </ui5-bar>
+          <div class="absolute inset-x-0 top-10 bottom-0 overflow-y-auto custom-scroll">
+            <ui5-list class="w-full" separators="None">
+              <ui5-li-custom *ngFor="let item of purchaseInfo.top_suppliers" class="py-2 border-b" style="border-color: var(--sapList_BorderColor, #d9d9d9)">
+                <div class="flex items-center justify-between w-full px-4">
+                  <div class="flex items-center gap-3">
+                    <ui5-avatar icon="supplier" size="XS"></ui5-avatar>
+                    <div class="flex flex-col">
+                      <ui5-label class="font-semibold">{{ item.supplier_name }}</ui5-label>
+                      <ui5-label class="text-[10px]" style="color: var(--sapContent_LabelColor, #64748b)" i18n>Custom ID: 0001</ui5-label>
+                    </div>
+                  </div>
+                  <ui5-badge color-scheme="8">{{ item.order_count }}</ui5-badge>
+                </div>
+              </ui5-li-custom>
+            </ui5-list>
+          </div>
+        </ui5-card>
+      </div>
+    </div>
+  </div>
+</div>

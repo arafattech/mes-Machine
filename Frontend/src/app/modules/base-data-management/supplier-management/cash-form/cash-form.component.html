@@ -1,0 +1,34 @@
+<ui5-dialog class="ui5-xl-without-tab"
+  [attr.header-text]="saveCashMode === 'POST' ? localization.New : localization.Edit" [open]="open"
+  (before-close)="onCancel()">
+  <ui5-busy-indicator class="w-full" [delay]="0" [active]="loading" size="M">
+    <section class="w-full">
+      <ui5-label show-colon required i18n>Payment Date</ui5-label>
+      <ui5-date-picker class="w-100" [(ngModel)]="SupplierBankInfo.payment_date"
+        (change)="checkValidation($event, 'payment_date')" [attr.value-state]="valueStateOptionsCash.payment_date"
+        type="Date">
+        <div slot="valueStateMessage">
+          {{ validationMessage }}
+        </div>
+      </ui5-date-picker>
+      <ui5-label show-colon required i18n>Amount</ui5-label>
+      <ui5-input class="w-100" [(ngModel)]="SupplierBankInfo.amount" placeholder="Enter Amount" i18n-placeholder
+        (input)="checkValidation($event, 'amount')" [attr.value-state]="valueStateOptionsCash.amount" type="Number">
+        <div slot="valueStateMessage">
+          {{ validationMessage }}
+        </div>
+      </ui5-input>
+      <ui5-label show-colon i18n>Note</ui5-label>
+      <ui5-textarea class="w-100 h-[100px]" [(ngModel)]="SupplierBankInfo.additional_notes" placeholder="Enter Note"
+        i18n-placeholder (input)="checkValidation($event, 'additional_notes')" type="Text">
+        <div slot="valueStateMessage">
+          {{ validationMessage }}
+        </div>
+      </ui5-textarea>
+      <div slot="footer" class="flex justify-end p-2">
+        <ui5-button design="Emphasized" (click)="onSubmit()">{{ localization.Submit }}</ui5-button>
+        <ui5-button design="Transparent" (click)="onCancel()">{{ localization.Cancel }}</ui5-button>
+      </div>
+    </section>
+  </ui5-busy-indicator>
+</ui5-dialog>

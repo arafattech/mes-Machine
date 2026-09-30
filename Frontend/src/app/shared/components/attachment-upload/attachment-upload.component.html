@@ -1,0 +1,144 @@
+<ui5-busy-indicator [delay]="0" [active]="loading" size="M"
+  class="w-full h-full border border-gray-300 rounded-lg shadow-md box-border">
+  <div class="w-full h-full overflow-hidden">
+    <div class="w-full h-full border border-gray-300 rounded-lg shadow-md box-border">
+      <ui5-upload-collection mode="Delete" class="w-full h-full overflow-y-auto">
+        <div slot="header"
+          class="flex justify-between items-center p-2.5 border-b border-gray-200 sticky top-0 bg-white">
+          <div class="text-base font-bold">
+            <span >{{ localization.Attachments }} ({{ fileCount }})</span>
+          </div>
+          <div class="flex items-center space-x-1.5">
+            <ui5-button *ngIf="modalType != 'view'" icon="camera" design="Transparent" [disabled]="isSubmmiting || isDisable"
+              (click)="onClickCamera()" aria-label="Open webcam"></ui5-button>
+            <ui5-file-uploader hide-input multiple accept="*/*" [disabled]="disableSubmit() || isSubmmiting || isDisable"
+              (change)="onFileUpload($event)">
+              <ui5-button *ngIf="modalType !== 'view'" [disabled]="isSubmmiting || disableSubmit() || isDisable" design="Transparent"
+                class="text-gray-600" aria-label="Upload files" >{{ localization.Upload }}</ui5-button>
+            </ui5-file-uploader>
+            <ui5-button *ngIf="isDownloadVisible" [disabled]="!fileArr.length || isSubmmiting || isDisable" (click)="downloadFile()"
+              design="Transparent" class="text-gray-600" aria-label="Download selected file" >{{ localization.Download }}</ui5-button>
+          </div>
+        </div>
+
+        <div class="p-4" *ngIf="fileArr?.length">
+          <div class="col-md-12" *ngIf="message_strip">
+            <ui5-message-strip (ui5Close)="message_strip = false" design="Critical">{{ this.errorMessage
+              }}</ui5-message-strip>
+          </div>
+          <table class="w-full border-collapse">
+            <tbody>
+              <tr *ngFor="
+                  let file of fileArr;
+                  let i = index;
+                  trackBy: trackByFileId
+                " class="flex items-center p-4 border-b border-gray-200 last:border-b-0">
+                <td class="w-[10%]" *ngIf="isShowStandard">
+                  <div class="flex flex-col items-center">
+                    <ui5-radio-button name="fileSelection" [checked]="file.is_standard" (change)="setStandardFile(file)"
+                      aria-label="Select {{ file['file_name'] }} for download"></ui5-radio-button>
+                  </div>
+                </td>
+                <td class="w-[15%] flex justify-center">
+                  <div *ngIf="file['type'] === 'image'" class="w-full h-full">
+                    <img [src]="file['path']" slot="thumbnail" class="w-20 h-20 object-cover" />
+                  </div>
+                  <div *ngIf="file['type'] !== 'image'" class="flex">
+                    <ui5-icon name="doc-attachment" class="w-20 h-20 text-blue-600" *ngIf="file['type'] === 'document'"
+                      aria-label="Document file"></ui5-icon>
+                    <ui5-icon name="pdf-attachment" class="w-20 h-20 text-blue-600" *ngIf="file['type'] === 'pdf'"
+                      aria-label="PDF file"></ui5-icon>
+                    <ui5-icon name="excel-attachment" class="w-20 h-20 text-blue-600" *ngIf="file['type'] === 'excel'"
+                      aria-label="Excel file"></ui5-icon>
+                    <ui5-icon name="ppt-attachment" class="w-20 h-20 text-blue-600"
+                      *ngIf="file['type'] === 'powerpoint'" aria-label="PowerPoint file"></ui5-icon>
+                    <ui5-icon name="document-text" class="w-20 h-20 text-blue-600" *ngIf="file['type'] === 'text'"
+                      aria-label="Text file"></ui5-icon>
+                    <ui5-icon name="document" class="w-20 h-20 text-blue-600" *ngIf="file['type'] === null"
+                      aria-label="Unknown file"></ui5-icon>
+                  </div>
+                </td>
+                <td class="w-[70%] cursor-pointer">
+                  <div class="flex flex-col space-y-2 ml-3.5">
+                    <ng-container *ngIf="editingFileId !== file.id; else editMode">
+                      <div class="flex items-center space-x-2">
+                        <span class="text-base font-normal truncate max-w-[300px] text-gray-800"
+                          (click)="openPreview()">
+                          {{ file["file_name"] }}
+                        </span>
+                        <ui5-button *ngIf="!isEdit" icon="edit" design="Transparent" class="text-blue-500"
+                          (click)="startEditing(file.id, file.name)" aria-label="Edit file name for {{
+                            file['file_name']
+                          }}"></ui5-button>
+                      </div>
+                    </ng-container>
+
+                    <ng-template #editMode>
+                      <div class="flex items-center space-x-2">
+                        <ui5-input [(ngModel)]="editBaseName" (keypress)="onKeyPress($event, file.id)" class="w-[200px]"
+                          aria-label="Edit file name"></ui5-input>
+                        <span class="text-base text-gray-600">{{
+                          fileExtension
+                          }}</span>
+                        <ui5-button icon="save" design="Positive" (click)="saveFileName(file.id)"
+                          aria-label="Save file name"></ui5-button>
+                        <ui5-button icon="cancel" design="Negative" (click)="cancelEditing(file.id)"
+                          aria-label="Cancel editing"></ui5-button>
+                      </div>
+                    </ng-template>
+
+                    <div class="flex flex-col space-y-1">
+                      <div class="flex items-center space-x-2">
+                        <ui5-label show-colon class="text-sm text-gray-600" >{{ localization.UploadedOn }}</ui5-label>
+                        <span class="text-sm text-gray-600">{{
+                          file["updated_at"] | date : "dd.MM.yyyy"
+                          }}</span>
+                      </div>
+                      <div class="flex items-center space-x-2">
+                        <ui5-label show-colon class="text-sm text-gray-600" >{{ localization.FileSize }}</ui5-label>
+                        <span class="text-sm text-gray-600">{{
+                          file["size"]
+                          }}</span>
+                      </div>
+                    </div>
+                  </div>
+                </td>
+                <td class="w-[5%]" *ngIf="modalType !== 'view'">
+                  <div class="flex justify-end">
+                    <ui5-button icon="decline" (click)="removeFile(file.id)" design="Transparent" class="text-gray-600"
+                      aria-label="Delete file {{ file['file_name'] }} " [disabled]="isDisable || isSubmmiting"></ui5-button>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </ui5-upload-collection>
+    </div>
+  </div>
+</ui5-busy-indicator>
+
+<ui5-dialog [open]="showWebcam" [headerText]="'Webcam Capture'" class="webcam" (before-close)="CloseCam()">
+  <div class="text-center m-0 p-0">
+    <div class="m-0 p-0">
+      <webcam [height]="500" [width]="950" [trigger]="triggerObservable" (imageCapture)="handleImage($event)"
+        *ngIf="showWebcam" [allowCameraSwitch]="allowCameraSwitch" [switchCamera]="nextWebcamObservable"
+        (cameraSwitched)="cameraWasSwitched($event)" (initError)="handleInitError($event)"
+        class="w-full h-full m-0 p-0"></webcam>
+    </div>
+    <ui5-button class="ml-8" [icon]="currentCamera === 'front' ? 'camera' : 'video-camera'" design="Default"
+      (click)="showNextWebcam()" [disabled]="!multipleWebcamsAvailable" aria-label="Switch to {{
+        currentCamera === 'front' ? 'back' : 'front'
+      }} camera" >
+      {{ localization.SwitchTo }} {{ currentCamera === "front" ? "Back" : "Front" }} {{ localization.Camera }}
+    </ui5-button>
+  </div>
+  <ui5-toolbar slot="footer" class="m-0 p-0">
+    <ui5-toolbar-button design="Emphasized" [disabled]="loading" (click)="triggerSnapshot()"
+      text="Take Picture"></ui5-toolbar-button>
+    <ui5-toolbar-button design="Transparent" [disabled]="loading" (click)="CloseCam()"
+      text="Cancel"></ui5-toolbar-button>
+  </ui5-toolbar>
+</ui5-dialog>
+
+<app-attachment-preview [apiUrl]="apiUrl" [modelId]="id" [isOpen]="IsInsert"></app-attachment-preview>

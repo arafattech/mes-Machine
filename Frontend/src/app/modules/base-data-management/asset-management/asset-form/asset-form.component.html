@@ -1,0 +1,44 @@
+<ui5-dialog
+  [open]="open"
+  class="ui5-xl-without-tab"
+  [attr.header-text]="
+    this.saveMode === 'POST' ? localization.New : localization.Edit
+  "(before-close)="CloseDialog()"
+>
+  <ui5-busy-indicator [delay]="0" [active]="loading" size="M" class="w-full">
+    <section class="w-full">
+      <div class="col-md-12">
+        <ui5-label showColon class="w-100">{{ localization.Active }}</ui5-label>
+        <ui5-switch checked [(ngModel)]="asset.is_active"></ui5-switch>
+      </div>
+      <ui5-label show-colon required i18n>Asset Name</ui5-label>
+      <ui5-input
+        class="w-100"
+        [(ngModel)]="asset.name"
+        placeholder="Enter asset name"
+        (input)="checkValidation($event)"
+        [attr.value-state]="valueStateOptions.name"
+        type="Text"
+        i18n-placeholder
+      >
+        <div slot="valueStateMessage">
+          {{ validationMessage }}
+        </div>
+      </ui5-input>
+    </section>
+  </ui5-busy-indicator>
+  <ui5-toolbar slot="footer">
+    <ui5-toolbar-button
+      design="Emphasized"
+      (click)="addAsset()"
+      [disabled]="loading"
+      text="{{ localization.Submit }}"
+    ></ui5-toolbar-button>
+    <ui5-toolbar-button
+      design="Transparent"
+      [disabled]="loading"
+      (click)="CloseDialog()"
+      text="{{ localization.Cancel }}"
+    ></ui5-toolbar-button>
+  </ui5-toolbar>
+</ui5-dialog>

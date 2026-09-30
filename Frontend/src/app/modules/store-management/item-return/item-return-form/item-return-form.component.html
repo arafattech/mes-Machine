@@ -1,0 +1,124 @@
+<ui5-dialog
+  class="w-[70vw] h-[86vh]"
+  [open]="open"
+  [attr.header-text]="saveMode === 'POST' ? localization.New : localization.Information"
+  (before-close)="closeDialog()"
+>
+  <ui5-busy-indicator class="w-full h-[72vh]" [delay]="0" [active]="loading">
+    <section class="w-[70vw] grid grid-cols-2 gap-3">
+      <div class="flex flex-col">
+        <ui5-label show-colon i18n>Return No</ui5-label>
+        <ui5-input class="w-full" [value]="itemReturn.custom_id ?? ''" readonly></ui5-input>
+      </div>
+
+      <div class="flex flex-col">
+        <ui5-label show-colon required i18n>Department</ui5-label>
+        <ui5-busy-indicator [delay]="0" [active]="isDepartmentsLoading" class="w-full">
+          <ui5-combobox
+            class="w-full"
+            placeholder="Select department"
+            i18n-placeholder
+            [readonly]="saveMode === 'PUT' || isApproved()"
+            [value]="selectedDepartmentLabel"
+            (selectionChange)="onDepartmentChange($event)"
+          >
+            <ui5-cb-item
+              *ngFor="let department of departments"
+              [text]="department.name"
+              [id]="department.id"
+            ></ui5-cb-item>
+          </ui5-combobox>
+        </ui5-busy-indicator>
+      </div>
+
+      <div class="flex flex-col">
+        <ui5-label show-colon required i18n>Issued SR</ui5-label>
+        <ui5-busy-indicator [delay]="0" [active]="isSrsLoading" class="w-full">
+          <ui5-combobox
+            class="w-full"
+            placeholder="Select issued SR"
+            i18n-placeholder
+            [value]="selectedSrLabel"
+            [attr.value-state]="valueStateOptions.sr"
+            [disabled]="!itemReturn.department_id"
+            [readonly]="saveMode === 'PUT' || isApproved()"
+            (selectionChange)="onSrChange($event)"
+          >
+            <div slot="valueStateMessage">{{ validationMessage }}</div>
+            <ui5-cb-item
+              *ngFor="let sr of issuedSrs"
+              [text]="sr.custom_id"
+              [id]="sr.id"
+            ></ui5-cb-item>
+          </ui5-combobox>
+        </ui5-busy-indicator>
+      </div>
+
+      <div class="flex flex-col">
+        <ui5-label show-colon i18n>Return Date</ui5-label>
+        <ui5-date-picker
+          class="w-full"
+          format-pattern="yyyy-MM-dd"
+          readonly
+          [(ngModel)]="itemReturn.return_date"
+        ></ui5-date-picker>
+      </div>
+
+      <div class="flex flex-col">
+        <ui5-label show-colon i18n>Reason</ui5-label>
+        <ui5-textarea
+          class="w-full"
+          placeholder="Type reason..."
+          i18n-placeholder
+          [readonly]="isApproved()"
+          [(ngModel)]="itemReturn.reason"
+        ></ui5-textarea>
+      </div>
+
+      <div
+        class="flex flex-col col-span-2 h-[calc(100vh-500px)] rounded-lg border border-slate-300 pt-4"
+      >
+        <app-ag-grid-table
+          #childComponentRef
+          [columns]="column"
+          [dataSource]="dataSource"
+          [toolbarConfig]="toolbarConfig"
+          [displayConfig]="displayConfig"
+          [selectionMode]="'None'"
+          [showAction]="false"
+        ></app-ag-grid-table>
+      </div>
+    </section>
+  </ui5-busy-indicator>
+  <ui5-toolbar slot="footer">
+    <ui5-toolbar-button
+      *ngIf="saveMode === 'POST'"
+      design="Emphasized"
+      (click)="submit()"
+      [disabled]="loading"
+      text="{{ localization.Submit }}"
+    ></ui5-toolbar-button>
+    <ui5-toolbar-button
+      *ngIf="saveMode === 'PUT'"
+      design="Positive"
+      (click)="approve()"
+      [disabled]="loading || isApproved()"
+      text="Approve"
+      i18n-text
+    ></ui5-toolbar-button>
+    <ui5-toolbar-button
+      *ngIf="saveMode === 'PUT'"
+      design="Negative"
+      (click)="reject()"
+      [disabled]="loading || isApproved()"
+      text="Reject"
+      i18n-text
+    ></ui5-toolbar-button>
+    <ui5-toolbar-button
+      design="Transparent"
+      [disabled]="loading"
+      (click)="closeDialog()"
+      text="{{ localization.Cancel }}"
+    ></ui5-toolbar-button>
+  </ui5-toolbar>
+</ui5-dialog>

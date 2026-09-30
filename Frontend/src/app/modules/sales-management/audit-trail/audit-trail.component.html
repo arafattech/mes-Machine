@@ -1,0 +1,46 @@
+<ui5-notification-list
+  class="notificationsPopoverList"
+  [loading]="loading"
+  class="overflow-scroll h-[100vh]"
+>
+  <ng-container *ngIf="activityLogs.length == 0">
+    <ui5-illustrated-message name="UnableToLoad">
+      <div slot="illustration">
+        <ui5-icon name="error"></ui5-icon>
+      </div>
+      <ui5-title slot="title" level="H5" class="text-center" i18n
+        >No Notifications Found</ui5-title
+      >
+      <div slot="subtitle">
+        <p i18n>There are no notifications to display.</p>
+      </div>
+    </ui5-illustrated-message>
+  </ng-container>
+
+  <ui5-li-notification
+    class="p-1"
+    [attr.title-text]="getNotificationTitle(log)"
+    [attr.additional-text]="getNotificationMessage(log)"
+    [attr.state]="getState(log.action_type)"
+    *ngFor="let log of activityLogs"
+    (close)="onCloseLog(log.id)"
+    [importance]="getImportance(log)"
+    [attr.additional-text-state]="getImportance(log)"
+  >
+    <ui5-avatar
+      [initials]="getInitials(log.user?.name || '')"
+      color-scheme="Accent5"
+      size="XS"
+      slot="avatar"
+    ></ui5-avatar>
+
+    <span slot="footnotes">
+      <strong>User:</strong> {{ log.user?.name || "Unknown" }}
+    </span>
+    <span slot="footnotes">
+      <strong>Date:</strong> {{ formatDate(log.created_at || "") }}
+    </span>
+
+    <ui5-label> {{ getNotificationMessage(log) }}</ui5-label>
+  </ui5-li-notification>
+</ui5-notification-list>

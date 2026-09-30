@@ -1,0 +1,92 @@
+<ui5-dialog
+  class="ui5-xl-without-tab"
+  [open]="open"
+  [attr.header-text]="
+    this.saveMode === 'POST' ? localization.New : localization.Edit
+  "(before-close)="CloseDialog()"
+>
+  <ui5-busy-indicator
+    class="w-full"
+    size="M"
+    class="w-100"
+    [delay]="0"
+    [active]="loading"
+  >
+        <section class="w-full">
+          <div class="">
+            <ui5-label show-colon class="w-100">{{
+                localization.Active
+              }}</ui5-label>
+              <ui5-switch checked [(ngModel)]="operations.is_active"></ui5-switch>
+            </div>
+
+          <div class="d-flex mt-2 gap-1 w-full">
+            <div class="flex flex-col w-full">
+              <ui5-label show-colon required i18n> Operation Name</ui5-label>
+              <ui5-input
+                class="w-100"
+                [(ngModel)]="operations.operation_name"
+                placeholder="Enter Name"
+                i18n-placeholder
+                (input)="checkValidation($event, 'name')"
+                [attr.value-state]="valueStateOptions.operation_name"
+                type="Text"
+              >
+                <div slot="valueStateMessage">
+                  {{ validationMessage }}
+                </div>
+              </ui5-input>
+            </div>
+          </div>
+
+          <ui5-label show-colon required i18n>Target Cycle Time</ui5-label>
+          <ui5-input
+            class="w-100"
+            [(ngModel)]="operations.standard_cycle_time"
+            placeholder="Enter  Cycle Time"
+            i18n-placeholder
+            (input)="checkValidation($event, 'cycle')"
+            [attr.value-state]="valueStateOptions.standard_cycle_time"
+            type="Number"
+          >
+            <div slot="valueStateMessage">
+              {{ validationMessage }}
+            </div>
+          </ui5-input>
+
+          <ui5-label show-colon required i18n>Select Product</ui5-label>
+           <ui5-combobox
+            (selection-change)="SelctedProduct($event)"
+            (input)="checkValidation($event, 'product')"
+            placeholder="Select Product"
+            i18n-placeholder
+            class="w-100"
+            [value]="productTitle ? productTitle : ''"
+            [attr.value-state]="valueStateOptions.product_selection"
+          >
+            <ui5-cb-item
+              *ngFor="let product of products"
+              [text]="product.product_name"
+              [id]="product.id"
+            ></ui5-cb-item>
+            <div slot="valueStateMessage">
+            {{ validationMessage }}
+            </div>
+          </ui5-combobox>
+        </section>
+  </ui5-busy-indicator>
+  <ui5-toolbar slot="footer">
+    <ui5-toolbar-button
+      design="Emphasized"
+      (click)="saveOperation()"
+      [disabled]="loading"
+      text="{{ localization.Submit }}"
+    ></ui5-toolbar-button>
+    <ui5-toolbar-button
+      design="Transparent"
+      [disabled]="loading"
+      (click)="CloseDialog()"
+      text="{{ localization.Cancel }}"
+    ></ui5-toolbar-button>
+  </ui5-toolbar>
+</ui5-dialog>

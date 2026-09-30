@@ -1,0 +1,17 @@
+@import "styles.sass";
+
+.custom-scroll {
+  max-height: calc(var(--tab-container-height) - var(--custom-scroll-offset));
+  overflow-y: auto;
+}
+
+.custom-tab-container::part(content) {
+  padding: 0;
+  background: transparent;
+}
+
+.custom-tab-container::part(header) {
+  border-bottom: none;
+  background: white;
+  border-radius: var(--tab-header-radius) var(--tab-header-radius) 0 0;
+}

@@ -1,0 +1,64 @@
+<div class="h-[calc(100vh-55px)]">
+  <app-ag-grid-table
+    #agGridRef
+    [columns]="columns"
+    [dataSource]="dataSource"
+    [toolbarConfig]="toolbarConfig"
+    selectionMode="Single"
+    [isBase]="true"
+    [gridId]="gridId"
+    [showDateRangePicker]="true"
+    [dateRangePickerValue]="dateRangeValue"
+    (changeRangeDatePicker)="onDateRangeStringChange($event)"
+    (resetButtonClick)="resetFilters()"
+    [showAction]="true"
+    [showEditButton]="false"
+    [showDeleteButton]="false"
+    [showInfoButton]="true"
+    (newButtonClick)="openForm()"
+    (infoClick)="viewAllocations($event)"
+    [showIllustratedMessage]="true"
+    IllustratedName="NoData"
+    IllustratedTitle="No Wastage Logged"
+    IllustratedSubtitle="Log wastage against a work order to see entries here."
+  ></app-ag-grid-table>
+</div>
+
+<app-log-wastage
+  #wastageFormRef
+  (logged)="refresh()"
+></app-log-wastage>
+
+<ui5-dialog
+  [open]="detailOpen"
+  class="w-[60vw]"
+  [headerText]="detailSubtitle"
+  (before-close)="closeDetail()"
+>
+  <ui5-busy-indicator class="w-full h-[380px] overflow-hidden" size="M" [delay]="0" [active]="detailLoading">
+    <div class="w-full p-2 h-full">
+      <app-ag-grid-table
+        class="block w-full h-full"
+        [columns]="detailColumns"
+        [toolbarConfig]="detailToolbarConfig"
+        [dataSource]="detailDataSource"
+        [displayConfig]="detailDisplayConfig"
+        gridId="wastage-log-detail"
+        selectionMode="Single"
+        [isBase]="true"
+        [showIllustratedMessage]="true"
+        IllustratedName="NoEntries"
+        noRowsMessage="No machines allocated for this entry"
+        i18n-noRowsMessage
+      ></app-ag-grid-table>
+    </div>
+  </ui5-busy-indicator>
+  <ui5-toolbar slot="footer">
+    <ui5-toolbar-button
+      design="Transparent"
+      (click)="closeDetail()"
+      text="Close"
+      i18n-text
+    ></ui5-toolbar-button>
+  </ui5-toolbar>
+</ui5-dialog>

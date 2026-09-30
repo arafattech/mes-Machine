@@ -1,0 +1,123 @@
+<ui5-dialog
+  class="w-[90vw] max-w-2xl"
+  [open]="open"
+  [attr.header-text]="
+    this.saveMode === 'POST' ? localization.New : localization.Edit
+  "
+  (before-close)="CloseDialog()"
+>
+  <ui5-busy-indicator [delay]="0" [active]="loading" size="M" class="w-full">
+    <section class="w-full p-2 space-y-4">
+      <div class="col-md-12">
+        <ui5-label showColon class="w-100">{{ localization.Active }}</ui5-label>
+        <ui5-switch checked [(ngModel)]="workOrder.is_active"></ui5-switch>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <ui5-label show-colon required i18n>Product</ui5-label>
+          <ui5-combobox
+            class="w-100"
+            placeholder="Select Product"
+            i18n-placeholder
+            (selectionChange)="onProductSelection($event)"
+            [value]="workOrder.product_name || ''"
+            [attr.value-state]="valueStateOptions.product"
+          >
+            <ui5-cb-item
+              *ngFor="let item of Products"
+              [text]="item.text"
+              [id]="item.id"
+              [value]="item.id"
+            ></ui5-cb-item>
+            <div slot="valueStateMessage">
+              {{ localization.requiredField }}
+            </div>
+          </ui5-combobox>
+        </div>
+
+        <div>
+          <ui5-label show-colon i18n>Machines</ui5-label>
+          <ui5-multi-combobox
+            class="w-100"
+            placeholder="Select Machines (optional)"
+            i18n-placeholder
+            (selectionChange)="onMachinesSelectionChange($event)"
+          >
+            <ui5-mcb-item
+              *ngFor="let item of Machines"
+              [text]="item.text"
+              [id]="item.id"
+              [selected]="isMachineSelected(item.id)"
+            ></ui5-mcb-item>
+          </ui5-multi-combobox>
+        </div>
+
+        <div>
+          <ui5-label show-colon required i18n>Quantity</ui5-label>
+          <ui5-input
+            class="w-100"
+            type="Number"
+            [value]="workOrder.quantity != null ? workOrder.quantity.toString() : ''"
+            (input)="onQuantityChange($event)"
+            placeholder="Enter quantity"
+            i18n-placeholder
+            [attr.value-state]="valueStateOptions.quantity"
+          >
+            <div slot="valueStateMessage">
+              {{ localization.requiredField }}
+            </div>
+          </ui5-input>
+        </div>
+
+        <div>
+          <ui5-label show-colon i18n>Status</ui5-label>
+          <ui5-select class="w-100" (change)="onStatusChange($event)">
+            <ui5-option
+              *ngFor="let opt of statusOptions"
+              [attr.value]="opt.value"
+              [selected]="workOrder.status === opt.value"
+              >{{ opt.label }}</ui5-option
+            >
+          </ui5-select>
+        </div>
+
+        <div>
+          <ui5-label show-colon i18n>Scheduled Start</ui5-label>
+          <ui5-date-picker
+            class="w-100"
+            [(ngModel)]="workOrder.scheduled_start"
+            format-pattern="yyyy-MM-dd"
+            placeholder="Select scheduled start"
+            i18n-placeholder
+          ></ui5-date-picker>
+        </div>
+
+        <div>
+          <ui5-label show-colon i18n>Actual Start</ui5-label>
+          <ui5-date-picker
+            class="w-100"
+            [(ngModel)]="workOrder.actual_start"
+            format-pattern="yyyy-MM-dd"
+            placeholder="Select actual start"
+            i18n-placeholder
+          ></ui5-date-picker>
+        </div>
+      </div>
+    </section>
+  </ui5-busy-indicator>
+  <ui5-toolbar slot="footer">
+    <ui5-toolbar-button
+      design="Emphasized"
+      (click)="SaveWorkOrder()"
+      [disabled]="loading"
+      text="{{ localization.Submit }}"
+    ></ui5-toolbar-button>
+    <ui5-toolbar-button
+      design="Transparent"
+      [disabled]="loading"
+      (click)="CloseDialog()"
+      text="{{ localization.Cancel }}"
+    ></ui5-toolbar-button>
+  </ui5-toolbar>
+</ui5-dialog>

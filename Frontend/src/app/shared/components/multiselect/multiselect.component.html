@@ -1,0 +1,19 @@
+<ui5-multi-combobox
+  placeholder="Type your value"
+  (selection-change)="updateValue($event)"
+  [selected-items]="selectedItems"
+  show-select-all
+  class="w-100"
+>
+  <ng-container *ngIf="items.length !== 0">
+    <ui5-cb-item-group>
+      <ui5-mcb-item
+        *ngFor="let item of items"
+        [text]="item.name"
+        [value]="item"
+        [selected]="selectedItems.includes(item.id?.toString())"
+      >
+      </ui5-mcb-item>
+    </ui5-cb-item-group>
+  </ng-container>
+</ui5-multi-combobox>

@@ -1,0 +1,31 @@
+<div class="h-[calc(100vh-50px)] overflow-hidden">
+  <app-ag-grid-table
+    #agGridRef
+    [columns]="columns"
+    [dataSource]="dataSource"
+    [toolbarConfig]="toolbarConfig"
+    [displayConfig]="displayConfig"
+    gridId="sr-request-list"
+    [segmentButtonItems]="segmentButtonItems"
+    (segmentButtonChange)="segmentButtonChange($event)"
+    (processData)="onGridDataLoaded($event)"
+    (moreRowsLoaded)="onGridDataLoaded($event)"
+  ></app-ag-grid-table>
+</div>
+
+<app-delete-entity
+  [IsDelete]="IsDelete"
+  (isSuccess)="saveEvent()"
+></app-delete-entity>
+
+<app-requisition-from
+  #requisitionFrom
+  [saveMode]="'REQUEST'"
+  [selectedData]="selectedData"
+  [requisitionType]="'SR'"
+  [canApprove]="canApprove"
+  [canFinalApprove]="canFinalApprove"
+  [isDepartmentReadOnly]="true"
+  [isRequiredByReadOnly]="true"
+  (saveEvent)="saveEvent()"
+></app-requisition-from>

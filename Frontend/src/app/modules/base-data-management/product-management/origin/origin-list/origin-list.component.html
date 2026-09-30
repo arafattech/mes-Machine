@@ -1,0 +1,10 @@
+<app-ag-grid-table #agGridRef [columns]="columns" [dataSource]="dataSource" [toolbarConfig]="toolbarConfig"
+  selectionMode="Single" [isBase]="true" [gridId]="gridId" [showAction]="true"
+  [showEditButton]="rolePermissionService.hasPermission(permissions.BASE_DATA_ORIGIN_EDIT)"
+  [showDeleteButton]="rolePermissionService.hasPermission(permissions.BASE_DATA_ORIGIN_DELETE)"
+  (newButtonClick)="newOrigin()" (editClick)="editOrigin($event)" (deleteClick)="deleteClick($event.id)"
+  (rowClick)="editOrigin($event)" [showIllustratedMessage]="true" IllustratedName="NoData"
+  IllustratedTitle="No Origins Found" IllustratedSubtitle="Try adjusting your search or active status."></app-ag-grid-table>
+
+<app-delete-entity (isSuccess)="processData()" [IsDelete]="IsDelete"></app-delete-entity>
+<app-origin-form #originForm [saveMode]="saveMode" [origin]="origin" (RefreshTable)="processData()"></app-origin-form>

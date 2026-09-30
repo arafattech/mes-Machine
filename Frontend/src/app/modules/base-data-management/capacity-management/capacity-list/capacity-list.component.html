@@ -1,0 +1,32 @@
+<div class="h-[calc(100vh-55px)]">
+  <app-ag-grid-table
+    #agGridRef
+    [columns]="columns"
+    [dataSource]="dataSource"
+    [toolbarConfig]="toolbarConfig"
+    selectionMode="Single"
+    [isBase]="true"
+    [gridId]="gridId"
+    [showAction]="true"
+    [showEditButton]="rolePermissionService.hasPermission(permissions.BASE_DATA_CAPACITY_EDIT)"
+    [showDeleteButton]="rolePermissionService.hasPermission(permissions.BASE_DATA_CAPACITY_DELETE)"
+    (newButtonClick)="newCapacity()"
+    (editClick)="editCapacity($event)"
+    (deleteClick)="deleteClick($event.id)"
+    (rowClick)="editCapacity($event)"
+    [showIllustratedMessage]="true"
+    IllustratedName="NoData"
+    IllustratedTitle="No Asset Groups Found"
+    IllustratedSubtitle="Try adjusting your search or active status."
+  ></app-ag-grid-table>
+</div>
+
+<app-capacity-form
+  #capacityForm
+  [saveMode]="saveMode"
+  [capacity]="Capacity"
+  (RefreshTable)="processData($event)"
+></app-capacity-form>
+
+<app-delete-entity [IsDelete]="IsDelete" (isSuccess)="processData()">
+</app-delete-entity>

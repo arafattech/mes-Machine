@@ -1,0 +1,135 @@
+<ui5-popover
+  class="notificationsPopover"
+  opener="log"
+  [open]="open"
+  placement="Bottom"
+  (close)="onClosePopover()"
+>
+  <div class="notificationsPopoverHeader" slot="header" class="w-100">
+    <ui5-bar class="notificationsPopoverBar" design="Header">
+      <ui5-title level="H5" slot="startContent" i18n>Notifications</ui5-title>
+  
+
+      <ui5-toggle-button
+        *ngIf="notifications.length != 0"
+        icon="sap-icon://decline"
+        design="Transparent"
+        tooltip="Clear all"
+        slot="endContent"
+        (click)="isClearLog = true"
+      ></ui5-toggle-button>
+
+      <ui5-toggle-button
+        icon="refresh"
+        design="Transparent"
+        tooltip="Refresh notifications"
+        slot="endContent"
+        (click)="RefreshLog()"
+      ></ui5-toggle-button>
+    </ui5-bar>
+  </div>
+
+  <ui5-notification-list class="notificationsPopoverList" [loading]="loading">
+    <ng-container *ngIf="notifications.length == 0">
+      <ui5-illustrated-message name="UnableToLoad">
+        <div slot="illustration">
+          <ui5-icon name="error"></ui5-icon>
+        </div>
+        <ui5-title slot="title" level="H5" class="text-center" i18n>No Notifications Found</ui5-title>
+        <div slot="subtitle">
+          <p i18n>There are no notifications to display.</p>
+        </div>
+      </ui5-illustrated-message>
+    </ng-container>
+
+    <ui5-li-notification
+      [attr.title-text]="getNotificationTitle(n)"
+      [read]="n.is_read"
+      [state]="getState(n.action_type)"
+      [style]="getUnreadBorderStyle(n)"
+      *ngFor="let n of notifications"
+    >
+      <ui5-notification-action
+        slot="actions"
+        icon="decline"
+        text="Remove"
+        (click)="removeNotification(n)"
+      ></ui5-notification-action>
+
+      <ui5-avatar
+        [initials]="getInitials(n.sender?.name || '')"
+        color-scheme="Accent5"
+        size="XS"
+        slot="avatar"
+      ></ui5-avatar>
+
+      <span slot="footnotes">
+        <strong>By:</strong> {{ n.sender?.name || 'System' }}
+      </span>
+      <span slot="footnotes">
+        <strong>Date:</strong> {{ formatDate(n.created_at || '') }}
+      </span>
+      <span *ngIf="isToday(n.created_at || '')" slot="footnotes"
+        style="color: var(--sapSuccessColor, #107e3e); font-weight: 600; font-size: 0.75rem;">
+        ● New
+      </span>
+      <ui5-label>{{ getNotificationMessage(n) }}</ui5-label>
+    </ui5-li-notification>
+  </ui5-notification-list>
+</ui5-popover>
+
+<div
+  *ngIf="alertToast"
+  class="fixed bottom-5 right-5 z-50 w-80 rounded-lg shadow-2xl overflow-hidden"
+  style="background: var(--sapTile_Background, #fff); border: 1px solid var(--sapTile_BorderColor, #d9d9d9);"
+>
+  <div class="flex items-start gap-3 p-4">
+    <ui5-avatar
+      [initials]="getInitials(alertToast.senderName)"
+      color-scheme="Accent5"
+      size="S"
+    ></ui5-avatar>
+    <div class="flex-1 min-w-0">
+      <div class="flex items-center justify-between gap-2 mb-1">
+        <ui5-title level="H6" class="truncate">{{ alertToast.title }}</ui5-title>
+        <ui5-button
+          icon="decline"
+          design="Transparent"
+          (click)="dismissAlertToast()"
+        ></ui5-button>
+      </div>
+      <ui5-label class="block text-sm">{{ alertToast.message }}</ui5-label>
+      <ui5-label class="block text-xs mt-1" style="color: var(--sapContent_LabelColor);">
+        {{ alertToast.senderName }}
+      </ui5-label>
+    </div>
+  </div>
+  <div class="h-1 w-full" style="background: var(--sapInformationColor, #0070f2);"></div>
+</div>
+
+<ui5-dialog
+  id="clear-all-dialog"
+  [attr.header-text]="localization.ClearAllNotifications"
+  i18n-text
+  state="Critical"
+  [open]="isClearLog"
+  data-ui5-compact-size
+>
+  <ui5-text i18n>Are you sure you want to clear all the notifications?</ui5-text>
+  <ui5-bar slot="footer" design="Footer">
+    <ui5-button
+      id="clear-all-action"
+      class="dialogCloser"
+      design="Emphasized"
+      slot="endContent"
+      (click)="clearAllLogs()"
+      >{{ localization.Submit }}</ui5-button
+    >
+    <ui5-button
+      class="dialogCloser"
+      slot="endContent"
+      (click)="isClearLog = false"
+      >{{ localization.Cancel }}</ui5-button
+    >
+  </ui5-bar>
+</ui5-dialog>

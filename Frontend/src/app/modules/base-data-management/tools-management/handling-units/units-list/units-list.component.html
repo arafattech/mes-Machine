@@ -1,0 +1,30 @@
+<app-ag-grid-table
+  #agGridRef
+  [columns]="columns"
+  [dataSource]="dataSource"
+  [toolbarConfig]="toolbarConfig"
+  selectionMode="Single"
+  [isBase]="true"
+  [gridId]="gridId"
+  [showAction]="false"
+  [showEditButton]="rolePermissionService.hasPermission(permissions.BASE_DATA_HANDING_UNITS_EDIT)"
+  [showDeleteButton]="rolePermissionService.hasPermission(permissions.BASE_DATA_HANDING_UNITS_DELETE)"
+  (newButtonClick)="newUnit()"
+  (editClick)="editUnit($event)"
+  (deleteClick)="deleteClick($event.id)"
+  (rowClick)="editUnit($event)"
+  [showIllustratedMessage]="true"
+  IllustratedName="NoData"
+  IllustratedTitle="No Handling Units Found"
+  IllustratedSubtitle="Try adjusting your search or active status."
+></app-ag-grid-table>
+
+<app-delete-entity [IsDelete]="IsDelete" (isSuccess)="processData($event)">
+</app-delete-entity>
+
+<app-units-form
+  #unitsForm
+  [saveMode]="saveMode"
+  [handlingUnit]="units"
+  (RefreshTable)="processData($event)"
+></app-units-form>

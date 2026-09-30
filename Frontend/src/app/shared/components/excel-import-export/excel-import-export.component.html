@@ -1,0 +1,159 @@
+<ui5-dialog [open]="isImport" [attr.header-text]="localization.Import" class="w-[950px] h-[750px]" (ui5BeforeClose)="CloseDialog()">
+  <ui5-busy-indicator
+    [delay]="0"
+    [active]="isSubmmiting"
+    size="M"
+    class="w-full h-full border border-gray-300 rounded-lg shadow-md box-border"
+  >
+    <div class="w-full h-full overflow-hidden">
+      <div
+        class="w-full h-full border border-gray-300 rounded-lg shadow-md box-border"
+      >
+        <ui5-upload-collection
+          mode="Delete"
+          class="w-full h-full overflow-y-auto"
+        >
+          <div
+            slot="header"
+            class="flex justify-between items-center p-2.5 border-b border-gray-200 sticky top-0 bg-white"
+          >
+            <div class="text-base font-bold">
+              <span>File ({{ fileCount }})</span>
+            </div>
+            <div class="flex items-center space-x-1.5">
+              <ui5-file-uploader
+                hide-input
+                [accept]="fileFormat"
+                (change)="onFileUpload($event)"
+              >
+                <ui5-button
+                  *ngIf="fileCount === 0"
+                  [disabled]="isSubmmiting"
+                  design="Transparent"
+                  class="text-gray-600"
+                  aria-label="Upload Excel or CSV file"
+                  >Upload</ui5-button
+                >
+              </ui5-file-uploader>
+            </div>
+          </div>
+          <div class="col-md-12" *ngIf="message_strip">
+            <ui5-message-strip
+              (ui5Close)="message_strip = false"
+              design="Critical"
+              >{{ this.ValidationMessage }}</ui5-message-strip
+            >
+          </div>
+
+          <div class="p-4" *ngIf="fileArr?.length">
+            <table class="w-full border-collapse">
+              <tbody>
+                <tr class="flex items-center p-4 border-b border-gray-200">
+                  <td class="w-[15%] flex justify-center">
+                    <ui5-icon
+                      [name]="
+                        fileArr[0]['type'] === 'excel'
+                          ? 'excel-attachment'
+                          : 'document-text'
+                      "
+                      class="w-20 h-20 text-black"
+                      [attr.aria-label]="
+                        fileArr[0]['type'] === 'excel'
+                          ? 'Excel file'
+                          : 'CSV file'
+                      "
+                    ></ui5-icon>
+                  </td>
+                  <td class="w-[70%] cursor-pointer">
+                    <div class="ml-3.5">
+                      <span
+                        class="text-base font-normal truncate max-w-[300px] text-gray-800"
+                        >{{ fileArr[0]["file_name"] }}</span
+                      >
+                      <div class="flex flex-col space-y-1">
+                        <div class="flex items-center">
+                          <ui5-label show-colon class="text-sm text-gray-600"
+                            >Uploaded On</ui5-label
+                          >
+                          <span class="text-sm text-gray-600">{{
+                            fileArr[0]["updated_at"] | date : "dd.MM.yyyy"
+                          }}</span>
+                        </div>
+                        <div class="flex items-center">
+                          <ui5-label show-colon class="text-sm text-gray-600"
+                            >File Size</ui5-label
+                          >
+                          <span class="text-sm text-gray-600">{{
+                            fileArr[0]["size"]
+                          }}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </td>
+                  <td class="w-[5%]">
+                    <div class="flex justify-end">
+                      <ui5-button
+                        icon="decline"
+                        (click)="removeFile(fileArr[0].id)"
+                        design="Transparent"
+                        class="text-gray-600"
+                        aria-label="Delete file {{ fileArr[0]['file_name'] }}"
+                      ></ui5-button>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </ui5-upload-collection>
+      </div>
+    </div>
+  </ui5-busy-indicator>
+  <ui5-toolbar slot="footer">
+    <ui5-toolbar-button
+      design="Emphasized"
+      (click)="import()"
+      [disabled]="isSubmmiting"
+      text="{{localization.Submit}}"
+    ></ui5-toolbar-button>
+    <ui5-toolbar-button
+      design="Transparent"
+      [disabled]="isSubmmiting"
+      (click)="CloseDialog()"
+      text="{{localization.Cancel}}"
+    ></ui5-toolbar-button>
+  </ui5-toolbar>
+</ui5-dialog>
+
+<ui5-dialog [open]="isExport" [attr.header-text]="localization.Export" state="Information">
+  <p class="w-100 text-center">
+    <span *ngIf="!isSubmmiting" i18n>Are you sure you want to Export?</span>
+    <ui5-busy-indicator
+      [delay]="0"
+      [active]="isSubmmiting"
+      size="M"
+      *ngIf="isSubmmiting"
+    ></ui5-busy-indicator>
+  </p>
+  <div
+    slot="footer"
+    style="
+      display: flex;
+      justify-content: flex-end;
+      width: 100%;
+      padding: 0.25rem 1rem;
+    "
+  >
+    <ui5-button
+      (click)="Export()"
+      [disabled]="isSubmmiting"
+      class="mx-2"
+      design="Positive"
+    >
+      {{localization.Export}}
+    </ui5-button>
+    <ui5-button [disabled]="isSubmmiting" (click)="isExport = false"
+      >{{localization.Cancel}}</ui5-button
+    >
+  </div>
+</ui5-dialog>

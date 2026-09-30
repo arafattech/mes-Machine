@@ -1,0 +1,7 @@
+:host ::ng-deep .ui5-tc-root > .ui5-tc__content {
+  padding: 0 !important;
+}
+
+:host ::ng-deep ui5-tabcontainer::part(content) {
+  padding: 0 !important;
+}

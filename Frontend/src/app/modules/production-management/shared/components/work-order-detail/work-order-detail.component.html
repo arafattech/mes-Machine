@@ -1,0 +1,514 @@
+
+  <!-- Empty State (No Work Order Selected) -->
+  <ui5-illustrated-message
+    *ngIf="!workOrderId"
+    name="NoData"
+    class="w-full h-full flex items-center justify-center min-h-[400px]"
+  >
+    <ui5-title slot="title" level="H6" i18n>No active work order</ui5-title>
+    <div slot="subtitle" i18n>This machine has no work order selected.</div>
+  </ui5-illustrated-message>
+
+  <!-- Main Content Wrapper -->
+  <ui5-busy-indicator
+    *ngIf="workOrderId"
+    [active]="loading"
+    [delay]="0"
+    size="M"
+    class="block w-full min-h-[200px]"
+  >
+    <ng-container *ngIf="detail?.workOrder as wo">
+      <div class="flex flex-col gap-4 w-full max-w-[1600px] mx-auto">
+        <!-- SAP Fiori Header Banner -->
+        <ui5-card class="w-full border-none shadow-sm">
+          <div
+            class="p-5 flex flex-wrap items-center justify-between gap-6 bg-[var(--sapTile_Background,#ffffff)] rounded-lg"
+          >
+            <!-- Left Header Details -->
+            <div class="min-w-0 flex items-start gap-4">
+              <div
+                class="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-[var(--sapInformationBackground,#e8f4fe)] border border-[var(--sapInformationBorderColor,#b2d7ff)]"
+              >
+                <ui5-icon
+                  name="document"
+                  style="color: var(--sapInformationColor, #0a6ed1)"
+                  class="text-xl"
+                ></ui5-icon>
+              </div>
+              <div class="min-w-0 flex flex-col justify-center">
+                <div class="flex items-center gap-2.5 flex-wrap">
+                  <h2
+                    class="text-xl font-bold tracking-tight text-[var(--sapTextColor,#1d2d3e)] truncate m-0"
+                  >
+                    {{ wo.customId || "WO-" + wo.id }}
+                  </h2>
+
+                  <!-- Work Order Status Tag -->
+                  <ui5-tag
+                    *ngIf="wo.status"
+                    [style.background]="getWorkOrderStatusTint(wo.status)"
+                    [style.color]="getWorkOrderStatusColor(wo.status)"
+                    class="font-semibold"
+                  >
+                    {{ getWorkOrderStatusLabel(wo.status) }}
+                  </ui5-tag>
+
+                  <!-- Variance Tag -->
+                  <span
+                    *ngIf="startVariance as variance"
+                    class="rounded-full px-2 py-0.5 text-[10px] font-semibold shrink-0 border"
+                    [class.bg-emerald-50]="variance.tone === 'positive'"
+                    [class.text-emerald-700]="variance.tone === 'positive'"
+                    [class.border-emerald-200]="variance.tone === 'positive'"
+                    [class.bg-amber-50]="variance.tone === 'warning'"
+                    [class.text-amber-700]="variance.tone === 'warning'"
+                    [class.border-amber-200]="variance.tone === 'warning'"
+                  >
+                    {{ variance.label }}
+                  </span>
+                </div>
+
+                <p
+                  class="text-[var(--sapContent_LabelColor,#556b82)] text-sm font-medium truncate mt-1 mb-0"
+                >
+                  {{ wo.productName }}
+                </p>
+
+              </div>
+            </div>
+
+            <!-- Header Quick KPI Metrics -->
+            <div
+              class="flex flex-wrap items-center gap-3 text-xs shrink-0 pt-3 sm:pt-0 border-t sm:border-t-0 border-[var(--sapTile_BorderColor,#e2e8f0)] w-full sm:w-auto"
+            >
+              <div
+                class="flex items-center gap-3 bg-[var(--sapGroup_ContentBackground,#f8fafc)] px-3.5 py-2.5 rounded-lg border border-[var(--sapTile_BorderColor,#e2e8f0)]"
+              >
+                <ui5-icon
+                  name="goal"
+                  class="text-base text-[var(--sapContent_IconColor,#556b82)] shrink-0"
+                ></ui5-icon>
+                <div>
+                  <div
+                    class="text-[var(--sapContent_LabelColor,#64748b)] uppercase tracking-wider text-[10px] font-bold mb-0.5"
+                    i18n
+                  >
+                    Target Quantity
+                  </div>
+                  <div
+                    class="text-[var(--sapTextColor,#0f172a)] text-sm font-bold tabular-nums"
+                  >
+                    {{ wo.quantity }}
+                  </div>
+                </div>
+              </div>
+
+              <div
+                class="flex items-center gap-3 bg-[var(--sapGroup_ContentBackground,#f8fafc)] px-3.5 py-2.5 rounded-lg border border-[var(--sapTile_BorderColor,#e2e8f0)] cursor-pointer"
+                role="button"
+                tabindex="0"
+                (click)="openPlannedMachinesDialog()"
+                (keydown.enter)="openPlannedMachinesDialog()"
+              >
+                <ui5-icon
+                  name="machine"
+                  class="text-base text-[var(--sapContent_IconColor,#556b82)] shrink-0"
+                ></ui5-icon>
+                <div>
+                  <div
+                    class="text-[var(--sapContent_LabelColor,#64748b)] uppercase tracking-wider text-[10px] font-bold mb-0.5"
+                    i18n
+                  >
+                    Machines Active
+                  </div>
+                  <div
+                    class="text-[var(--sapTextColor,#0f172a)] text-sm font-bold tabular-nums"
+                  >
+                    {{ activeMachineCount }}
+                    <span
+                      class="text-[10px] font-normal text-[var(--sapContent_LabelColor,#94a3b8)]"
+                      >/ {{ plannedMachineCount }}
+                      <span i18n>planned</span></span
+                    >
+                  </div>
+                </div>
+                <ui5-icon
+                  name="slim-arrow-right"
+                  class="text-[10px] text-[var(--sapContent_IconColor,#94a3b8)] shrink-0"
+                ></ui5-icon>
+              </div>
+
+              <div
+                class="flex items-center gap-3 bg-[var(--sapGroup_ContentBackground,#f8fafc)] px-3.5 py-2.5 rounded-lg border border-[var(--sapTile_BorderColor,#e2e8f0)]"
+              >
+                <ui5-icon
+                  name="calendar"
+                  class="text-base text-[var(--sapContent_IconColor,#556b82)] shrink-0"
+                ></ui5-icon>
+                <div>
+                  <div
+                    class="text-[var(--sapContent_LabelColor,#64748b)] uppercase tracking-wider text-[10px] font-bold mb-0.5"
+                    i18n
+                  >
+                    Scheduled Start
+                  </div>
+                  <div
+                    class="text-[var(--sapTextColor,#0f172a)] text-sm font-semibold"
+                  >
+                    {{ formatDate(wo.scheduledStart) }}
+                  </div>
+                </div>
+              </div>
+
+              <div
+                class="flex items-center gap-3 bg-[var(--sapGroup_ContentBackground,#f8fafc)] px-3.5 py-2.5 rounded-lg border border-[var(--sapTile_BorderColor,#e2e8f0)]"
+              >
+                <ui5-icon
+                  name="play"
+                  class="text-base text-[var(--sapContent_IconColor,#556b82)] shrink-0"
+                ></ui5-icon>
+                <div>
+                  <div
+                    class="text-[var(--sapContent_LabelColor,#64748b)] uppercase tracking-wider text-[10px] font-bold mb-0.5"
+                    i18n
+                  >
+                    Actual Start
+                  </div>
+                  <div
+                    class="text-[var(--sapTextColor,#0f172a)] text-sm font-semibold"
+                  >
+                    {{ formatDate(wo.actualStart) }}
+                  </div>
+                </div>
+              </div>
+
+              <div
+                class="flex items-center gap-3 bg-[var(--sapErrorBackground,#fef2f2)] px-3.5 py-2.5 rounded-lg border border-[var(--sapErrorBorderColor,#fecaca)]"
+              >
+                <ui5-icon
+                  name="delete"
+                  class="text-base text-[var(--sapNegativeColor,#dc2626)] shrink-0"
+                ></ui5-icon>
+                <div>
+                  <div
+                    class="text-[var(--sapNegativeColor,#b91c1c)] uppercase tracking-wider text-[10px] font-bold mb-0.5"
+                    i18n
+                  >
+                    Total Wastage
+                  </div>
+                  <div
+                    class="text-[var(--sapNegativeColor,#991b1b)] text-sm font-bold tabular-nums"
+                  >
+                    {{ wastageDetail?.totalQtyKg ?? 0 | number: "1.0-2" }} kg
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </ui5-card>
+
+        <!-- Dynamic Content Tabs -->
+        <ui5-tabcontainer
+          header-background-design="Solid"
+          content-background-design="Transparent"
+          (tab-select)="onTabSelect($event)"
+          class="w-full"
+        >
+          <!-- Overview Tab -->
+          <ui5-tab
+            text="Overview"
+            i18n-text
+            [selected]="selectedTab === 'overview'"
+            id="overview"
+          >
+            <div class="grid grid-cols-1 xl:grid-cols-12 gap-4 pt-1 items-stretch">
+              <!-- Work Order OEE Performance Card -->
+              <ui5-card class="xl:col-span-7 h-[400px]">
+                <ui5-card-header
+                  slot="header"
+                  title-text="Work Order OEE Performance"
+                  subtitle-text="Real-time efficiency status"
+                ></ui5-card-header>
+                <div class="p-4 grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <app-quality-efficiency
+                    *ngFor="
+                      let metric of detail?.oeeMetrics;
+                      trackBy: trackByMetricLabel
+                    "
+                    [metric]="metric"
+                    variant="compact"
+                  ></app-quality-efficiency>
+                </div>
+              </ui5-card>
+
+              <!-- Overall Production Progress Card -->
+              <ui5-card class="xl:col-span-5 h-[400px]" *ngIf="detail?.totals as totals">
+                <ui5-card-header
+                  slot="header"
+                  title-text="Overall Production Progress"
+                ></ui5-card-header>
+                <div
+                  class="p-4 flex flex-col justify-between h-[calc(100%-60px)]"
+                >
+                  <div>
+                    <div class="flex items-center justify-between text-sm mb-2">
+                      <span
+                        class="text-xs font-semibold text-[var(--sapContent_LabelColor,#556b82)]"
+                        i18n
+                        >Completed Units</span
+                      >
+                      <span
+                        class="text-[var(--sapTextColor,#0f172a)] font-bold tabular-nums"
+                      >
+                        {{ totals.goodCount }}
+                        <span
+                          class="text-xs font-normal text-[var(--sapContent_LabelColor,#556b82)]"
+                          >/ {{ totals.quantityTarget ?? "—" }} units</span
+                        >
+                        <ui5-tag
+                          *ngIf="totals.percentComplete !== null"
+                          design="Positive"
+                          class="ml-1 font-semibold"
+                        >
+                          {{ totals.percentComplete }}%
+                        </ui5-tag>
+                      </span>
+                    </div>
+
+                    <!-- Progress Indicator Bar -->
+                    <ui5-progress-indicator
+                      [value]="totals.percentComplete ?? 0"
+                      [valueState]="
+                        (totals.percentComplete ?? 0) >= 100
+                          ? 'Positive'
+                          : 'None'
+                      "
+                      class="w-full"
+                    ></ui5-progress-indicator>
+                  </div>
+
+                  <!-- Summary Stat Pills -->
+                  <div
+                    class="grid grid-cols-3 gap-2 mt-4 pt-3 border-t border-[var(--sapTile_BorderColor,#f1f5f9)] text-center"
+                  >
+                    <div
+                      class="p-2 rounded-lg bg-[var(--sapGroup_ContentBackground,#f8fafc)]"
+                    >
+                      <span
+                        class="block text-[10px] font-bold text-[var(--sapContent_LabelColor,#64748b)] uppercase"
+                        i18n
+                        >Good</span
+                      >
+                      <span
+                        class="text-sm font-bold text-[var(--sapPositiveColor,#10b981)]"
+                        >{{ totals.goodCount }}</span
+                      >
+                    </div>
+                    <div
+                      class="p-2 rounded-lg bg-[var(--sapGroup_ContentBackground,#f8fafc)]"
+                    >
+                      <span
+                        class="block text-[10px] font-bold text-[var(--sapContent_LabelColor,#64748b)] uppercase"
+                        i18n
+                        >Scrap</span
+                      >
+                      <span
+                        class="text-sm font-bold text-[var(--sapNegativeColor,#ef4444)]"
+                        >{{ totals.scrapCount }}</span
+                      >
+                    </div>
+                    <div
+                      class="p-2 rounded-lg bg-[var(--sapGroup_ContentBackground,#f8fafc)]"
+                    >
+                      <span
+                        class="block text-[10px] font-bold text-[var(--sapContent_LabelColor,#64748b)] uppercase"
+                        i18n
+                        >Total</span
+                      >
+                      <span
+                        class="text-sm font-bold text-[var(--sapTextColor,#1d2d3e)]"
+                        >{{ totals.totalCount }}</span
+                      >
+                    </div>
+                  </div>
+                </div>
+              </ui5-card>
+            </div>
+          </ui5-tab>
+
+          <!-- Machines & Shifts Tab -->
+          <ui5-tab
+            [text]="machinesTabLabel"
+            [selected]="selectedTab === 'machines'"
+            id="machines"
+          >
+          <div class="p-1">
+          <app-ag-grid-table
+                class="block w-full"
+                [columns]="breakdownColumns"
+                [toolbarConfig]="toolbarConfig"
+                [dataSource]="breakdownDataSource"
+                [displayConfig]="displayConfig"
+                [enableRowClick]="false"
+                noRowsMessage="No production logged against this work order yet"
+                i18n-noRowsMessage
+              >
+              </app-ag-grid-table>
+              </div>
+          </ui5-tab>
+
+          <!-- Wastage Breakdown Tab -->
+          <ui5-tab
+            [text]="wastageTabLabel"
+            [selected]="selectedTab === 'wastage'"
+            id="wastage"
+          >
+            <!-- Wastage Chart & Table -->
+            <ui5-busy-indicator
+              [active]="wastageLoading"
+              [delay]="0"
+              size="M"
+              class="block w-full"
+            >
+              <div class="w-full">
+                <ng-container
+                  *ngIf="
+                    wastageDetail && wastageDetail.byType.length;
+                    else noWastage
+                  "
+                >
+                  <app-ag-grid-table
+                    class="block w-full"
+                    gridId="work-order-wastage-breakdown"
+                    [columns]="wastageColumns"
+                    [toolbarConfig]="wastageToolbarConfig"
+                    [dataSource]="wastageDataSource"
+                    [displayConfig]="wastageDisplayConfig"
+                    [enableRowClick]="false"
+                    [showAction]="true"
+                    [showInfoButton]="true"
+                    [showEditButton]="false"
+                    [showDeleteButton]="false"
+                    (infoClick)="viewMachineAllocations($event)"
+                    noRowsMessage="No wastage logged against this work order yet"
+                    i18n-noRowsMessage
+                  ></app-ag-grid-table>
+                </ng-container>
+
+                <!-- No Wastage Fallback -->
+                <ng-template #noWastage>
+                  <ui5-illustrated-message
+                    name="NoData"
+                    class="w-full flex items-center justify-center py-8"
+                  >
+                    <ui5-title slot="title" level="H6" i18n
+                      >No wastage logged yet</ui5-title
+                    >
+                    <div slot="subtitle" i18n>
+                      Log wastage against this work order from the Plan &amp;
+                      Production Log page.
+                    </div>
+                  </ui5-illustrated-message>
+                </ng-template>
+              </div>
+            </ui5-busy-indicator>
+          </ui5-tab>
+        </ui5-tabcontainer>
+      </div>
+    </ng-container>
+
+    <!-- Error State -->
+    <ui5-illustrated-message
+      *ngIf="!loading && workOrderId && !detail?.workOrder"
+      name="UnableToLoad"
+      class="w-full h-full flex items-center justify-center min-h-[300px]"
+    >
+      <ui5-title slot="title" level="H6" i18n
+        >Work order details unavailable</ui5-title
+      >
+    </ui5-illustrated-message>
+  </ui5-busy-indicator>
+
+  <!-- Allocation Dialog Modal -->
+  <ui5-dialog
+    [open]="machineAllocationsOpen"
+    class="w-[90vw] md:w-[60vw] lg:w-[50vw]"
+    [headerText]="machineAllocationsSubtitle"
+    (before-close)="closeMachineAllocations()"
+  >
+    <div class="w-full p-3">
+      <div
+        class="rounded-lg border border-[var(--sapTile_BorderColor,#e2e8f0)] overflow-hidden p-1"
+      >
+        <app-ag-grid-table
+          class="block w-full"
+          [columns]="machineAllocationColumns"
+          [toolbarConfig]="machineAllocationsToolbarConfig"
+          [dataSource]="machineAllocationsDataSource"
+          [displayConfig]="machineAllocationsDisplayConfig"
+          [enableRowClick]="false"
+          gridId="work-order-wastage-allocations"
+          noRowsMessage="No machines allocated for this wastage type"
+          i18n-noRowsMessage
+        ></app-ag-grid-table>
+      </div>
+    </div>
+    <div
+      slot="footer"
+      class="flex justify-end p-2 border-t border-[var(--sapTile_BorderColor,#e2e8f0)]"
+    >
+      <ui5-button design="Transparent" (click)="closeMachineAllocations()" i18n
+        >Close</ui5-button
+      >
+    </div>
+  </ui5-dialog>
+
+  <!-- Planned Machines Dialog — opened from the "Machines Active" KPI card -->
+  <ui5-dialog
+    [open]="plannedMachinesDialogOpen"
+    class="w-[90vw] md:w-[60vw] lg:w-[45vw]"
+    header-text="Planned Machines"
+    i18n-header-text
+    (before-close)="closePlannedMachinesDialog()"
+  >
+    <div class="w-full p-3">
+      <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+        <div
+          *ngFor="let machine of plannedMachinesWithStatus"
+          class="flex items-center gap-2.5 rounded-lg p-3 bg-[var(--sapGroup_ContentBackground,#f8fafc)] border border-[var(--sapTile_BorderColor,#e2e8f0)]"
+        >
+          <div
+            class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[var(--sapInformationBackground,#e8f4fe)] border border-[var(--sapInformationBorderColor,#b2d7ff)]"
+          >
+            <ui5-icon
+              name="machine"
+              style="color: var(--sapInformationColor, #0a6ed1)"
+              class="text-sm"
+            ></ui5-icon>
+          </div>
+          <div class="min-w-0">
+            <div class="text-xs font-semibold text-[var(--sapTextColor,#1d2d3e)] truncate">
+              {{ machine.machineName }}
+            </div>
+            <span
+              class="inline-block mt-0.5 rounded-full px-2 py-0.5 text-[10px] font-semibold border"
+              [style.color]="machine.statusColor"
+              [style.background]="machine.statusTint"
+              [style.borderColor]="machine.statusColor"
+            >
+              {{ machine.statusLabel }}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div
+      slot="footer"
+      class="flex justify-end p-2 border-t border-[var(--sapTile_BorderColor,#e2e8f0)]"
+    >
+      <ui5-button design="Transparent" (click)="closePlannedMachinesDialog()" i18n
+        >Close</ui5-button
+      >
+    </div>
+  </ui5-dialog>
+

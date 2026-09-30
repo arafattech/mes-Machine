@@ -1,0 +1,34 @@
+<div class="h-[calc(100vh-55px)]">
+  <app-ag-grid-table
+    #agGridRef
+    [columns]="columns"
+    [dataSource]="dataSource"
+    [toolbarConfig]="toolbarConfig"
+    selectionMode="Single"
+    [isBase]="true"
+    [gridId]="gridId"
+    [showAction]="true"
+    [showEditButton]="rolePermissionService.hasPermission(permissions.BASE_DATA_MACHINE_GROUP_EDIT)"
+    [showDeleteButton]="rolePermissionService.hasPermission(permissions.BASE_DATA_MACHINE_GROUP_DELETE)"
+    (newButtonClick)="newMachineGroup()"
+    (editClick)="editMachineGroup($event)"
+    (deleteClick)="deleteClick($event.id)"
+    (rowClick)="editMachineGroup($event)"
+    [showIllustratedMessage]="true"
+    IllustratedName="NoData"
+    IllustratedTitle="No Machine Groups Found"
+    IllustratedSubtitle="Try adjusting your search or active status."
+  ></app-ag-grid-table>
+</div>
+
+<app-machine-group-form
+  #machineGroupForm
+  [saveMode]="saveMode"
+  [machineGroup]="machineGroup"
+  (RefreshTable)="processData($event)"
+></app-machine-group-form>
+
+<app-delete-entity
+  (isSuccess)="processData($event)"
+  [IsDelete]="IsDelete"
+></app-delete-entity>

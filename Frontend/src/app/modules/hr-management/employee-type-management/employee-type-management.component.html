@@ -1,0 +1,69 @@
+<div class="h-[calc(100vh-55px)]">
+  <app-ag-grid-table
+    #agGridRef
+    [columns]="columns"
+    [dataSource]="dataSource"
+    [toolbarConfig]="toolbarConfig"
+    [isBase]="true"
+    gridId="hr-employee-type"
+    [showAction]="true"
+    [showEditButton]="permission.hasPermission(permissions.HR_EMPLOYEE_TYPE_EDIT)"
+    [showDeleteButton]="permission.hasPermission(permissions.HR_EMPLOYEE_TYPE_DELETE)"
+    selectionMode="Single"
+    [showIllustratedMessage]="true"
+    IllustratedName="NoData"
+    IllustratedTitle="No Employee Types Found"
+    i18n-IllustratedTitle
+    IllustratedSubtitle="Try adjusting your search or active status."
+    i18n-IllustratedSubtitle
+    (newButtonClick)="newType()"
+    (editClick)="editType($event)"
+    (deleteClick)="deleteClick($event.id)"
+  ></app-ag-grid-table>
+</div>
+
+
+<ui5-dialog [open]="isDialogOpen" [attr.header-text]="
+    this.saveMode === 'POST' ? localization.New : localization.Edit
+  " (before-close)="CloseDialog()">
+
+    <div class="flex flex-col">
+      <div class="flex gap-4 mb-3">
+        <div class="flex flex-col">
+          <ui5-label showColon class="w-100">{{ localization.Active }}</ui5-label>
+          <ui5-switch checked [(ngModel)]="employeeType.is_active"></ui5-switch>
+        </div>
+        <div class="flex flex-col">
+          <ui5-label showColon class="w-100" i18n>Officer/Staff</ui5-label>
+          <ui5-switch
+            checked
+            [(ngModel)]="employeeType.is_officer_staff"
+          ></ui5-switch>
+        </div>
+      </div>
+      <ui5-label show-colon required i18n>Type Name</ui5-label>
+      <ui5-input
+        class="w-100"
+        [(ngModel)]="employeeType.name"
+        placeholder="Enter employee type name"
+        (input)="checkValidation($event , 'name')"
+        [attr.value-state]="valueStateOptions.name"
+        type="Text"
+        i18n-placeholder
+      >
+        <div slot="valueStateMessage">
+          {{ validationMessage }}
+        </div>
+      </ui5-input>
+    </div>
+
+  <ui5-toolbar slot="footer">
+    <ui5-toolbar-button design="Emphasized" (click)="saveType()" [disabled]="isLoading"
+      text="{{ localization.Submit }}"></ui5-toolbar-button>
+    <ui5-toolbar-button design="Transparent" [disabled]="isLoading" (click)="CloseDialog()"
+      text="{{ localization.Cancel }}"></ui5-toolbar-button>
+  </ui5-toolbar>
+</ui5-dialog>
+
+<app-delete-entity [IsDelete]="IsDelete" (isSuccess)="processData($event)">
+</app-delete-entity>

@@ -1,0 +1,110 @@
+<ui5-dialog [open]="open" [attr.header-text]="
+    saveMode === 'POST' ? localization.New : (saveMode === 'GET' ? localization.View : localization.Edit)
+  " class="w-[calc(120vh-100px)] h-[86vh]" (before-close)="CloseDialog()">
+  <ui5-busy-indicator class="w-full h-[72vh]" [delay]="0" [active]="loading" size="M">
+    <ui5-tabcontainer class="ui5-tab w-full h-full block" header-background-design="Solid" content-background-design="Transparent"
+      (tab-select)="onTabSelect($event)">
+      <ui5-tab text="Leave Details" i18n-text id="details" [selected]="selectedTab === 'details'">
+        <section class="grid grid-cols-3">
+          <div class="">
+            <ui5-label show-colon required i18n>Leave Type</ui5-label>
+            <ui5-message-strip design="Negative" *ngIf="validationMessageLeaveType">
+              {{ validationMessageLeaveType }}
+            </ui5-message-strip>
+            <div class="mb-2">
+              <div class="">
+                <ui5-combobox  #leaveTypeCombo class="w-100" [value]="getLeaveTypeName(LeaveRequest.leave_type_id ?? 0)" [readonly]="isReadOnly || saveMode === postMethod.PUT" placeholder="Select leave type" i18n-placeholder
+                  (selection-change)="onLeaveTypeChange($event)" [attr.value-state]="valueStateOptions.leaveType" required>
+                  <ui5-cb-item *ngFor="let type of leaveTypes" [text]="type.name" [value]="type.id">
+                  </ui5-cb-item>
+
+                  <div slot="valueStateMessage">
+                    {{ validationMessage }}
+                  </div>
+                </ui5-combobox>
+              </div>
+            </div>
+
+            <div class="mb-2" *ngIf="leaveBalance as balance">
+              <ui5-label class="text-xs" style="color: var(--sapContent_LabelColor, #74777a);" i18n>
+                {{ balance.used }} / {{ balance.total }} day(s) used — {{ balance.remaining }} remaining
+              </ui5-label>
+              <ui5-progress-indicator
+                [value]="balance.percent"
+                [valueState]="balance.percent >= 100 ? 'Negative' : (balance.percent >= 80 ? 'Critical' : 'Positive')"
+              ></ui5-progress-indicator>
+            </div>
+
+            <app-calendar size="small"
+              #calendarComponent
+              [preSelectedDates]="preSelectedLeaveDays"
+              [disabledDates]="takenLeaveDates"
+              [specialDates]="calendarSpecialDates"  [updateCalender]="updateCalendar"
+              (selectedDatesChange)="onDateSelectionChange($event)">
+            </app-calendar>
+          </div>
+
+          <div class="col-span-2 ml-4">
+            <div class="flex flex-col">
+              <ui5-label show-colon required i18n>Reason</ui5-label>
+              <ui5-message-strip design="Negative" *ngIf="valueStateOptions.reason === valueState.Negative">
+                {{ validationMessage }}
+              </ui5-message-strip>
+              <app-angular-editor [(ngModel)]="htmlContent" [isReadonly]="isReadOnly" (input)="checkValidation($event, 'reason')">
+              </app-angular-editor>
+            </div>
+          </div>
+        </section>
+      </ui5-tab>
+
+      <ui5-tab text="Attachment" i18n-text id="attachment" [selected]="selectedTab === 'attachment'">
+        <div class="w-full h-full flex flex-col gap-2">
+          <div *ngIf="showAttachmentError">
+            <ui5-message-strip design="Critical" (ui5Close)="attachmentSubmitAttempted = false" i18n>
+              This leave type requires at least one attached document.
+            </ui5-message-strip>
+          </div>
+          <div class="flex-1 min-h-0">
+            <app-attachment-upload
+              #attachmentUploadRef
+              model="LeaveRequest"
+              apiUrl="LeaveRequests"
+              [id]="LeaveRequest.id ?? null"
+              [isEdit]="saveMode === postMethod.PUT || saveMode === postMethod.GET"
+              [isDisable]="isReadOnly"
+            ></app-attachment-upload>
+          </div>
+        </div>
+      </ui5-tab>
+    </ui5-tabcontainer>
+  </ui5-busy-indicator>
+
+  <div slot="footer" class="flex items-center justify-end gap-2 w-full px-4 py-2">
+    <ui5-button *ngIf="!isReadOnly" design="Emphasized" (click)="saveLeaveRequests()"
+      [disabled]="loading || !!validationMessageLeaveType" i18n>{{ localization.Submit }}</ui5-button>
+    <ui5-button design="Transparent" [disabled]="loading" (click)="CloseDialog()" i18n>{{ localization.Cancel }}</ui5-button>
+  </div>
+</ui5-dialog>
+
+<app-ag-grid-table
+  #agGridRef
+  [dataSource]="dataSource"
+  [toolbarConfig]="toolbarConfig"
+  [displayConfig]="displayConfig"
+  [filterQuery]="'employee_id eq ' + employee?.id"
+  [columns]="leaveColumns"
+  [isBase]="true"
+  gridId="hr-leave-section"
+  [showAction]="false"
+  selectionMode="Single"
+  [showIllustratedMessage]="true"
+  IllustratedName="NoData"
+  IllustratedTitle="No Leave Requests Found"
+  i18n-IllustratedTitle
+  (newButtonClick)="newLeave()"
+  (rowClick)="editLeave($event)"
+  (processData)="onGridDataLoaded($event)"
+  (moreRowsLoaded)="onGridDataLoaded($event)"
+></app-ag-grid-table>
+
+<app-delete-entity (isSuccess)="refreshTable.emit()" [IsDelete]="IsDelete"></app-delete-entity>

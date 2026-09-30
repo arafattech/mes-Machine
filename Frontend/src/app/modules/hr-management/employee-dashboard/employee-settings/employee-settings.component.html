@@ -1,0 +1,96 @@
+<ui5-dialog
+  [open]="open"
+  [attr.header-text]="localization.settings"
+  state="Critical"
+  data-ui5-compact-size
+  class="w-[calc(100%-1rem)] sm:w-[400px]"
+>
+  <div>
+    <ui5-message-strip
+      *ngIf="isMessageStrip"
+      design="Negative"
+      (close)="isMessageStrip = false"
+      >{{ MessageStrip }}</ui5-message-strip
+    >
+  </div>
+  <ng-container *ngIf="!loading">
+    <ui5-label show-colon required i18n>Current Password</ui5-label>
+    <ui5-input
+      [type]="passwordVisibility.current_password ? 'Text' : 'Password'"
+      placeholder="Enter Current Password"
+      [value]="data.current_password"
+      (change)="onInputChange($event, 'current_password')"
+      [attr.value-state]="valueStateOptions.current_password"
+      class="w-100 sm:w-70 mb-3"
+    >
+      <ui5-icon
+        slot="icon"
+        class="cursor-pointer"
+        name="{{ passwordVisibility.current_password ? 'hide' : 'show' }}"
+        title="{{ passwordVisibility.current_password ? 'Hide Password' : 'Show Password' }}"
+        (click)="togglePasswordVisibility('current_password')"
+      ></ui5-icon>
+    </ui5-input>
+
+    <ui5-label show-colon required i18n>New Password</ui5-label>
+    <ui5-input
+      [type]="passwordVisibility.password ? 'Text' : 'Password'"
+      placeholder="Enter New Password"
+      [value]="data.password"
+      (change)="onInputChange($event, 'password')"
+      [attr.value-state]="valueStateOptions.password"
+      class="w-100 sm:w-70 mb-3"
+    >
+      <ui5-icon
+        slot="icon"
+        class="cursor-pointer"
+        name="{{ passwordVisibility.password ? 'hide' : 'show' }}"
+        title="{{ passwordVisibility.password ? 'Hide Password' : 'Show Password' }}"
+        (click)="togglePasswordVisibility('password')"
+      ></ui5-icon>
+    </ui5-input>
+
+    <ui5-label show-colon required i18n>Confirm Password</ui5-label>
+    <ui5-input
+      [type]="passwordVisibility.password_confirmation ? 'Text' : 'Password'"
+      placeholder="Enter Confirm Password"
+      [value]="data.password_confirmation"
+      (change)="onInputChange($event, 'password_confirmation')"
+      [attr.value-state]="valueStateOptions.password_confirmation"
+      class="w-100 sm:w-70 mb-3"
+    >
+      <ui5-icon
+        slot="icon"
+        class="cursor-pointer"
+        name="{{ passwordVisibility.password_confirmation ? 'hide' : 'show' }}"
+        title="{{ passwordVisibility.password_confirmation ? 'Hide Password' : 'Show Password' }}"
+        (click)="togglePasswordVisibility('password_confirmation')"
+      ></ui5-icon>
+    </ui5-input>
+  </ng-container>
+
+  <div class="d-flex justify-content-center h-[260px] align-items-center" *ngIf="loading">
+    <ui5-busy-indicator
+      [active]="loading"
+      size="M"
+      class="m-auto"
+      [delay]="0"
+    ></ui5-busy-indicator>
+  </div>
+
+  <div
+    slot="footer"
+    class="d-flex justify-content-end align-items-center w-100"
+  >
+    <ui5-button
+      (click)="onChangePassword()"
+      design="Emphasized"
+      [disabled]="loading"
+    >
+      {{ localization.Submit }}
+    </ui5-button>
+    <ui5-button (click)="open = false" class="ms-2" [disabled]="loading">
+      {{ localization.Cancel }}
+    </ui5-button>
+  </div>
+</ui5-dialog>

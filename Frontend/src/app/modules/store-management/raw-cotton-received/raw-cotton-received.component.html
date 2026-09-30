@@ -1,0 +1,152 @@
+<div class="h-[calc(100vh-50px)] overflow-hidden">
+  <app-ag-grid-table
+    #agGridRawCottonRef
+    [columns]="columns"
+    [dataSource]="dataSource"
+    [toolbarConfig]="toolbarConfig"
+    [displayConfig]="displayConfig"
+    [showDateRangePicker]="true"
+    [dateRangePickerValue]="dateRangeValue"
+    [showAction]="true"
+    [showEditButton]="false"
+    [showDeleteButton]="false"
+    [showInfoButton]="true"
+    gridId="raw-cotton-received-list"
+    (changeRangeDatePicker)="onDateRangeStringChange($event)"
+    (resetButtonClick)="resetFilters()"
+    (downloadButtonClick)="exportRawCottonReceived($event)"
+    (infoClick)="viewDetails($event)"
+  ></app-ag-grid-table>
+</div>
+
+<excel-upload-download
+  [exportApiUrl]="'store/raw-cotton-received/export'"
+  [exportPayload]="getExportPayload()"
+  [exportFileName]="getExportFileName()"
+  [IsExportXls]="IsExportXls"
+></excel-upload-download>
+
+<!-- ─── Details dialog — info-button action, read-only ──────────────────────── -->
+<ui5-dialog
+  [open]="detailsOpen"
+  header-text="Raw Cotton Receipt Details"
+  i18n-header-text
+  state="Information"
+  class="w-[820px] max-w-[95vw]"
+  (before-close)="closeDetails()"
+>
+  <div class="relative w-full h-full">
+    <div *ngIf="detailsLoading" class="absolute inset-0 z-10 flex items-center justify-center bg-white/60">
+      <div class="h-8 w-8 rounded-full border-4 border-blue-200 border-t-blue-600 animate-spin"></div>
+    </div>
+
+    <div class="flex flex-col gap-4 p-1" *ngIf="detailsRow">
+      <div class="flex flex-col gap-3">
+        <ui5-title level="H6" i18n>Receipt</ui5-title>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div class="flex flex-col">
+            <ui5-label show-colon i18n>MRR No</ui5-label>
+            <ui5-input class="w-full" [value]="detailsLog?.receipt?.custom_id ?? '-'" readonly></ui5-input>
+          </div>
+          <div class="flex flex-col">
+            <ui5-label show-colon i18n>Source</ui5-label>
+            <ui5-input class="w-full" [value]="detailsLog?.receipt?.source ?? '-'" readonly></ui5-input>
+          </div>
+          <div class="flex flex-col">
+            <ui5-label show-colon i18n>Supplier</ui5-label>
+            <ui5-input class="w-full" [value]="detailsRow.supplier_name ?? '-'" readonly></ui5-input>
+          </div>
+          <div class="flex flex-col">
+            <ui5-label show-colon i18n>Origin</ui5-label>
+            <ui5-input class="w-full" [value]="detailsRow.origin_name ?? '-'" readonly></ui5-input>
+          </div>
+          <div class="flex flex-col">
+            <ui5-label show-colon i18n>Invoice No</ui5-label>
+            <ui5-input class="w-full" [value]="detailsLog?.receipt?.invoice_no ?? '-'" readonly></ui5-input>
+          </div>
+          <div class="flex flex-col">
+            <ui5-label show-colon i18n>L/C No</ui5-label>
+            <ui5-input class="w-full" [value]="detailsRow.lc_no ?? '-'" readonly></ui5-input>
+          </div>
+          <div class="flex flex-col">
+            <ui5-label show-colon i18n>Vehicle No</ui5-label>
+            <ui5-input class="w-full" [value]="detailsLog?.receipt?.vehicle_no ?? '-'" readonly></ui5-input>
+          </div>
+          <div class="flex flex-col">
+            <ui5-label show-colon i18n>Received Date</ui5-label>
+            <ui5-input class="w-full" [value]="detailsRow.received_date ?? '-'" readonly></ui5-input>
+          </div>
+        </div>
+      </div>
+
+      <div class="border-t pt-3 flex flex-col gap-3">
+        <ui5-title level="H6" i18n>Item</ui5-title>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div class="flex flex-col">
+            <ui5-label show-colon i18n>Item Code</ui5-label>
+            <ui5-input class="w-full" [value]="detailsRow.item_code ?? '-'" readonly></ui5-input>
+          </div>
+          <div class="flex flex-col">
+            <ui5-label show-colon i18n>Product Name</ui5-label>
+            <ui5-input class="w-full" [value]="detailsRow.product_name ?? '-'" readonly></ui5-input>
+          </div>
+          <div class="flex flex-col">
+            <ui5-label show-colon i18n>Category</ui5-label>
+            <ui5-input class="w-full" [value]="detailsLog?.product?.category?.name ?? '-'" readonly></ui5-input>
+          </div>
+          <div class="flex flex-col">
+            <ui5-label show-colon i18n>UOM</ui5-label>
+            <ui5-input class="w-full" [value]="detailsLog?.product?.uom?.name ?? '-'" readonly></ui5-input>
+          </div>
+          <div class="flex flex-col">
+            <ui5-label show-colon i18n>Required Qty</ui5-label>
+            <ui5-input class="w-full" [value]="(detailsLog?.required_quantity ?? 0) + ''" readonly></ui5-input>
+          </div>
+          <div class="flex flex-col">
+            <ui5-label show-colon i18n>Receiving Qty (this event)</ui5-label>
+            <ui5-input class="w-full" [value]="(detailsLog?.receiving_quantity ?? 0) + ''" readonly></ui5-input>
+          </div>
+          <div class="flex flex-col">
+            <ui5-label show-colon i18n>Received Qty (total)</ui5-label>
+            <ui5-input class="w-full" [value]="detailsRow.received_quantity ?? '-'" readonly></ui5-input>
+          </div>
+          <div class="flex flex-col">
+            <ui5-label show-colon i18n>Received By</ui5-label>
+            <ui5-input class="w-full" [value]="detailsLog?.receivedBy?.name ?? '-'" readonly></ui5-input>
+          </div>
+        </div>
+      </div>
+
+      <div class="border-t pt-3 flex flex-col gap-3">
+        <ui5-title level="H6" i18n>Lot</ui5-title>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div class="flex flex-col">
+            <ui5-label show-colon i18n>Received Lot (Bale)</ui5-label>
+            <ui5-input class="w-full" [value]="(detailsRow.received_lot_bale ?? 0) + ''" readonly></ui5-input>
+          </div>
+          <div class="flex flex-col">
+            <ui5-label show-colon i18n>Received Lot Net Weight (Kg)</ui5-label>
+            <ui5-input class="w-full" [value]="(detailsRow.received_lot_net_weight_kg ?? 0) + ''" readonly></ui5-input>
+          </div>
+          <div class="flex flex-col">
+            <ui5-label show-colon i18n>Rate in $ (USD)</ui5-label>
+            <ui5-input class="w-full" [value]="(detailsRow.rate_per_kg ?? 0) + ''" readonly></ui5-input>
+          </div>
+          <div class="flex flex-col">
+            <ui5-label show-colon i18n>Opening Stock</ui5-label>
+            <ui5-input class="w-full" [value]="(detailsRow.opening_stock ?? 0) + ''" readonly></ui5-input>
+          </div>
+        </div>
+      </div>
+
+      <div class="border-t pt-3 flex flex-col">
+        <ui5-label show-colon i18n>Remark</ui5-label>
+        <ui5-textarea class="w-full" [value]="detailsLog?.remark ?? ''" readonly [rows]="2"></ui5-textarea>
+      </div>
+    </div>
+  </div>
+
+  <ui5-toolbar slot="footer">
+    <ui5-toolbar-button design="Transparent" (click)="closeDetails()" text="Close" i18n-text></ui5-toolbar-button>
+  </ui5-toolbar>
+</ui5-dialog>

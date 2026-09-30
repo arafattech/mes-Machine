@@ -1,0 +1,145 @@
+<ui5-dialog
+  [open]="open"
+  id="dialog"
+  [attr.header-text]="saveMode === 'POST' ? localization.New : localization.Edit"
+  (before-close)="CloseDialog()"
+>
+  <ui5-busy-indicator [active]="loading" size="M" class="w-100" [delay]="0">
+    <ui5-tabcontainer
+      class="ui5-tab"
+      header-background-design="Solid"
+      content-background-design="Transparent"
+      (tab-select)="onTabSelect($event)"
+    >
+      <ui5-tab
+        text="Core Data"
+        i18n-text
+        selected
+        class="overflow-x-hidden"
+        id="coreData"
+        [selected]="selectedTab === 'coreData'"
+        header-background-design="Transparent"
+        content-background-design="Transparent"
+      >
+        <section class="w-100">
+          <div class="row">
+            <div class="col-md-12" *ngIf="message_strip">
+              <ui5-message-strip
+                (ui5Close)="message_strip = false"
+                design="Critical"
+                >{{ duplicate_error }}</ui5-message-strip
+              >
+            </div>
+            <div class="col-md-12">
+              <ui5-label showColon class="w-100">{{ localization.Active }}</ui5-label>
+              <ui5-switch name="is_active" checked [(ngModel)]="user.is_active"></ui5-switch>
+            </div>
+            <div class="col-md-6">
+              <ui5-label show-colon required i18n>Name</ui5-label>
+              <ui5-input
+                class="w-100"
+                [(ngModel)]="user.name"
+                placeholder="Enter Name"
+                i18n-placeholder
+                (input)="checkValidation($event, 'name')"
+                [attr.value-state]="valueStateOptions.name"
+                type="Text"
+              >
+                <div slot="valueStateMessage">{{ validationMessage }}</div>
+              </ui5-input>
+            </div>
+            <div class="col-md-6">
+              <ui5-label show-colon i18n>Email</ui5-label>
+              <ui5-input
+                class="w-100"
+                [(ngModel)]="user.email"
+                placeholder="Enter email"
+                i18n-placeholder
+                (input)="checkValidation($event, 'email')"
+                [attr.value-state]="valueStateOptions.email"
+                type="Text"
+              >
+                <div slot="valueStateMessage">{{ validationMessage }}</div>
+              </ui5-input>
+            </div>
+            <div class="col-md-6">
+              <ui5-label show-colon i18n>Phone</ui5-label>
+              <ui5-input
+                class="w-100"
+                [(ngModel)]="user.phone"
+                placeholder="Enter phone"
+                i18n-placeholder
+                (input)="checkValidation($event, 'phone')"
+                [attr.value-state]="valueStateOptions.phone"
+                type="Text"
+              >
+                <div slot="valueStateMessage">{{ validationMessage }}</div>
+              </ui5-input>
+            </div>
+            <div class="col-md-6">
+              <ui5-label show-colon required i18n>Password</ui5-label>
+              <ui5-input
+                class="w-100"
+                [(ngModel)]="user.password"
+                placeholder="Enter password"
+                i18n-placeholder
+                (input)="checkValidation($event, 'password')"
+                [attr.value-state]="valueStateOptions.password"
+                type="Text"
+              >
+                <div slot="valueStateMessage">{{ validationMessage }}</div>
+              </ui5-input>
+            </div>
+          </div>
+        </section>
+      </ui5-tab>
+      <ui5-tab
+        class="ui5-selected-tab border-none overflow-hidden"
+        text="Roles"
+        id="roles"
+        i18n-text
+        [selected]="selectedTab === 'roles'"
+      >
+        <section class="ui5-selected-tab">
+          <app-ag-grid-table
+            #roleListGrid
+            [columns]="roleColumns"
+            [dataSource]="roleDataSource"
+            [toolbarConfig]="roleToolbarConfig"
+            [displayConfig]="roleDisplayConfig"
+            [showAction]="true"
+            [editPermission]="true"
+            [showEditButton]="false"
+            [showDeleteButton]="true"
+            [showIllustratedMessage]="true"
+            IllustratedName="NoData"
+            (newButtonClick)="isRoleAssociate()"
+            (deleteClick)="removeRoleData($event)"
+          ></app-ag-grid-table>
+        </section>
+      </ui5-tab>
+    </ui5-tabcontainer>
+  </ui5-busy-indicator>
+  <ui5-toolbar slot="footer">
+    <ui5-toolbar-button
+      design="Emphasized"
+      (click)="onUserSave()"
+      [disabled]="loading"
+      text="{{ localization.Submit }}"
+    ></ui5-toolbar-button>
+    <ui5-toolbar-button
+      design="Transparent"
+      [disabled]="loading"
+      text="{{ localization.Cancel }}"
+      (click)="CloseDialog()"
+    ></ui5-toolbar-button>
+  </ui5-toolbar>
+</ui5-dialog>
+
+<app-assosiate
+  #roleAssociate
+  [apiUrl]="'Roles?'"
+  [model]="RoleList"
+  [tableColumn]="associateTableColumn()"
+  (selectedData)="getRoleFromAssosiate($event)"
+></app-assosiate>

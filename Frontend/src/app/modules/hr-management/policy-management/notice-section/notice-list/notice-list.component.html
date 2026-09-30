@@ -1,0 +1,103 @@
+
+<app-ag-grid-table
+  #agGridRef
+  [dataSource]="dataSource"
+  [toolbarConfig]="toolbarConfig"
+  [columns]="NoticeList"
+  [showAction]="true"
+  [showInfoButton]="true"
+  [showEditButton]="false"
+  [showDeleteButton]="false"
+  [customActionButtons]="noticeEditButton"
+  selectionMode="Single"
+  gridId="hr-notice-list"
+  [showIllustratedMessage]="true"
+  IllustratedName="NoData"
+  IllustratedTitle="No Notices Found"
+  i18n-IllustratedTitle
+  (newButtonClick)="newNotice()"
+  (infoClick)="viewNotice($event)"
+></app-ag-grid-table>
+<ui5-dialog
+  [open]="isViewOpen"
+  class="w-[1000px]"
+  (before-close)="CloseDialog()"
+>
+  <ui5-busy-indicator [delay]="0" [active]="isLoading" size="M" class="w-full">
+    <ui5-tabcontainer
+      header-background-design="Solid"
+      content-background-design="Transparent"
+      (tab-select)="onTabSelect($event)"
+    >
+      <ui5-tab
+        class="p-0 bg-none border-none overflow-hidden"
+        id="NoticeDetail"
+        text="Notice Detail"
+        i18n-text
+        [selected]="selectedTab === 'NoticeDetail'"
+      >
+        <section class="ui5-selected-tab w-full">
+          <ui5-label show-colon i18n>Title</ui5-label>
+          <ui5-input
+            value="{{ viewNoticeData.title }}"
+            readonly
+            class="w-100 mb-4"
+          ></ui5-input>
+          <ui5-label show-colon i18n>Content</ui5-label>
+          <div
+            class="border p-2"
+            [innerHTML]="viewNoticeData.content"
+            readonly
+            style="min-height: 200px"
+          ></div>
+          <div class="row">
+            <div class="col-md-6 mt-4">
+              <ui5-checkbox
+                [checked]="NoticeEmployeeList.is_acknowledged"
+                [text]="RequireAcknowledgement"
+                readonly
+              >
+              </ui5-checkbox>
+            </div>
+          </div>
+        </section>
+      </ui5-tab>
+
+      <ui5-tab
+        text="Employee Feedback"
+        *ngIf="selectedNoticeId"
+        i18n-text
+        [selected]="selectedTab === 'EmployeeFeedback'"
+        id="EmployeeFeedback"
+      >
+        <div class="h-[400px]">
+          <app-ag-grid-table
+            #feedbackGridRef
+            [dataSource]="feedbackDataSource"
+            [columns]="feedbackColumns"
+            [enableRowClick]="false"
+            gridId="hr-notice-feedback"
+            selectionMode="None"
+          ></app-ag-grid-table>
+        </div>
+      </ui5-tab>
+    </ui5-tabcontainer>
+  </ui5-busy-indicator>
+  <ui5-toolbar slot="footer">
+    <ui5-toolbar-button
+      design="Transparent"
+      (click)="CloseDialog()"
+      text="{{ localization.Cancel }}"
+    >
+    </ui5-toolbar-button>
+  </ui5-toolbar>
+</ui5-dialog>
+
+<app-delete-entity (isSuccess)="processData($event)" [IsDelete]="IsDelete">
+</app-delete-entity>
+<app-notice-form
+  #noticesForm
+  [saveMode]="saveMode"
+  [notice]="notices"
+  (refreshTable)="processData($event)"
+></app-notice-form>

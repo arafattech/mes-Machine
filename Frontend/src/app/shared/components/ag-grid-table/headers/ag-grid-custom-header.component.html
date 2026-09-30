@@ -1,0 +1,111 @@
+<!-- ─── Selection column → select-all checkbox ───────────────────────────── -->
+
+<ui5-checkbox
+  *ngIf="isSelectAllHeader"
+  class="hdr-select-all"
+  [checked]="selectAllState === 'all'"
+  [indeterminate]="selectAllState === 'some'"
+  (change)="onSelectAllToggle($event)"
+></ui5-checkbox>
+
+<!-- ─── Standard column header (title + sort + filter) ───────────────────── -->
+  <!-- ─── Single title row (40px) ──────────────────────────────────────────── -->
+  <div
+    class="hdr-title"
+    [class.hdr-title--nosort]="!enableSort"
+    (click)="onSort($event)"
+  >
+  
+    <span class="hdr-title__text" [title]="displayName">{{ displayName }}</span>
+    <span *ngIf="sortState === 'asc'" class="hdr-title__sort">▲</span>
+    <span *ngIf="sortState === 'desc'" class="hdr-title__sort">▼</span>
+    <span
+      *ngIf="enableSort && !sortState"
+      class="hdr-title__sort hdr-title__sort--faint"
+      >⇅</span
+    >
+
+    <button
+      *ngIf="filterType !== 'none'"
+      class="hdr-filter-btn"
+      [class.hdr-filter-btn--active]="hasFilter"
+      [title]="hasFilter ? 'Filter active' : 'Filter'"
+      (click)="togglePopup($event)"
+    >
+      <svg viewBox="0 0 16 16" fill="currentColor" class="hdr-filter-btn__icon">
+        <path d="M1 3h14l-5 6v5l-4-2V9L1 3z" />
+      </svg>
+    </button>
+  </div>
+  <div
+    *ngIf="filterType !== 'none'"
+    class="hdr-popup"
+    [class.hdr-popup--hidden]="!popupOpen"
+    [style.left.px]="popupX"
+    [style.top.px]="popupY"
+    [style.min-width.px]="popupW"
+    (click)="stopProp($event)"
+  >
+    <input
+      *ngIf="filterType === 'text'"
+      type="text"
+      class="hdr-popup__input"
+      [placeholder]="placeholder || 'Filter…'"
+      [value]="textValue"
+      (input)="onTextInput($event)"
+      (keydown.escape)="closePopup()"
+    />
+    <input
+      *ngIf="filterType === 'number'"
+      type="number"
+      class="hdr-popup__input hdr-popup__input--right"
+      [placeholder]="placeholder || '#'"
+      [value]="textValue"
+      (input)="onNumberInput($event)"
+      (keydown.escape)="closePopup()"
+    />
+    <ui5-combobox
+      *ngIf="filterType === 'singleSelect'"
+      #cbo
+      class="hdr-popup__ui5"
+      filter="Contains"
+      [showClearIcon]="true"
+      [value]="textValue"
+      [placeholder]="placeholder || 'Select…'"
+      (ui5SelectionChange)="onSingleSelect($any($event))"
+      (ui5Input)="onComboInput(cbo.value)"
+    >
+      <ui5-cb-item text="" value=""></ui5-cb-item>
+      <ui5-cb-item
+        *ngFor="let opt of filterOptions"
+        [text]="opt.label"
+        [attr.value]="opt.value"
+      ></ui5-cb-item>
+    </ui5-combobox>
+    <!-- multiSelect stays in DOM (no *ngIf) — selection state preserved across popup open/close -->
+    <ui5-multi-combobox
+      style="width: 300px"
+      *ngIf="filterType === 'multiSelect'"
+      class="hdr-popup__ui5"
+      [placeholder]="placeholder || 'Filter…'"
+      (selectionChange)="onMultiSelect($event)"
+    >
+      <ui5-mcb-item
+        *ngFor="let opt of filterOptions"
+        [text]="opt.label"
+        [value]="opt.value"
+        [selected]="multiSelected.has(opt.value)"
+      ></ui5-mcb-item>
+    </ui5-multi-combobox>
+
+    <div class="hdr-popup__footer">
+      <button
+        class="hdr-popup__clear"
+        [disabled]="!hasFilter"
+        (click)="clearFilter()"
+      >
+        Clear
+      </button>
+    </div>
+  </div>
+

@@ -1,0 +1,172 @@
+<ui5-card class="medium">
+  <div loading i18n-title-text class=" border border-gray-300  px-3">
+  <ui5-card-header [titleText]="  this.saveMode === 'POST' ? localization.New : localization.Edit">
+  </ui5-card-header>
+  <ui5-busy-indicator [active]="loading" size="M" class="w-100" [delay]="0">
+    <ui5-tabcontainer class="2xl:ml-[-16px] 2xl:mr-[-16px] w-[calc(100%+32px)] h-[calc(100vh-155px)]" header-background-design="Solid"
+      content-background-design="Transparent" (tab-select)="onTabSelect($event)">
+      <ui5-tab class="h-full overflow-hidden overflow-y-hidden" i18n-text text="Core Data" selected
+        [selected]="selectedTab === 'coreData'" id="coreData">
+        <section class="ui5-selected-tab w-full">
+          <div class="row">
+            <div class="col-md-2">
+              <ui5-label showColon class="w-100">{{
+                localization.Active
+                }}</ui5-label>
+              <ui5-switch checked [(ngModel)]="machine.is_active"></ui5-switch>
+            </div>
+            <div class="col-md-2">
+              <ui5-label showColon class="w-100" i18n>Has RPM</ui5-label>
+              <ui5-switch checked [(ngModel)]="machine.has_rpm"></ui5-switch>
+            </div>
+            <div class="col-md-2">
+              <ui5-label showColon class="w-100" i18n>Has Config</ui5-label>
+              <ui5-switch checked [(ngModel)]="machine.has_config"></ui5-switch>
+            </div>
+            <div class="col-md-3">
+              <ui5-label showColon class="w-100" i18n>Has Temperature</ui5-label>
+              <ui5-switch checked [(ngModel)]="machine.has_temperature"></ui5-switch>
+            </div>
+            <div class="col-md-3">
+              <ui5-label showColon class="w-100" i18n>Has Wastage</ui5-label>
+              <ui5-switch checked [(ngModel)]="machine.has_wastage"></ui5-switch>
+            </div>
+
+          </div>
+          <div class="grid gap-2 items-center grid-cols-2">
+            <div class="w-full">
+              <ui5-label show-colon required i18n>Machine Name</ui5-label>
+              <ui5-input class="w-100" [(ngModel)]="machine.machine_name" placeholder="Enter machine name"
+                i18n-placeholder (input)="checkValidation($event, 'name')" [attr.value-state]="valueStateOptions.name"
+                type="Text">
+                <div slot="valueStateMessage">
+                  {{ validationMessage }}
+                </div>
+              </ui5-input>
+            </div>
+            <div class="w-full mt-1 flex flex-col">
+              <ui5-label show-colon required i18n>Select group</ui5-label>
+              <div class="d-flex gap-2 align-items-center">
+                <ui5-combobox placeholder="Enter value" (selection-change)="getGroup($event)" i18n-placeholder
+                (input)="checkValidation($event, 'group')" [attr.value-state]="valueStateOptions.group"
+                [value]="machineTitleGroup ? machineTitleGroup : ''" class="w-full">
+                <ui5-cb-item *ngFor="let items of MachineGroup" [text]="items.name" [id]="items.id"></ui5-cb-item>
+                </ui5-combobox>
+                 <ui5-button design="Transparent" icon="add" 
+                  (click)="OnAddClickMachineGroup()"></ui5-button>
+                </div>
+            </div>
+          </div>
+          <div class="grid grid-cols-2">
+            <div>
+              <ui5-label required show-colon i18n>OEE</ui5-label>
+              <ui5-input class="w-100" [(ngModel)]="machine.oee" placeholder="Enter Oee" required i18n-placeholder
+                (input)="checkValidation($event, 'oee')" [attr.value-state]="valueStateOptions.oee" type="Number">
+                <div slot="valueStateMessage">
+                  {{ validationMessage }}
+                </div>
+              </ui5-input>
+            </div>
+          </div>
+        </section>
+       
+      </ui5-tab>
+      <ui5-tab class="p-0 bg-none h-full overflow-hidden" text="Machine State" [selected]="selectedTab === 'machineState'"
+        id="machineState" i18n-text>
+        <div class="w-full h-[calc(100vh-290px)] overflow-hidden">
+          <app-ag-grid-table
+            [columns]="stateColumns"
+            [dataSource]="stateDataSource"
+            [toolbarConfig]="stateToolbarConfig"
+            [displayConfig]="stateDisplayConfig"
+            [showAction]="true"
+            [editPermission]="true"
+            [showEditButton]="false"
+            [showDeleteButton]="true"
+            [showIllustratedMessage]="true"
+            IllustratedName="NoData"
+            (newButtonClick)="isStateAssociate()"
+            (deleteClick)="RemoveMachineState($event)"
+          ></app-ag-grid-table>
+        </div>
+      </ui5-tab>
+      <ui5-tab class="p-0 bg-none h-full overflow-hidden" text="Machine Hall" [selected]="selectedTab === 'machineHall'" id="machineHall" i18n-text>
+        <div class="w-full h-[calc(100vh-290px)] overflow-hidden">
+          <app-ag-grid-table
+            [columns]="hallColumns"
+            [dataSource]="hallDataSource"
+            [toolbarConfig]="hallToolbarConfig"
+            [displayConfig]="hallDisplayConfig"
+            [showAction]="true"
+            [editPermission]="true"
+            [showEditButton]="false"
+            [showDeleteButton]="true"
+            [showIllustratedMessage]="true"
+            IllustratedName="NoData"
+            (newButtonClick)="isHallAssociate()"
+            (deleteClick)="RemoveMachineHall($event)"
+          ></app-ag-grid-table>
+        </div>
+      </ui5-tab>
+      <ui5-tab *ngIf="machine.has_wastage" class="p-0 bg-none h-full overflow-hidden" text="Machine Wastage" [selected]="selectedTab === 'machineWastage'" id="machineWastage" i18n-text>
+        <div class="w-full h-[calc(100vh-290px)] overflow-hidden">
+          <app-ag-grid-table
+            [columns]="wastageTypeColumns"
+            [dataSource]="wastageTypeDataSource"
+            [toolbarConfig]="wastageTypeToolbarConfig"
+            [displayConfig]="wastageTypeDisplayConfig"
+            [showAction]="true"
+            [editPermission]="true"
+            [showEditButton]="false"
+            [showDeleteButton]="true"
+            [showIllustratedMessage]="true"
+            IllustratedName="NoData"
+            (newButtonClick)="isWastageTypeAssociate()"
+            (deleteClick)="RemoveMachineWastageType($event)"
+          ></app-ag-grid-table>
+        </div>
+      </ui5-tab>
+    </ui5-tabcontainer>
+  </ui5-busy-indicator>
+  <ui5-bar>
+    <ui5-button slot="endContent" design="Emphasized" [disabled]="loading" (click)="AddMachine()">
+      {{localization.Submit}} </ui5-button>
+    <ui5-button slot="endContent" design="Transparent" [disabled]="loading" (click)="CloseDialog()">
+      {{localization.Cancel}} </ui5-button>
+  </ui5-bar>
+</div>
+</ui5-card> 
+
+
+
+
+
+
+
+<app-machine-group-form #machineGroupForm [saveMode]="saveMode" [machineGroup]="machineGroup" (groupAdded)="autoGroupAdded($event)"
+  ></app-machine-group-form>
+
+<app-assosiate
+  #stateAssociate
+  [apiUrl]="'MachineStates?$orderby=id desc&$filter=is_active eq true'"
+  [tableColumn]="associateTableColum()"
+  [model]="stateList"
+  (selectedData)="GetSelectedState($event)"
+></app-assosiate>
+
+<app-assosiate
+  #hallAssociate
+  [apiUrl]="'Halls?$orderby=id desc&$filter=is_active eq true'"
+  [tableColumn]="associateTableColum()"
+  [model]="hallList"
+  [isMultiselect]="false"
+  (selectedData)="GetSelectedHall($event)"
+></app-assosiate>
+
+<app-assosiate
+  #wastageTypeAssociate
+  [apiUrl]="'MachineWastageTypes?$orderby=id desc&$filter=is_active eq true'"
+  [tableColumn]="associateTableColum()"
+  [model]="wastageTypeList"
+  (selectedData)="GetSelectedWastageType($event)"
+></app-assosiate>

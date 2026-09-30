@@ -1,0 +1,43 @@
+:host {
+    display: block;
+}
+
+.card-title {
+    color: var(--sapTextColor, #1d2d3e);
+}
+
+.card-header-divider {
+    border-color: var(--sapToolbar_SeparatorColor, #e5e5e5);
+}
+
+.info-box {
+    background: var(--sapList_Background, #f2f2f2);
+    border: 1px solid var(--sapTile_BorderColor, #d9d9d9);
+}
+
+.info-label {
+    color: var(--sapContent_LabelColor, #556b82);
+}
+
+.info-value {
+    color: var(--sapTextColor, #1d2d3e);
+}
+
+.config-tile {
+    border-width: 1px;
+    border-style: solid;
+}
+
+.config-tile-dashed {
+    border-style: dashed;
+}
+
+.config-icon-circle {
+    background: var(--sapTile_Background, #fff);
+    border-width: 1px;
+    border-style: solid;
+}
+
+.config-label {
+    color: var(--sapContent_LabelColor, #556b82);
+}

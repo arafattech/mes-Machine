@@ -1,0 +1,238 @@
+<ui5-dialog
+  class="w-[750px] max-w-[95vw]"
+  [open]="open"
+  (before-close)="closeDialog()"
+>
+  <ui5-bar slot="header" design="Header">
+    <ui5-title level="H5" slot="startContent">
+      {{ mode === 'create' ? localization.New : (isReadOnly ? 'Advice ' + (advice.custom_id ?? '') + ' (View Only)' : 'Advice ' + (advice.custom_id ?? '')) }}
+    </ui5-title>
+    @if (mode === 'manage') {
+      <div slot="endContent" class="flex items-center gap-2">
+        <span class="text-xs opacity-70" i18n>Status:</span>
+        <span
+          class="text-xs font-semibold px-2.5 py-1 rounded-full uppercase tracking-wider"
+          [style.background-color]="adviceBadgeStyle(advice.status).backgroundColor"
+          [style.color]="adviceBadgeStyle(advice.status).color"
+        >{{ adviceBadgeStyle(advice.status).label }}</span>
+      </div>
+    }
+  </ui5-bar>
+
+  <ui5-busy-indicator class="w-full block" [delay]="0" [active]="loading || saving" size="M">
+    <ui5-tabcontainer header-background-design="Solid" content-background-design="Transparent" (tab-select)="onTabSelect($event)">
+      <ui5-tab text="Details" i18n-text class="w-full max-h-[70vh] overflow-y-auto" [selected]="selectedTab === 'details'" id="details">
+        <section class="w-full p-2">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            @if (mode === 'create') {
+              <div class="col-span-1 md:col-span-2">
+                <ui5-label show-colon required i18n>Packed Lot Counts</ui5-label>
+                <ui5-multi-combobox
+                  class="w-100"
+                  placeholder="Select packed lot counts to transfer"
+                  i18n-placeholder
+                  [attr.value-state]="valueStateOptions.lots"
+                  (selectionChange)="onLotSelectionChange($event)"
+                >
+                  @for (count of availableLotCounts; track count.id) {
+                    <ui5-mcb-item
+                      [text]="(count.lotNo ? 'Lot ' + count.lotNo + ' · ' : '') + count.text + (count.countTypeName ? ' · ' + count.countTypeName : '')"
+                      [id]="count.id"
+                      [selected]="isLotSelected(count.id)"
+                    ></ui5-mcb-item>
+                  }
+                </ui5-multi-combobox>
+              </div>
+            }
+
+            <div>
+              <ui5-label show-colon required i18n>Transfer Date</ui5-label>
+              <ui5-date-picker
+                class="w-100"
+                [(ngModel)]="advice.transfer_date"
+                format-pattern="dd-MM-yyyy"
+                [attr.value-state]="valueStateOptions.transferDate"
+                [disabled]="isReadOnly || (!isDraft && mode === 'manage')"
+              ></ui5-date-picker>
+            </div>
+
+            <div class="col-span-1 md:col-span-2">
+              <ui5-label show-colon i18n>Remarks</ui5-label>
+              <ui5-textarea class="w-100" [rows]="2" [ngModel]="advice.remarks ?? ''" (ngModelChange)="advice.remarks = $event" [disabled]="isReadOnly || (!isDraft && mode === 'manage')"></ui5-textarea>
+            </div>
+          </div>
+
+          @if (advice.rejected_reason) {
+            <ui5-message-strip class="mt-3" design="Negative" hide-close-button>
+              {{ advice.rejected_reason }}
+            </ui5-message-strip>
+          }
+        </section>
+      </ui5-tab>
+
+      <ui5-tab text="Lines" i18n-text class="w-full max-h-[70vh] overflow-y-auto" [selected]="selectedTab === 'lines'" id="lines" [disabled]="mode === 'create'">
+        <section class="w-full p-2 space-y-3">
+          @for (line of advice.lines; track line.id) {
+            <div class="border border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50 rounded-lg p-4 space-y-3">
+              <div class="flex justify-between items-center">
+                <div class="flex items-center gap-2">
+                  <span class="font-semibold text-base">
+                    {{ line.lotCustomId }}
+                  </span>
+                  @if (line.lot_no) {
+                    <span class="text-xs bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 px-2 py-0.5 rounded font-medium">Lot {{ line.lot_no }}</span>
+                  }
+                  @if (line.lotCountTypeName) {
+                    <span class="text-xs bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300 px-2 py-0.5 rounded font-medium">{{ line.lotCountTypeName }}</span>
+                  }
+                </div>
+                <span
+                  class="text-xs font-semibold px-2.5 py-1 rounded-full uppercase tracking-wider"
+                  [style.background-color]="lineBadgeStyle(line.status).backgroundColor"
+                  [style.color]="lineBadgeStyle(line.status).color"
+                >{{ lineBadgeStyle(line.status).label }}</span>
+              </div>
+
+              <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 bg-white dark:bg-gray-800 p-2.5 rounded border border-gray-200 dark:border-gray-700 text-sm">
+                <div>
+                  <span class="text-xs text-gray-500 block" i18n>Dispatched Cones</span>
+                  <span class="font-medium text-gray-800 dark:text-gray-200">{{ line.qty_out_cones }} cones</span>
+                </div>
+                <div>
+                  <span class="text-xs text-gray-500 block" i18n>Dispatched Net Wt</span>
+                  <span class="font-medium text-gray-800 dark:text-gray-200">{{ line.net_weight_kg_out ?? 0 }} kg</span>
+                </div>
+                @if (line.first_bag_serial) {
+                  <div>
+                    <span class="text-xs text-gray-500 block" i18n>Bags Range</span>
+                    <span class="font-medium text-gray-800 dark:text-gray-200">#{{ line.first_bag_serial }} – #{{ line.last_bag_serial }}</span>
+                  </div>
+                }
+              </div>
+
+              @if (line.status === 'PENDING') {
+                @if (!isReadOnly && advice.status === adviceStatus.HOD_APPROVED && (rolePermissionService.hasPermission(permissions.STORE_YARN_GRN_RECEIVE) || rolePermissionService.hasPermission(permissions.STORE_YARN_GRN_REJECT))) {
+                  <div class="bg-white dark:bg-gray-800 p-3 rounded border border-gray-200 dark:border-gray-700 space-y-3">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                      <div>
+                        <ui5-label show-colon required i18n>Received Cones</ui5-label>
+                        <ui5-input class="w-100" type="Number" (input)="onQtyInInput(line, $event)"></ui5-input>
+                      </div>
+                      <div>
+                        <ui5-label show-colon i18n>Received Net Wt (kg)</ui5-label>
+                        <ui5-input class="w-100" type="Number" (input)="onNetWeightInInput(line, $event)"></ui5-input>
+                      </div>
+                      <div>
+                        <ui5-label show-colon i18n>Remark</ui5-label>
+                        <ui5-input class="w-100" [(ngModel)]="line.remarkDraft"></ui5-input>
+                      </div>
+                    </div>
+                    <div class="flex gap-2 justify-end pt-1">
+                      @if (rolePermissionService.hasPermission(permissions.STORE_YARN_GRN_RECEIVE)) {
+                        <ui5-button design="Positive" icon="accept" (click)="receiveLine(line)" i18n>Receive</ui5-button>
+                      }
+                      @if (rolePermissionService.hasPermission(permissions.STORE_YARN_GRN_REJECT)) {
+                        <ui5-button design="Negative" icon="decline" (click)="rejectLine(line)" i18n>Reject</ui5-button>
+                      }
+                    </div>
+                  </div>
+                } @else if (advice.status === adviceStatus.DRAFT) {
+                  <ui5-message-strip design="Information" hide-close-button i18n>
+                    Waiting for HOD approval before store can receive this line.
+                  </ui5-message-strip>
+                } @else {
+                  <ui5-message-strip design="Information" hide-close-button i18n>
+                    Pending store receipt.
+                  </ui5-message-strip>
+                }
+              }
+
+              @if (line.status === 'RECEIVED') {
+                <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 bg-emerald-50 dark:bg-emerald-950/30 p-2.5 rounded border border-emerald-200 dark:border-emerald-800 text-sm">
+                  <div>
+                    <span class="text-xs text-emerald-700 dark:text-emerald-400 block" i18n>Received Cones</span>
+                    <span class="font-semibold text-emerald-900 dark:text-emerald-200">{{ line.qty_in_cones }} cones</span>
+                  </div>
+                  <div>
+                    <span class="text-xs text-emerald-700 dark:text-emerald-400 block" i18n>Received Net Wt</span>
+                    <span class="font-semibold text-emerald-900 dark:text-emerald-200">{{ line.net_weight_kg_in ?? 0 }} kg</span>
+                  </div>
+                  @if (line.variance_cones !== null && line.variance_cones !== undefined) {
+                    <div>
+                      <span class="text-xs text-emerald-700 dark:text-emerald-400 block" i18n>Variance</span>
+                      <span class="font-semibold" [class.text-amber-600]="line.variance_cones !== 0" [class.text-emerald-800]="line.variance_cones === 0">
+                        {{ line.variance_cones }} cones
+                      </span>
+                    </div>
+                  }
+                </div>
+
+                @if (!isReadOnly && line.lotStatus === 'RECEIVED' && line.variance_cones && rolePermissionService.hasPermission(permissions.STORE_YARN_RECONCILE)) {
+                  <div class="flex gap-2 items-end bg-white dark:bg-gray-800 p-3 rounded border border-gray-200 dark:border-gray-700">
+                    <div class="flex-1">
+                      <ui5-label show-colon i18n>Reconcile Remark</ui5-label>
+                      <ui5-input class="w-100" [(ngModel)]="line.remarkDraft"></ui5-input>
+                    </div>
+                    <ui5-button design="Emphasized" (click)="reconcileLine(line)" i18n>Reconcile</ui5-button>
+                  </div>
+                }
+              }
+
+              @if (line.status === 'REJECTED') {
+                <div class="bg-red-50 dark:bg-red-950/30 p-2.5 rounded border border-red-200 dark:border-red-800 text-sm text-red-800 dark:text-red-300">
+                  <span class="font-semibold" i18n>Rejected:</span> {{ line.remark || 'No reason specified' }}
+                </div>
+              }
+            </div>
+          }
+        </section>
+      </ui5-tab>
+    </ui5-tabcontainer>
+  </ui5-busy-indicator>
+
+  <ui5-toolbar slot="footer">
+    @if (!isReadOnly && selectedTab === 'details' && (mode === 'create' || isDraft)) {
+      <ui5-toolbar-button design="Emphasized" [disabled]="saving" (click)="saveHeader()" [text]="localization.Submit"></ui5-toolbar-button>
+    }
+    @if (!isReadOnly && canApproveHod) {
+      <ui5-toolbar-button design="Positive" [disabled]="saving" (click)="approveHod()" text="Approve (HOD)" i18n-text></ui5-toolbar-button>
+    }
+    @if (!isReadOnly && canApproveGm) {
+      <ui5-toolbar-button design="Positive" [disabled]="saving" (click)="approveGm()" text="Approve (GM)" i18n-text></ui5-toolbar-button>
+    }
+    @if (!isReadOnly && canResubmit) {
+      <ui5-toolbar-button design="Emphasized" [disabled]="saving" (click)="resubmit()" text="Resubmit" i18n-text></ui5-toolbar-button>
+    }
+    @if (!isReadOnly && canReject) {
+      <ui5-toolbar-button design="Negative" [disabled]="saving" (click)="openRejectConfirm()" text="Reject" i18n-text></ui5-toolbar-button>
+    }
+    @if (!isReadOnly && canCancel) {
+      <ui5-toolbar-button design="Negative" [disabled]="saving" (click)="openCancelConfirm()" text="Cancel Advice" i18n-text></ui5-toolbar-button>
+    }
+    <ui5-toolbar-button design="Transparent" [disabled]="saving" (click)="closeDialog()" [text]="localization.Cancel"></ui5-toolbar-button>
+  </ui5-toolbar>
+</ui5-dialog>
+
+<ui5-dialog [open]="cancelConfirmOpen" header-text="Cancel Advice" i18n-header-text (before-close)="closeCancelConfirm()">
+  <section class="p-2" i18n>
+    Cancel this advice? All pending lot counts return to Packed status — this cannot be undone.
+  </section>
+  <ui5-toolbar slot="footer">
+    <ui5-toolbar-button design="Negative" (click)="confirmCancel()" text="Cancel Advice" i18n-text></ui5-toolbar-button>
+    <ui5-toolbar-button design="Transparent" (click)="closeCancelConfirm()" [text]="localization.Cancel"></ui5-toolbar-button>
+  </ui5-toolbar>
+</ui5-dialog>
+
+<ui5-dialog [open]="rejectConfirmOpen" header-text="Reject Advice" i18n-header-text (before-close)="closeRejectConfirm()">
+  <section class="p-2 space-y-3">
+    <p i18n>Reject this advice? It will return to Draft for correction.</p>
+    <div>
+      <ui5-label show-colon i18n>Reason</ui5-label>
+      <ui5-input class="w-100" [(ngModel)]="rejectReason" placeholder="Optional" i18n-placeholder></ui5-input>
+    </div>
+  </section>
+  <ui5-toolbar slot="footer">
+    <ui5-toolbar-button design="Negative" (click)="confirmReject()" text="Reject" i18n-text></ui5-toolbar-button>
+    <ui5-toolbar-button design="Transparent" (click)="closeRejectConfirm()" text="Back" i18n-text></ui5-toolbar-button>
+  </ui5-toolbar>
+</ui5-dialog>

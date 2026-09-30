@@ -1,0 +1,119 @@
+<ui5-dialog
+  [open]="open"
+  class="w-[70vw]"
+  header-text="Log Production"
+  i18n-header-text
+  (before-close)="closeDialog()"
+>
+  <ui5-busy-indicator class="w-full h-[calc(94vh-220px)] overflow-hidden" size="M" [delay]="0" [active]="loading">
+    <section class="w-full grid grid-cols-2 gap-3 h-full overflow-hidden">
+      <div class="col-span-2 h-full">
+        <ui5-tabcontainer
+          class="h-full"
+          header-background-design="Solid"
+          content-background-design="Transparent"
+          (tab-select)="onTabSelect($event)"
+        >
+          <ui5-tab text="Log Production" class="h-full" i18n-text [selected]="selectedTab === 'entry'" id="entry">
+            <div class="grid grid-cols-2 gap-3 py-3">
+              <div class="flex flex-col col-span-2">
+                <ui5-label for="workOrder" show-colon i18n>Production Order</ui5-label>
+                <ui5-combobox
+                  id="workOrder"
+                  class="w-full"
+                  placeholder="Select Production Order"
+                  i18n-placeholder
+                  (selectionChange)="onWorkOrderChange($event)"
+                >
+                  <ui5-cb-item
+                    *ngFor="let wo of workOrders"
+                    [text]="(wo.customId || 'WO-' + wo.id) + ' · ' + (wo.productName ?? '')"
+                    [id]="wo.id"
+                    [value]="wo.id"
+                  ></ui5-cb-item>
+                </ui5-combobox>
+              </div>
+
+              <div class="flex flex-col">
+                <ui5-label for="shift" show-colon i18n>Shift</ui5-label>
+                <ui5-combobox
+                  id="shift"
+                  class="w-full"
+                  placeholder="Select Shift"
+                  i18n-placeholder
+                  (selectionChange)="onShiftChange($event)"
+                >
+                  <ui5-cb-item
+                    *ngFor="let shift of shifts"
+                    [text]="shift.name"
+                    [id]="shift.id"
+                    [value]="shift.id"
+                  ></ui5-cb-item>
+                </ui5-combobox>
+              </div>
+
+              <div class="flex flex-col">
+                <ui5-label for="date" show-colon i18n>Date</ui5-label>
+                <ui5-date-picker
+                  id="date"
+                  class="w-full"
+                  [(ngModel)]="date"
+                  format-pattern="yyyy-MM-dd"
+                ></ui5-date-picker>
+              </div>
+            </div>
+              <app-ag-grid-table
+                #entryGridRef
+                [columns]="entryColumns"
+                [toolbarConfig]="entryToolbarConfig"
+                [dataSource]="entryDataSource"
+                [displayConfig]="entryDisplayConfig"
+                gridId="production-log-entry"
+                selectionMode="Single"
+                [isBase]="true"
+                [showIllustratedMessage]="false"
+                IllustratedName="NoEntries"
+                noRowsMessage="No machines are assigned to this production order"
+                i18n-noRowsMessage
+              ></app-ag-grid-table>
+          </ui5-tab>
+
+          <ui5-tab text="History" class="h-full" i18n-text [selected]="selectedTab === 'history'" id="history">
+              <app-ag-grid-table
+                [columns]="historyColumns"
+                [toolbarConfig]="historyToolbarConfig"
+                [dataSource]="historyDataSource"
+                [displayConfig]="historyDisplayConfig"
+                gridId="production-log-history"
+                selectionMode="Single"
+                [isBase]="true"
+                [showIllustratedMessage]="true"
+                IllustratedName="NoEntries"
+                noRowsMessage="No production logged against this production order yet"
+                i18n-noRowsMessage
+              ></app-ag-grid-table>
+          </ui5-tab>
+        </ui5-tabcontainer>
+      </div>
+    </section>
+  </ui5-busy-indicator>
+
+  <ui5-toolbar slot="footer">
+    @if (selectedTab === 'entry' && workOrderId) {
+      <ui5-toolbar-button
+        design="Emphasized"
+        [disabled]="submitting"
+        (click)="submit()"
+        text="Submit"
+        i18n-text
+      ></ui5-toolbar-button>
+    }
+    <ui5-toolbar-button
+      design="Transparent"
+      [disabled]="loading || submitting"
+      (click)="closeDialog()"
+      text="Close"
+      i18n-text
+    ></ui5-toolbar-button>
+  </ui5-toolbar>
+</ui5-dialog>

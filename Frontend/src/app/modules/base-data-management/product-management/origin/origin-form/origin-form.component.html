@@ -1,0 +1,20 @@
+<ui5-dialog class="ui5-xl-without-tab" [open]="open"
+  [attr.header-text]="saveMode === 'POST' ? localization.New : localization.Edit" (before-close)="closeDialog()">
+  <ui5-busy-indicator class="w-full" [delay]="0" [active]="loading" size="M">
+    <section class="w-full">
+      <div class="flex flex-col">
+        <ui5-label show-colon class="w-100">{{ localization.Active }}</ui5-label>
+        <ui5-switch checked [(ngModel)]="origin.is_active"></ui5-switch>
+      </div>
+      <ui5-label show-colon required i18n>Name</ui5-label>
+      <ui5-input class="w-100" [(ngModel)]="origin.name" placeholder="Enter Origin" i18n-placeholder
+        (input)="checkValidation($event)" [attr.value-state]="valueStateOptions.name" type="Text">
+        <div slot="valueStateMessage">{{ validationMessage }}</div>
+      </ui5-input>
+    </section>
+  </ui5-busy-indicator>
+  <ui5-toolbar slot="footer">
+    <ui5-toolbar-button design="Emphasized" (click)="onSave()" [disabled]="loading" text="{{ localization.Submit }}"></ui5-toolbar-button>
+    <ui5-toolbar-button design="Transparent" (click)="closeDialog()" [disabled]="loading" text="{{ localization.Cancel }}"></ui5-toolbar-button>
+  </ui5-toolbar>
+</ui5-dialog>

@@ -1,0 +1,26 @@
+<ui5-dialog [open]="open" state="Critical" [attr.header-text]="[localization.Warning]" (ui5BeforeClose)="closeDialog()">
+  <ui5-busy-indicator
+    class="w-full bg-none h-full"
+    [delay]="0"
+    [active]="IsLoading"
+    size="M"
+  >
+    <p class="w-100 text-center">
+      <span *ngIf="!IsLoading" i18n>Are you sure you want to delete?</span>
+    </p>
+  </ui5-busy-indicator>
+  <div
+    slot="footer"
+    class="d-flex justify-content-end align-items-center w-100"
+  >
+    <ui5-button
+      (click)="Delete()"
+      [disabled]="IsLoading"
+      class="mx-2"
+      design="Negative"
+    >
+      {{localization.Delete}}
+    </ui5-button>
+    <ui5-button [disabled]="IsLoading" (click)="open = false">{{localization.Cancel}}</ui5-button>
+  </div>
+</ui5-dialog>

@@ -1,0 +1,305 @@
+:host {
+  display: block;
+  width: 100%;
+}
+
+.ag-grid-table-shell {
+  background: #fff;
+  border: 1px solid #d9e2ec;
+  border-radius: 1rem;
+  overflow: hidden;
+}
+
+:host.is-dark .ag-grid-table-shell {
+  background: #1b1f23;
+  border-color: #3a3f44;
+}
+
+// ─── Toolbar ─────────────────────────────────────────────────────────────────
+
+.ag-grid-table-toolbar {
+  align-items: center;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+  border-bottom: 1px solid #e2e8f0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  justify-content: space-between;
+  padding: 0.7rem 1rem;
+}
+
+:host.is-dark .ag-grid-table-toolbar {
+  background: linear-gradient(180deg, #1e2329 0%, #1b1f23 100%);
+  border-bottom-color: #3a3f44;
+}
+
+.ag-grid-table-toolbar__title {
+  flex-shrink: 0;
+  min-width: 0;
+}
+
+.ag-grid-table-toolbar__heading {
+  color: #0f172a;
+  font-size: 1.05rem;
+  font-weight: 600;
+  margin: 0;
+  white-space: nowrap;
+}
+
+:host.is-dark .ag-grid-table-toolbar__heading {
+  color: #e2e8f0;
+}
+
+.ag-grid-table-toolbar__count {
+  color: #64748b;
+  font-size: 0.92rem;
+  font-weight: 500;
+  margin-left: 0.35rem;
+}
+
+// All right-side controls in one scrollable flex row
+.ag-grid-table-toolbar__controls {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+// Segmented button group
+.ag-grid-table-toolbar__seg {
+  flex-shrink: 0;
+
+  // Highlight the selected segment with a ring border for clearer UX. A non-inset
+  // box-shadow paints outside the host border box, so it is not clipped by the UI5
+  // segmented-button-item shadow DOM internals. z-index lifts the ring above flush
+  // neighbours.
+  // Match both the manually-pressed item and the parent-managed selected item so the
+  // ring shows on the auto/default-selected segment too (UI5 flags the active item with
+  // `selected`, while `[pressed]` covers the toggle state).
+  ui5-segmented-button-item[selected] {
+    position: relative;
+    z-index: 1;
+    border-radius: 0.375rem;
+    box-shadow: 0 0 0 2px var(--sapButton_Selected_BorderColor, #0070f2);
+    outline: 0.3px solid var(--sapButton_Selected_BorderColor, #0070f2);
+    outline-offset: 0.3px;
+  }
+}
+
+// Toolbar filter controls (date picker, combobox, etc.)
+.ag-grid-table-toolbar__filter {
+  min-width: 160px;
+  max-width: 220px;
+}
+
+// Search input
+.ag-grid-table-toolbar__search {
+  min-width: 220px;
+}
+
+// Switch wrapper
+.ag-grid-table-toolbar__switch-wrap {
+  align-items: center;
+  display: flex;
+  gap: 0.4rem;
+}
+
+.ag-grid-table-toolbar__switch-label {
+  color: #334155;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+// ─── Grid ─────────────────────────────────────────────────────────────────────
+
+.ag-grid-table-grid {
+  ag-grid-angular {
+    display: block;
+    height: 100%;
+    width: 100%;
+  }
+}
+
+
+
+// ─── Header column border fallback ───────────────────────────────────────────
+// Direct override in case --ag-header-column-border CSS variable is stripped by linter.
+// AG Grid v34 renders .ag-header-cell::after with border-right:var(--ag-header-column-border).
+// Both approaches together guarantee the separator renders.
+
+::ng-deep .ag-theme-quartz:not(.ag-theme-quartz-dark) {
+  --ag-font-family: 'Segoe UI', Arial, sans-serif;
+  --ag-font-size: 13px;
+  --ag-border-color: #dbe3ea;
+  --ag-header-background-color: #f8fafc;
+  --ag-header-foreground-color: #0f172a;
+  --ag-row-hover-color: rgba(14, 116, 144, 0.08);
+  --ag-selected-row-background-color: rgba(14, 116, 144, 0.14);
+  --ag-odd-row-background-color: #f8fafc;
+  --ag-header-column-border: solid 1px #cbd5e1;
+  --ag-header-column-border-height: 50%;
+}
+
+::ng-deep .ag-theme-quartz-dark {
+  --ag-font-family: 'Segoe UI', Arial, sans-serif;
+  --ag-font-size: 13px;
+  --ag-header-column-border: solid 1px #3a3f44;
+  --ag-header-column-border-height: 50%;
+}
+
+// ─── Placeholder filler rows ──────────────────────────────────────────────────
+// When the data is shorter than the viewport, empty blank rows are pushed into
+// pinnedBottomRowData (see updatePlaceholderRows) so the body fills top→bottom
+// like a SAP/UI5 table. Pinned rows are excluded from the row model, so they
+// never touch rowCount, sorting, filtering, selection, or the datasource/API.
+//
+// These overrides make the pinned placeholder section visually indistinguishable
+// from normal rows: drop AG's pinned-section top border + bold weight, and let
+// the placeholders share the standard row background. Cell content is blanked in
+// TS (blankCellRenderer) so no values/renderers/actions render.
+
+// Filler rows are inert: drop AG's pinned-section top border, kill the
+// hover/selection highlight (so empty rows never look interactive), and let the
+// per-row stripe (set in getRowStyle) show across every section — including the
+// pinned-right Actions column, whose cells/containers are opaque white by
+// default and would otherwise read as a white block beside the striped centre.
+::ng-deep .ag-grid-table-grid .ag-floating-bottom {
+  --ag-row-hover-color: transparent;
+  --ag-selected-row-background-color: transparent;
+  // Replace AG's thick pinned-section divider with a normal 1px row line so the
+  // last real row keeps its bottom border and the join is seamless.
+  border-top: 1px solid var(--ag-border-color, #dbe3ea) !important;
+  background: transparent;
+
+  .ag-floating-bottom-viewport,
+  .ag-pinned-left-floating-bottom,
+  .ag-pinned-right-floating-bottom {
+    background: transparent;
+  }
+
+  .ag-row {
+    font-weight: normal; // override AG's default bold pinned-row styling
+    cursor: default;
+    // Full-width horizontal separator so the Actions column gets grid lines too.
+    border-bottom: 1px solid var(--ag-border-color, #dbe3ea);
+  }
+
+  // Cells transparent → the row's stripe background shows through every column.
+  .ag-cell {
+    background: transparent !important;
+  }
+}
+
+// ─── No rows overlay ──────────────────────────────────────────────────────────
+
+::ng-deep .ag-grid-table-no-rows {
+  color: #64748b;
+  font-size: 0.95rem;
+}
+
+// ─── Centered scroll-load indicator ──────────────────────────────────────────
+// Covers full grid, centered — existing rows dimmed underneath.
+// pointer-events:none lets scroll/click events pass through to the grid.
+
+.ag-grid-scroll-loader {
+  align-items: center;
+  bottom: 0;
+  display: flex;
+  justify-content: center;
+  left: 0;
+  pointer-events: none;
+  position: absolute;
+  right: 0;
+  top: 0;
+  z-index: 10;
+}
+
+// ─── Alternate row colors ─────────────────────────────────────────────────────
+// alternateRowColors=false: override the AG Grid CSS variable for odd-row background.
+// Must override the variable — not background-color directly — because AG Grid's
+// Quartz theme applies: .ag-row-odd { background-color: var(--ag-odd-row-background-color) }
+// which always wins over direct property overrides due to cascade order.
+
+::ng-deep .ag-no-alternate-rows .ag-theme-quartz {
+  --ag-odd-row-background-color: #fff;
+}
+
+::ng-deep .ag-no-alternate-rows .ag-theme-quartz-dark {
+  --ag-odd-row-background-color: var(--ag-background-color);
+}
+
+// ─── Selection column: align header + row checkboxes ──────────────────────────
+// Strip the cell's horizontal padding (otherwise the header checkbox overflows the narrow
+// 50px column and is clipped under the next column) and center both the header checkbox and
+// the row selection checkbox so they line up vertically.
+::ng-deep {
+  .ag-header-cell[col-id='__selection__'],
+  .ag-cell[col-id='__selection__'] {
+    padding: 0 !important;
+    overflow: visible !important;
+  }
+
+  .ag-header-cell[col-id='__selection__'] .ag-header-select-all,
+  .ag-cell[col-id='__selection__'] .ag-selection-checkbox {
+    position: absolute !important;
+    left: 50% !important;
+    top: 50% !important;
+    transform: translate(-50%, -50%) !important;
+    margin: 0 !important;
+  }
+}
+
+// ─── Column settings dialog ───────────────────────────────────────────────────
+
+::ng-deep ui5-dialog.w-\[550px\]::part(content) {
+  padding: 0;
+}
+
+// ─── Responsive ───────────────────────────────────────────────────────────────
+
+@media (max-width: 768px) {
+  .ag-grid-table-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .ag-grid-table-toolbar__controls {
+    justify-content: flex-start;
+  }
+
+  .ag-grid-table-toolbar__search,
+  .ag-grid-table-toolbar__filter {
+    min-width: 100%;
+    max-width: 100%;
+  }
+}
+
+// ─── Column settings dialog — CDK drag-and-drop ────────────────────────────────
+// Global CDK classes applied to the dynamically created preview / placeholder nodes;
+// cannot be expressed as Tailwind utilities on those runtime-generated elements.
+.cdk-drag-preview {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  background: var(--sapBackgroundColor, #fff);
+  border-radius: 4px;
+  box-shadow:
+    0 5px 5px -3px rgba(0, 0, 0, 0.2),
+    0 8px 10px 1px rgba(0, 0, 0, 0.14),
+    0 3px 14px 2px rgba(0, 0, 0, 0.12);
+}
+
+.cdk-drag-placeholder {
+  opacity: 0;
+}
+
+.cdk-drag-animating {
+  transition: transform 200ms cubic-bezier(0, 0, 0.2, 1);
+}
+
+.cdk-drop-list-dragging .cdk-drag:not(.cdk-drag-placeholder) {
+  transition: transform 200ms cubic-bezier(0, 0, 0.2, 1);
+}

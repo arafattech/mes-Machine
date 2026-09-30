@@ -1,0 +1,129 @@
+<ui5-dialog
+  [open]="open"
+  class="w-90"
+  [attr.header-text]="
+    this.saveMode === 'POST' ? localization.New : localization.Edit
+  "
+  (before-close)="CloseDialog()"
+>
+  <ui5-busy-indicator [delay]="0" [active]="loading" size="M" class="w-full">
+    <section class="w-full space-y-4">
+      <div class="col-md-12">
+        <ui5-label showColon class="w-100">{{ localization.Active }}</ui5-label>
+        <ui5-switch checked [(ngModel)]="machineProductionTarget.is_active"></ui5-switch>
+      </div>
+
+      <div>
+        <ui5-label show-colon required i18n>Machine</ui5-label>
+        <ui5-combobox
+          class="w-100"
+          placeholder="Select Machine"
+          i18n-placeholder
+          [value]="selectedMachineName"
+          (selectionChange)="onMachineChange($event)"
+          [attr.value-state]="valueStateOptions.machine_id"
+        >
+          <ui5-cb-item
+            *ngFor="let m of machines"
+            [text]="m.machine_name"
+            [id]="m.id"
+            [value]="m.id"
+            [selected]="machineProductionTarget.machine_id === m.id"
+          ></ui5-cb-item>
+          <div slot="valueStateMessage">{{ validationMessage }}</div>
+        </ui5-combobox>
+      </div>
+
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <ui5-label show-colon i18n>Production Order (optional)</ui5-label>
+          <ui5-combobox
+            class="w-100"
+            placeholder="Select Production Order"
+            i18n-placeholder
+            [value]="selectedWorkOrderLabel"
+            (selectionChange)="onWorkOrderChange($event)"
+          >
+            <ui5-cb-item
+              *ngFor="let wo of workOrders"
+              [text]="(wo.custom_id || 'WO-' + wo.id) + ' · ' + (wo.product?.product_name ?? '')"
+              [id]="wo.id"
+              [value]="wo.id"
+              [selected]="machineProductionTarget.work_order_id === wo.id"
+            ></ui5-cb-item>
+          </ui5-combobox>
+        </div>
+
+        <div>
+          <ui5-label show-colon i18n>Shift (optional)</ui5-label>
+          <ui5-combobox
+            class="w-100"
+            placeholder="Select Shift"
+            i18n-placeholder
+            [value]="selectedShiftName"
+            (selectionChange)="onShiftChange($event)"
+          >
+            <ui5-cb-item
+              *ngFor="let shift of shifts"
+              [text]="shift.name"
+              [id]="shift.id"
+              [value]="shift.id"
+              [selected]="machineProductionTarget.shift_id === shift.id"
+            ></ui5-cb-item>
+          </ui5-combobox>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-3 gap-4">
+        <div>
+          <ui5-label show-colon required i18n>Target Qty</ui5-label>
+          <ui5-input
+            class="w-100"
+            type="Number"
+            [value]="machineProductionTarget.target_qty ? machineProductionTarget.target_qty.toString() : ''"
+            (input)="onTargetQtyChange($event)"
+            [attr.value-state]="valueStateOptions.target_qty"
+            placeholder="0"
+          >
+            <div slot="valueStateMessage">{{ validationMessage }}</div>
+          </ui5-input>
+        </div>
+
+        <div>
+          <ui5-label show-colon required i18n>Effective From</ui5-label>
+          <ui5-date-picker
+            class="w-100"
+            [(ngModel)]="machineProductionTarget.effective_from"
+            format-pattern="yyyy-MM-dd"
+            [attr.value-state]="valueStateOptions.effective_from"
+          >
+            <div slot="valueStateMessage">{{ validationMessage }}</div>
+          </ui5-date-picker>
+        </div>
+
+        <div>
+          <ui5-label show-colon i18n>Effective To (optional)</ui5-label>
+          <ui5-date-picker
+            class="w-100"
+            [(ngModel)]="machineProductionTarget.effective_to"
+            format-pattern="yyyy-MM-dd"
+          ></ui5-date-picker>
+        </div>
+      </div>
+    </section>
+  </ui5-busy-indicator>
+  <ui5-toolbar slot="footer">
+    <ui5-toolbar-button
+      design="Emphasized"
+      (click)="AddProductionTarget()"
+      [disabled]="loading"
+      text="{{ localization.Submit }}"
+    ></ui5-toolbar-button>
+    <ui5-toolbar-button
+      design="Transparent"
+      [disabled]="loading"
+      (click)="CloseDialog()"
+      text="{{ localization.Cancel }}"
+    ></ui5-toolbar-button>
+  </ui5-toolbar>
+</ui5-dialog>

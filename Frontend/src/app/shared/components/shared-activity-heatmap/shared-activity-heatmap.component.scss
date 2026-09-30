@@ -1,0 +1,66 @@
+:host {
+  display: block;
+}
+
+.heat-cell {
+  background-color: var(--sapList_Background, #ebedf0);
+  border: 1px solid var(--sapList_BorderColor, #d9d9d9);
+  color: var(--sapContent_LabelColor, #64748b);
+}
+
+.level-1 {
+  background-color: color-mix(in srgb, var(--heat-color) 25%, var(--sapList_Background, #fff));
+  border-color: transparent;
+  color: var(--sapTextColor, #1d2d3e);
+}
+
+.level-2 {
+  background-color: color-mix(in srgb, var(--heat-color) 50%, var(--sapList_Background, #fff));
+  border-color: transparent;
+  color: var(--sapTextColor, #1d2d3e);
+}
+
+.level-3 {
+  background-color: color-mix(in srgb, var(--heat-color) 75%, var(--sapList_Background, #fff));
+  border-color: transparent;
+  color: #fff;
+}
+
+.level-4 {
+  background-color: var(--heat-color);
+  border-color: transparent;
+  color: #fff;
+}
+
+.is-today {
+  box-shadow: 0 0 0 2px var(--sapButton_Emphasized_Background, #0070f2);
+  font-weight: 700;
+}
+
+.cell-tooltip {
+  display: none;
+  position: absolute;
+  bottom: calc(100% + 4px);
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 500;
+  line-height: 1.3;
+  background-color: var(--sapTextColor, #1d2d3e);
+  color: #fff;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.cell-hover:hover .cell-tooltip {
+  display: block;
+}
+
+.total-badge {
+  background-color: var(--sapButton_Emphasized_Background, #0070f2);
+  color: var(--sapButton_Emphasized_TextColor, #fff);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}

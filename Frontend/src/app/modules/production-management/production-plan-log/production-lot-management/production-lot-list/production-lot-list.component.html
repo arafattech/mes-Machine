@@ -1,0 +1,38 @@
+<div class="h-[calc(100vh-55px)]">
+  <app-ag-grid-table
+    #agGridRef
+    [columns]="columns"
+    [dataSource]="dataSource"
+    [toolbarConfig]="toolbarConfig"
+    selectionMode="Single"
+    [isBase]="true"
+    [gridId]="gridId"
+    [showDateRangePicker]="true"
+    [dateRangePickerValue]="dateRangeValue"
+    (changeRangeDatePicker)="onDateRangeStringChange($event)"
+    (resetButtonClick)="resetFilters()"
+    [showAction]="true"
+    [showInfoButton]="false"
+    [showEditButton]="false"
+    [showDeleteButton]="false"
+    [customActionButtons]="customActionButtons"
+    [enableRowClick]="true"
+    (newButtonClick)="newLot()"
+    (infoClick)="openView($event)"
+    (editClick)="openEdit($event)"
+    (deleteClick)="deleteClick($event)"
+    (rowClick)="openView($event)"
+    [showIllustratedMessage]="true"
+    IllustratedName="NoData"
+    IllustratedTitle="No Yarn Lots Found"
+    IllustratedSubtitle="Doff a lot from an Autoconer to see it here."
+  ></app-ag-grid-table>
+</div>
+
+<app-production-lot-batch-form
+  #lotFormRef
+  (RefreshTable)="processData()"
+></app-production-lot-batch-form>
+
+<app-delete-entity [IsDelete]="IsDelete" (isSuccess)="processData()">
+</app-delete-entity>

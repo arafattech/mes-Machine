@@ -1,0 +1,218 @@
+<div
+  class="relative grid gap-2"
+  [ngClass]="{
+    'grid-cols-1': isListCollapsed || isTabCollapsed,
+    'grid-cols-2': !isListCollapsed && !isTabCollapsed,
+  }"
+>
+  <div class="h-[calc(100vh-55px)] overflow-hidden" [class.hidden]="isListCollapsed">
+    <app-ag-grid-table
+      #groupTableRef
+      [dataSource]="groupDataSource"
+      [toolbarConfig]="groupToolbarConfig"
+      [displayConfig]="groupDisplayConfig"
+      [columns]="groupColumns"
+      [showAction]="true"
+      [showEditButton]="
+        permission.hasPermission(permissionEnum.BASE_DATA_EMPLOYEE_GROUP_EDIT) ||
+        permission.hasPermission(permissionEnum.HR_EMPLOYEE_GROUP_EDIT)
+      "
+      [showDeleteButton]="
+        permission.hasPermission(permissionEnum.BASE_DATA_EMPLOYEE_GROUP_DELETE) ||
+        permission.hasPermission(permissionEnum.HR_EMPLOYEE_GROUP_DELETE)
+      "
+      [isBase]="true"
+      selectionMode="Single"
+      gridId="base-employee-group-list"
+      (newButtonClick)="newGroup()"
+      (editClick)="editGroup($event)"
+      (deleteClick)="deleteGroup($event)"
+      (rowClick)="selectedRowData($event)"
+      (processData)="processData($event)"
+    >
+    </app-ag-grid-table>
+
+    <div
+      class="flex flex-col absolute top-1/2 -translate-x-1/2 -translate-y-1/2 z-50"
+      [ngClass]="{
+        'left-[99%]': isTabCollapsed,
+        'left-[50%]': !isTabCollapsed,
+      }"
+    >
+      <ui5-avatar
+        class="relative top-[-40px] border border-slate-400 bg-white"
+        [icon]="
+          isTabCollapsed ? 'navigation-left-arrow' : 'navigation-right-arrow'
+        "
+        interactive
+        size="XS"
+        color-scheme="Placeholder"
+        (click)="onCLickTabCollapsed()"
+      >
+      </ui5-avatar>
+    </div>
+  </div>
+
+  <div class="h-[calc(100vh-55px)] overflow-hidden" [class.hidden]="isTabCollapsed === true">
+    <div
+      class="flex flex-col absolute top-1/2 -translate-x-1/2 -translate-y-1/2 z-50"
+      [ngClass]="{
+        'left-[1%]': isListCollapsed,
+        'left-[50%]': !isListCollapsed,
+        'top-[45%]': isListCollapsed,
+      }"
+    >
+      <ui5-avatar
+        class="border border-slate-400 bg-white"
+        [icon]="
+          isListCollapsed ? 'navigation-right-arrow' : 'navigation-left-arrow'
+        "
+        interactive
+        size="XS"
+        color-scheme="Placeholder"
+        (click)="onCLickListCollapsed()"
+      >
+      </ui5-avatar>
+    </div>
+
+    <app-ag-grid-table
+      [dataSource]="employeeDataSource"
+      [toolbarConfig]="employeeToolbarConfig"
+      [displayConfig]="employeeDisplayConfig"
+      [columns]="employeeColumns"
+      [showAction]="permission.hasPermission(permissionEnum.HR_EMPLOYEE_ASSIGN_DELETE)"
+      [showEditButton]="false"
+      [showDeleteButton]="true"
+      [isBase]="true"
+      selectionMode="Multiple"
+      gridId="base-employee-group-employees"
+      [selectionRowBehavior]="'Row'"
+      (newButtonClick)="newEmployee()"
+      (deleteClick)="onRemoveFromGroup($event)"
+      (selectionChanged)="onEmployeeSelectionChanged($event)"
+      (extraButtonClick)="onBulkRemoveFromGroup()"
+    >
+    </app-ag-grid-table>
+  </div>
+</div>
+
+<app-delete-entity
+  (isSuccess)="refreshGroupTable()"
+  [IsDelete]="IsDelete"
+></app-delete-entity>
+
+<app-employee-group-form
+  #employeegroupAssociate
+  [(open)]="isopen"
+  (refreshTable)="refreshEmployeeTable()"
+></app-employee-group-form>
+
+<ui5-dialog
+  [open]="open"
+  class="ui5-xl-without-tab"
+  [attr.header-text]="
+    this.saveMode === 'POST' ? localization.New : localization.Edit
+  "
+  (before-close)="closeDialog()"
+>
+  <ui5-busy-indicator [delay]="0" [active]="loading" size="M" class="w-full">
+    <section class="w-full">
+      <div class="flex gap-4 mb-3">
+        <div class="flex flex-col">
+          <ui5-label show-colon i18n>Active</ui5-label>
+          <ui5-switch
+            [checked]="employeeGroup.is_active"
+            [(ngModel)]="employeeGroup.is_active"
+          ></ui5-switch>
+        </div>
+        <div class="flex flex-col">
+          <ui5-label show-colon i18n>Permanent</ui5-label>
+          <ui5-switch
+            [checked]="employeeGroup.is_permanent"
+            [(ngModel)]="employeeGroup.is_permanent"
+            (change)="onPermanentChange()"
+          ></ui5-switch>
+        </div>
+      </div>
+      <div class="flex flex-col gap-1">
+        <div class="flex flex-col">
+          <ui5-label show-colon required i18n>Group Name</ui5-label>
+          <ui5-input
+            class="w-100"
+            [(ngModel)]="employeeGroup.name"
+            placeholder="Enter group name"
+            type="Text"
+            i18n-placeholder
+          >
+            <div slot="valueStateMessage">
+              {{ validationMessage }}
+            </div>
+          </ui5-input>
+        </div>
+        <div class="flex flex-col" *ngIf="employeeGroup.is_permanent">
+          <ui5-label show-colon i18n>Shift</ui5-label>
+          <ui5-combobox
+            class="w-100"
+            placeholder="Select shift"
+            i18n-placeholder
+            [value]="selectedShiftName"
+            (selection-change)="onShiftChange($event)"
+          >
+            <ui5-cb-item
+              *ngFor="let shift of employeeShifts"
+              [text]="shift.name"
+              [id]="shift.id"
+            ></ui5-cb-item>
+          </ui5-combobox>
+        </div>
+      </div>
+    </section>
+  </ui5-busy-indicator>
+  <ui5-toolbar slot="footer">
+    <ui5-toolbar-button
+      design="Emphasized"
+      (click)="saveGroup()"
+      [disabled]="loading"
+      text="{{ localization.Submit }}"
+    ></ui5-toolbar-button>
+    <ui5-toolbar-button
+      design="Transparent"
+      [disabled]="loading"
+      (click)="closeDialog()"
+      text="{{ localization.Cancel }}"
+    ></ui5-toolbar-button>
+  </ui5-toolbar>
+</ui5-dialog>
+
+<ui5-dialog
+  [open]="isRemoveEmplyee"
+  state="Critical"
+  [attr.header-text]="localization.Warning"
+  (ui5BeforeClose)="isRemoveEmplyee = false"
+>
+  <ui5-busy-indicator
+    class="w-full h-full"
+    [delay]="0"
+    [active]="IsLoading"
+    size="M"
+  >
+    <p class="w-full text-center">
+      <span *ngIf="!IsLoading && pendingRemoveEmployeeIds.length <= 1" i18n>Are you sure you want to remove?</span>
+      <span *ngIf="!IsLoading && pendingRemoveEmployeeIds.length > 1" i18n>Are you sure you want to remove {{ pendingRemoveEmployeeIds.length }} employees?</span>
+    </p>
+  </ui5-busy-indicator>
+  <ui5-toolbar slot="footer">
+    <ui5-toolbar-button
+      (click)="removeFromGroup()"
+      [disabled]="IsLoading"
+      design="Negative"
+      text="{{ localization.Remove }}"
+    ></ui5-toolbar-button>
+    <ui5-toolbar-button
+      [disabled]="IsLoading"
+      (click)="isRemoveEmplyee = false"
+      design="Transparent"
+      text="{{ localization.Cancel }}"
+    ></ui5-toolbar-button>
+  </ui5-toolbar>
+</ui5-dialog>

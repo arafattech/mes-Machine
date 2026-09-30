@@ -1,0 +1,9 @@
+<div class="w-full">
+  <angular-editor
+    [(ngModel)]="value"
+    placeholder="Enter content here ..."
+    i18n-placeholder
+    [config]="resolvedEditorConfig"
+    (ngModelChange)="onContentChange($event)"
+  ></angular-editor>
+</div>

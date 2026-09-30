@@ -1,0 +1,29 @@
+<div class="h-[calc(100vh-55px)]">
+  <app-ag-grid-table
+    #agGridRef
+    [columns]="columns"
+    [dataSource]="dataSource"
+    [toolbarConfig]="toolbarConfig"
+    selectionMode="Single"
+    [isBase]="true"
+    [gridId]="gridId"
+    [showEditButton]="rolePermissionService.hasPermission(permissions.BASE_DATA_VARIANT)"
+    [showDeleteButton]="rolePermissionService.hasPermission(permissions.BASE_DATA_ITEM_VARIANTS_DELETE)"
+    (newButtonClick)="newVariant()"
+    (editClick)="editVariant($event)"
+    (deleteClick)="deleteClick($event.id)"
+    (rowClick)="editVariant($event)"
+    [showIllustratedMessage]="true"
+    IllustratedName="NoData"
+    IllustratedTitle="No Variants Found"
+    IllustratedSubtitle="Try adjusting your search or active status."
+  ></app-ag-grid-table>
+</div>
+
+<app-variant-form
+  #variantForm
+  (RefreshTable)="processData($event)"
+></app-variant-form>
+
+<app-delete-entity (isSuccess)="processData($event)" [IsDelete]="IsDelete">
+</app-delete-entity>

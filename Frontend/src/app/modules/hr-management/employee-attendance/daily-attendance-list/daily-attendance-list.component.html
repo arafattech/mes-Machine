@@ -1,0 +1,141 @@
+<section class="w-full flex flex-col h-screen">
+    <ui5-bar design="Header" class="w-full sticky top-0 z-10 shadow-sm">
+      <ui5-title level="H5" size="H5" slot="startContent">{{
+        headerTitle
+        }}</ui5-title>
+      <div slot="endContent" class="flex items-center">
+        <ui5-combobox placeholder="Select a shift" i18n-placeholder [value]="shiftTitle"
+          (selectionChange)="onShiftChange($event)" class="ml-2">
+          <ui5-cb-item *ngFor="let shift of employeeShifts" [text]="shift.name" [id]="shift.id"></ui5-cb-item>
+        </ui5-combobox>
+        <ui5-date-picker class="ml-2" [(ngModel)]="selectedDate" format-pattern="dd-MM-yyyy"
+          (change)="onDateChange($event)"></ui5-date-picker>
+        <ui5-combobox placeholder="Select a Department" i18n-placeholder [value]="deptTitle"
+          (selectionChange)="onChangeDepertment($event)" class="ml-2">
+          <ui5-cb-item *ngFor="let dept of departmentList" [text]="dept.name" [id]="dept.id"></ui5-cb-item>
+        </ui5-combobox>
+        <ui5-input class="ml-2" placeholder="Search by ID or Name" i18n-placeholder value="{{ searchQuery }}"
+          (input)="onSearchChange($event)" show-clear-icon></ui5-input>
+        <ui5-button (click)="resetFilters()" class="ml-2" design="Emphasized">
+          {{ localization.Reset }}
+        </ui5-button>
+        <ui5-segmented-button class="ml-2">
+          <ui5-segmented-button-item [ngClass]="{
+              'border-1 border-[var(--sapButton_Emphasized_Background)] rounded-lg': filterType === 'all',
+            }" design="{{ filterType === 'all' ? 'Emphasized' : 'Default' }}" (click)="onFilterChange('all')" i18n>All
+          </ui5-segmented-button-item>
+          <ui5-segmented-button-item [ngClass]="{
+              'border-1 border-[var(--sapButton_Emphasized_Background)] rounded-lg': filterType === 'present',
+            }" design="{{ filterType === 'present' ? 'Emphasized' : 'Default' }}" (click)="onFilterChange('present')"
+            i18n>Present
+          </ui5-segmented-button-item>
+          <ui5-segmented-button-item [ngClass]="{
+              'border-1 border-[var(--sapButton_Emphasized_Background)] rounded-lg': filterType === 'absent',
+            }" design="{{ filterType === 'absent' ? 'Emphasized' : 'Default' }}" (click)="onFilterChange('absent')"
+            i18n>Absent
+          </ui5-segmented-button-item>
+        </ui5-segmented-button>
+      </div>
+    </ui5-bar>
+    <ui5-busy-indicator [delay]="0" class="flex-1 w-full h-full" [active]="loading">
+    <div class="w-full h-full overflow-y-auto p-4">
+
+      <!-- Roster not found -->
+      <div *ngIf="!loading && !hasRoster" class="flex items-center justify-center h-full py-24">
+        <span class="text-[var(--sapContent_LabelColor)] text-2xl font-semibold" i18n>Roster not found. Please create a roster.</span>
+      </div>
+
+      <!-- Employee not found -->
+      <div *ngIf="!loading && hasRoster && filteredAttendance.length === 0" class="flex items-center justify-center h-full py-24">
+        <span class="text-[var(--sapContent_LabelColor)] text-2xl font-semibold" i18n>Employee not found.</span>
+      </div>
+
+      <!-- Actual cards -->
+      <div *ngIf="!loading && hasRoster && filteredAttendance.length > 0" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 pb-16">
+        <ui5-card *ngFor="let record of filteredAttendance"
+          class="relative rounded-xl border shadow-sm hover:shadow-md transition-shadow duration-300 overflow-hidden">
+
+          <div
+            [ngClass]="record.attendancelogs?.[0]?.attendance_status?.toLowerCase() === 'present' ? 'bg-[var(--sapSuccessColor)] w-full' : 'bg-[var(--sapErrorColor)] w-12'"
+            class="absolute top-0 h-1 rounded-b-lg right-0 left-0"></div>
+
+          <div class="flex justify-between items-center px-4 pt-5 pb-3">
+            <div class="flex flex-col">
+              <h3 class="text-sm font-semibold truncate">
+                {{ record.first_name }} {{ record.last_name }}
+              </h3>
+              <p class="text-xs mt-0.5 truncate">
+                {{ localization.ID }}: {{ record.employee_no }}
+              </p>
+              <p *ngIf="record.group" class="text-xs mt-0.5 truncate">
+                {{ localization.Group }}: {{ record.group }}
+              </p>
+            </div>
+
+            <div class="flex items-center gap-2">
+              <div class="flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium" [ngClass]="
+          record.attendancelogs?.[0]?.attendance_status?.toLowerCase() === 'present'
+            ? 'bg-[var(--sapSuccessBackground)] text-[var(--sapSuccessColor)]'
+            : 'bg-[var(--sapErrorBackground)] text-[var(--sapErrorColor)]'
+        ">
+                <ui5-icon name="circle-task" class="text-sm" [ngClass]="
+            record.attendancelogs?.[0]?.attendance_status?.toLowerCase() === 'present'
+              ? 'text-[var(--sapSuccessColor)]'
+              : 'text-[var(--sapErrorColor)]'
+          "></ui5-icon>
+                {{ record.attendancelogs?.[0]?.attendance_status?.toLowerCase() === "present" ? "Present" : "Absent" }}
+              </div>
+              <ui5-button *ngIf="showOvertimeButton(record)"
+                [design]="hasAssignedOvertime(record) ? 'Attention' : 'Emphasized'" class="h-7 text-xs"
+                [disabled]="isOvertimeButtonDisabled(record)" (click)="openOvertimeModal(record)">
+                {{
+                hasAssignedOvertime(record)
+                ? 'Overtime Assigned'
+                : localization.Overtime
+                }}
+              </ui5-button>
+            </div>
+          </div>
+
+          <div class="flex items-center justify-between px-4 pb-4">
+            <div class="flex flex-col gap-1 text-xs">
+              <div class="flex items-center gap-1 font-semibold text-[var(--sapTextColor)]"
+                [style.color]="record.attendancelogs?.[0]?.shift?.color">
+                <span>{{ localization.Shift }}: {{ record.attendancelogs?.[0]?.shift?.name || "--" }}</span>
+              </div>
+              <div class="flex items-center gap-1">
+                <span>{{ localization.CheckIn }}: {{ record.attendancelogs?.[0]?.check_in_time || "--" }}</span>
+              </div>
+              <div class="flex items-center gap-1">
+                <span>{{ localization.CheckOut }}: {{ record.attendancelogs?.[0]?.check_out_time || "--" }}</span>
+              </div>
+              <div *ngIf="hasAssignedOvertime(record) && record.attendancelogs?.[0]?.overtime_hours"
+                class="flex items-center gap-1">
+                <span>{{ localization.Overtime }}: {{ record.attendancelogs?.[0]?.overtime_hours }}</span>
+              </div>
+              <div *ngIf="isAbsent(record)" class="mt-1">
+                <span class="text-xs font-semibold text-[var(--sapErrorColor)]">
+                  {{ record.attendancelogs?.[0]?.absent_type || "" }}
+                </span>
+              </div>
+            </div>
+
+            <div
+              class="flex flex-col items-center justify-center bg-[var(--sapList_Background)] text-[var(--sapTextColor)] px-4 py-3 rounded-xl min-w-[70px]">
+              <ui5-icon name="time-account" class="text-xl"></ui5-icon>
+              <p class="text-lg font-bold mt-1">
+                {{ record.attendancelogs?.[0]?.totalHours || "--" }}
+              </p>
+            </div>
+          </div>
+
+        </ui5-card>
+      </div>
+
+    </div>
+    </ui5-busy-indicator>
+  </section>
+
+<app-overtime-modal [isOpen]="isOvertimeModalOpen" [attendanceLogId]="selectedAttendanceLogId"
+  [employeeData]="selectedEmployeeData" (close)="closeOvertimeModal()"
+  (overtime_success)="onOvertimeSuccess($event)"></app-overtime-modal>

@@ -1,0 +1,9 @@
+@import "styles.sass";
+
+ui5-li-notification{
+    border: $border;
+}
+.notificationsPopover{
+    width: $notificationsPopover-width;
+    max-height: $notificationsPopover-max-height;
+}

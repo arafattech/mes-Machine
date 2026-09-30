@@ -1,0 +1,130 @@
+<ui5-dialog class="ui5-xl-without-tab" [open]="open" [attr.header-text]="
+    this.saveMode === 'POST' ? localization.New : localization.Edit
+  "class="w-[1000px] h-[750px]" (before-close)="CloseDialog()">
+  <ui5-busy-indicator class="w-full" size="M" [delay]="0" [active]="loading">
+    <ui5-tabcontainer class="ui5-tab" class="h-[calc(70vh-60px)]" header-background-design="Solid"
+      content-background-design="Transparent" (tab-select)="onTabSelect($event)">
+      <ui5-tab class="p-0 bg-none border-none overflow-hidden" [selected]="selectedTab === 'coreData'" id="coreData" text="Core Data" i18n-text>
+        <section class="w-full">
+          <div class="flex flex-col">
+            <ui5-label show-colon class="w-100">{{
+              localization.Active
+              }}</ui5-label>
+            <ui5-switch checked [(ngModel)]="client.is_active"></ui5-switch>
+          </div>
+          <div class="grid gap-2 mt-3 grid-cols-2">
+            <div class="w-full mt-1 flex flex-col">
+              <ui5-label show-colon required i18n>Client Name</ui5-label>
+              <ui5-input class="w-full" [(ngModel)]="client.name" placeholder="Enter Client name" i18n-placeholder
+                (input)="checkValidation($event, 'name')" [attr.value-state]="valueStateOptions.name" type="Text">
+                <div slot="valueStateMessage">
+                  {{ validationMessage }}
+                </div>
+              </ui5-input>
+              <ui5-label show-colon i18n>Contact person Name</ui5-label>
+              <ui5-input class="w-100" [(ngModel)]="client.first_contact_person_name"
+                placeholder="Enter Contact person name" i18n-placeholder type="Text">
+              </ui5-input>
+              <div class="col-md-12 my-[21px]"></div>
+              <div class="{{ className }}">
+                <ui5-label show-colon i18n>Contact person Name(2)</ui5-label>
+                <ui5-input class="w-100" [value]="client.second_contact_person_name || ''"
+                  [(ngModel)]="client.second_contact_person_name" placeholder="Enter Contact person name"
+                  i18n-placeholder type="Text">
+                </ui5-input>
+              </div>
+              <ui5-label show-colon i18n>TIN</ui5-label>
+              <ui5-input class="w-100" [(ngModel)]="client.tin" placeholder="Enter TIN" i18n-placeholder type="Text">
+              </ui5-input>
+              <ui5-label show-colon i18n>Select Note</ui5-label>
+              <ui5-combobox placeholder="Enter value" i18n-placeholder (selection-change)="getNote($event)"
+                class="w-full" [value]="clientNoteName ? clientNoteName : ''" [loading]="loading">
+                <ui5-cb-item *ngFor="let items of SelectedNoteList" [text]="items.name" [id]="items.id"></ui5-cb-item>
+              </ui5-combobox>
+            </div>
+            <div class="w-full mt-1 flex flex-col">
+              <ui5-label show-colon required i18n>Email</ui5-label>
+              <ui5-input class="w-100" [(ngModel)]="client.email" placeholder="Enter Client Email" i18n-placeholder
+                (input)="checkValidation($event, 'email')" [attr.value-state]="valueStateOptions.email" type="Text">
+                <div slot="valueStateMessage">
+                  {{ validationMessage }}
+                </div>
+              </ui5-input>
+              <ui5-label show-colon i18n>Contact person Number</ui5-label>
+              <ui5-input class="w-100" [(ngModel)]="client.first_contact_person_phone"
+                placeholder="Enter Contact person number" i18n-placeholder type="Number">
+              </ui5-input>
+              <div class="col-md-12 flex justify-end my-2">
+                <ui5-button design="Transparent" (click)="addMore()" [icon]="buttonIcon" class="justify-content-end">
+                  {{ buttonText }}
+                </ui5-button>
+              </div>
+              <div class="{{ className }}">
+                <ui5-label show-colon i18n>Contact person Number(2)</ui5-label>
+                <ui5-input class="w-100" [value]="client.second_contact_person_phone?.toString() || ''"
+                  [(ngModel)]="client.second_contact_person_phone" placeholder="Enter Contact person number"
+                  i18n-placeholder type="Number">
+                </ui5-input>
+              </div>
+              <ui5-label show-colon i18n>BIN</ui5-label>
+              <ui5-input class="w-100" [(ngModel)]="client.bin" placeholder="Enter BIN" i18n-placeholder type="Text">
+              </ui5-input>
+              <ui5-label show-colon i18n>Select Area</ui5-label>
+              <ui5-combobox placeholder="Enter value" i18n-placeholder (selection-change)="getArea($event)"
+                class="w-full" [value]="clientAreaName ? clientAreaName : ''" [loading]="loading">
+                <ui5-cb-item *ngFor="let items of SelectedAreaList" [text]="items.name" [id]="items.id"></ui5-cb-item>
+              </ui5-combobox>
+            </div>
+          </div>
+        </section>
+      </ui5-tab>
+      <ui5-tab class="p-0 bg-none border-none overflow-hidden" [selected]="selectedTab === 'personalData'" id="personalData" text="Address" i18n-text>
+        <section class="w-full">
+          <div class="w-full mt-2">
+            <ui5-label show-colon required i18n>Address</ui5-label>
+            <ui5-textarea class="w-100 h-[100px]" [(ngModel)]="client.address" placeholder="Enter Address"
+              i18n-placeholder (input)="checkValidation($event, 'address')"
+              [attr.value-state]="valueStateOptions.address" type="Text">
+              <div slot="valueStateMessage">
+                {{ validationMessage }}
+              </div>
+            </ui5-textarea>
+          </div>
+
+          <div class="w-full mt-2">
+            <ui5-label show-colon required i18n>Bill To</ui5-label>
+            <ui5-textarea class="w-100 h-[100px]" [(ngModel)]="client.bill_to" placeholder="Enter Billing Address"
+              i18n-placeholder (input)="onBillToInput()" (input)="checkValidation($event, 'bill_to')"
+              [attr.value-state]="valueStateOptions.bill_to">
+              <div slot="valueStateMessage">
+                {{ validationMessage }}
+              </div>
+            </ui5-textarea>
+          </div>
+          <div class="w-full mt-2">
+            <ui5-checkbox [(ngModel)]="sameAsBillTo" (change)="onSameAsBillToChanged()" text="Ship to Same as Bill To"
+              i18n-text [disabled]="!client.bill_to || client.bill_to.trim() === ''">
+            </ui5-checkbox>
+          </div>
+
+          <div class="w-full mt-2">
+            <ui5-label show-colon required i18n>Ship To</ui5-label>
+            <ui5-textarea class="w-100 h-[100px]" [(ngModel)]="client.ship_to" placeholder="Enter Shipping Address"
+              i18n-placeholder [disabled]="sameAsBillTo" (input)="checkValidation($event, 'ship_to')"
+              [attr.value-state]="valueStateOptions.ship_to">
+              <div slot="valueStateMessage">
+                {{ validationMessage }}
+              </div>
+            </ui5-textarea>
+          </div>
+        </section>
+      </ui5-tab>
+    </ui5-tabcontainer>
+  </ui5-busy-indicator>
+  <ui5-toolbar slot="footer">
+    <ui5-toolbar-button design="Emphasized" (click)="saveClientInfo()" [disabled]="loading"
+      text="{{ localization.Submit }}"></ui5-toolbar-button>
+    <ui5-toolbar-button design="Transparent" [disabled]="loading" (click)="CloseDialog()"
+      text="{{ localization.Cancel }}"></ui5-toolbar-button>
+  </ui5-toolbar>
+</ui5-dialog>

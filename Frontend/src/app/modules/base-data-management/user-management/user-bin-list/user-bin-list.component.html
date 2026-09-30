@@ -1,0 +1,16 @@
+<div class="h-[calc(100vh-55px)]">
+  <app-ag-grid-table
+    #agGridRef
+    [columns]="columns"
+    [dataSource]="dataSource"
+    [toolbarConfig]="toolbarConfig"
+    selectionMode="Single"
+    [isBase]="true"
+    gridId="base-data-user-bin-list"
+    [showAction]="true"
+    [editPermission]="true"
+    [showEditButton]="false"
+    [showDeleteButton]="false"
+    [customActionButtons]="actionButtons"
+  ></app-ag-grid-table>
+</div>

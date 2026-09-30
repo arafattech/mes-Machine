@@ -1,0 +1,50 @@
+<div class="m-5">
+  <ui5-title level="H5" class="mt-3 mb-3 ms-2d" i18n>Modules</ui5-title>
+  <div class="flex">
+    <div
+      *ngIf="loading"
+      class="dashboard grid 2xl:grid-cols-8 gap-2 xl:grid-cols-5 md:grid-cols-4 sm:grid-cols-2 grid-cols-1"
+    >
+      <div
+        *ngFor="let s of skeletonItems"
+        class="w-[200px] h-[200px] rounded-lg border border-gray-100 shadow-sm bg-white animate-pulse overflow-hidden"
+      >
+        <div class="p-3">
+          <div class="h-5 bg-gray-200 rounded w-3/4"></div>
+        </div>
+        <div class="mt-5 p-3 flex flex-col gap-3">
+          <div class="h-8 w-8 bg-gray-200 rounded"></div>
+          <div class="h-4 bg-gray-200 rounded w-2/3 mt-3"></div>
+        </div>
+      </div>
+    </div>
+
+    <div
+      *ngIf="!loading"
+      class="dashboard grid 2xl:grid-cols-8 gap-2 xl:grid-cols-5 md:grid-cols-4 sm:grid-cols-2 grid-cols-1"
+    >
+      <ui5-card
+        *ngFor="let item of modules; let i = index"
+        class="medium"
+        [routerLink]="item.url"
+      >
+        <div class="card-header p-3">
+          <ui5-title slot="header" level="H6" class="card-title">{{
+            item.title
+          }}</ui5-title>
+        </div>
+
+        <div class="card-content mt-5 p-3">
+          <ui5-icon class="samples-margin" [name]="item.icon"></ui5-icon>
+          <ui5-text class="mt-3">{{ item.title }}</ui5-text>
+        </div>
+      </ui5-card>
+    </div>
+  </div>
+</div>
+
+<div class="footer">
+  <ui5-label>
+    © {{ currentYear }} Hybritech Innovations • MES {{ appVersion }}
+  </ui5-label>
+</div>

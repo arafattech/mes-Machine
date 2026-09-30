@@ -1,0 +1,47 @@
+<div
+  class="status-card relative flex items-center gap-2.5 overflow-hidden rounded-lg py-2 pl-3 pr-2.5 shadow-sm transition-shadow duration-300 hover:shadow-md"
+  [attr.aria-label]="(type || 'overall') + ' status card'"
+>
+  <!-- Left accent bar -->
+  <div class="absolute inset-y-0 left-0 w-1" [style.background]="palette.color"></div>
+
+  <!-- Icon chip -->
+  <div
+    class="flex h-9 w-9 shrink-0 items-center justify-center rounded-md"
+    [style.background]="palette.tint"
+  >
+    <ui5-icon
+      [name]="palette.icon"
+      class="h-5 w-5"
+      [style.color]="palette.color"
+      aria-hidden="true"
+    ></ui5-icon>
+  </div>
+
+  <!-- Value + label + progress -->
+  <div class="min-w-0 flex-1">
+    <div class="flex items-baseline gap-1 leading-none">
+      @if (isOverall) {
+      <span class="status-value text-xl font-bold tracking-tight tabular-nums">{{ percent }}%</span>
+      } @else {
+      <span class="status-value text-xl font-bold tracking-tight tabular-nums">{{ count }}</span>
+      <span class="status-total text-xs font-medium">/ {{ totalMachines ?? 0 }}</span>
+      }
+    </div>
+
+    <div class="status-label mt-0.5 truncate text-[10px] font-medium uppercase tracking-wide">
+      {{ label }}
+    </div>
+
+    <div
+      class="mt-1 h-1 w-full overflow-hidden rounded-full"
+      [style.background]="palette.tint"
+    >
+      <div
+        class="h-full rounded-full transition-all duration-500 ease-out"
+        [style.background]="palette.color"
+        [style.width.%]="progress"
+      ></div>
+    </div>
+  </div>
+</div>

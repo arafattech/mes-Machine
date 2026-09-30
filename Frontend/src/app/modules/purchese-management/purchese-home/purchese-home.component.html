@@ -1,0 +1,158 @@
+<div class="h-screen font-sans text-gray-800 relative overflow-hidden">
+  <div
+    class="absolute top-0 left-0 w-full h-[380px] bg-gradient-to-br from-[#4ade80] via-[#3b82f6] to-[#a78bfa] rounded-br-[80px] shadow-xl -z-0">
+  </div>
+
+  <div class="relative z-10 h-full p-6 space-y-6">
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      <h1 class="text-2xl font-bold text-gray-800" i18n>Purchase Analytics</h1>
+      <button class="bg-gray-200 text-gray-800 px-4 py-2 rounded shadow hover:bg-gray-300 transition"
+        (click)="toggleFilter()" i18n>Filter
+      </button>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div
+        class="relative bg-white/20 backdrop-blur-xl border border-white/30 rounded-3xl p-4 h-28 flex justify-between items-center shadow-[0_10px_30px_rgba(0,0,0,0.15)] transition">
+        <div>
+          <p class="text-[11px] font-semibold uppercase tracking-wide text-white/80" i18n>Total P/O</p>
+          <h2 class="text-lg font-extrabold text-white">{{ purchaseInfo.total_purchases ?? 0 }}</h2>
+        </div>
+        <div
+          class="w-12 h-12 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center shadow-inner">
+          <ui5-icon name="receipt" class="text-white text-xl"></ui5-icon>
+        </div>
+      </div>
+
+      <div
+        class="relative bg-white/20 backdrop-blur-xl border border-white/30 rounded-3xl p-4 h-28 flex justify-between items-center shadow-[0_10px_30px_rgba(0,0,0,0.15)] transition">
+        <div>
+          <p class="text-[11px] font-semibold uppercase tracking-wide text-white/80" i18n>Total SPR</p>
+          <h2 class="text-lg font-extrabold text-white">560</h2>
+        </div>
+        <div
+          class="w-12 h-12 rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center shadow-inner">
+          <ui5-icon name="survey" class="text-white text-xl"></ui5-icon>
+        </div>
+      </div>
+
+      <div
+        class="relative bg-white/20 backdrop-blur-xl border border-white/30 rounded-3xl p-4 h-28 flex justify-between items-center shadow-[0_10px_30px_rgba(0,0,0,0.15)] transition">
+        <div>
+          <p class="text-[11px] font-semibold uppercase tracking-wide text-white/80" i18n>Orders</p>
+          <h2 class="text-lg font-extrabold text-white">1,120</h2>
+        </div>
+        <div
+          class="w-12 h-12 rounded-full bg-gradient-to-br from-orange-400 to-amber-500 flex items-center justify-center shadow-inner">
+          <ui5-icon name="cart" class="text-white text-xl"></ui5-icon>
+        </div>
+      </div>
+
+      <div
+        class="relative bg-white/20 backdrop-blur-xl border border-white/30 rounded-3xl p-4 h-28 flex justify-between items-center shadow-[0_10px_30px_rgba(0,0,0,0.15)] transition">
+        <div>
+          <p class="text-[11px] font-semibold uppercase tracking-wide text-white/80" i18n>Stock Value</p>
+          <h2 class="text-lg font-extrabold text-white">{{ purchaseInfo.total_amount ?? 0 }}</h2>
+        </div>
+        <div
+          class="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center shadow-inner">
+          <ui5-icon name="dimension" class="text-white text-xl"></ui5-icon>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-2 mt-3">
+      <div class="rounded-2xl shadow-sm overflow-hidden h-[320px] lg:col-span-2 bg-white border border-gray-100">
+        <ui5-card class="w-full h-full border-none shadow-none">
+          <ui5-card-header slot="header" title-text="Recent – Activity" i18n-title-text
+            class="!border-b-0"></ui5-card-header>
+          <div class="p-4 h-[calc(100%-60px)]">
+            <app-shared-bar-chart [datasets]="barChartInfo" [chartHeight]="'240px'"
+              [barColor]="'#3B82F6'"></app-shared-bar-chart>
+          </div>
+        </ui5-card>
+      </div>
+
+      <div class="rounded-2xl shadow-sm overflow-hidden h-[325px] bg-white border border-gray-100">
+        <ui5-card class="w-full h-full border-none shadow-none">
+          <ui5-card-header slot="header" title-text="Department Distribution" i18n-title-text
+            class="!border-b-0"></ui5-card-header>
+          <div class="p-2 h-[calc(100%-60px)]">
+            <app-shared-donut-chart [data]="departmentDistribution" [labelField]="'department_name'" [valueField]="'percentage'"
+              [innerRadius]="'50%'" [tooltipMode]="'percent'" [showSliceLabels]="false" [showSliceTicks]="false"
+              [showLegend]="false" [chartHeight]="'235px'" [showCenterOverlay]="true" [showSideList]="true">
+            </app-shared-donut-chart>
+          </div>
+        </ui5-card>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-2 mt-2">
+      <div class="lg:col-span-2 bg-white rounded-2xl shadow-sm overflow-hidden h-[35vh]">
+        <app-ag-grid-table [columns]="latestPOColumns" [dataSource]="latestPODataSource"
+          [toolbarConfig]="latestPOToolbarConfig" [displayConfig]="latestPODisplayConfig"
+          gridId="purchese-home-latest-po" selectionMode="None" [showIllustratedMessage]="true" IllustratedName="NoData"
+          [isBase]="true"></app-ag-grid-table>
+      </div>
+
+      <ui5-card class="flex flex-col bg-white rounded-2xl shadow-sm overflow-hidden h-[35vh]">
+        <ui5-bar design="Header">
+          <ui5-title slot="startContent" level="H5"><span i18n>Top Suppliers</span></ui5-title>
+        </ui5-bar>
+        <div class="flex-1 overflow-y-auto custom-scroll">
+          <ui5-list class="w-full" separators="None">
+            <ui5-li-custom *ngFor="let item of purchaseInfo.top_suppliers" class="py-2 border-b border-gray-100">
+              <div class="flex items-center justify-between w-full px-4">
+                <div class="flex items-center gap-3">
+                  <ui5-avatar icon="supplier" size="XS"></ui5-avatar>
+                  <div class="flex flex-col">
+                    <ui5-label class="font-semibold">{{ item.supplier_name }}</ui5-label>
+                    <ui5-label class="text-[10px] text-gray-500" i18n>Custom ID: 0001</ui5-label>
+                  </div>
+                </div>
+                <ui5-badge color-scheme="8">{{ item.amount }}</ui5-badge>
+              </div>
+            </ui5-li-custom>
+          </ui5-list>
+        </div>
+      </ui5-card>
+    </div>
+  </div>
+</div>
+
+<ui5-dialog header-text="Filter" [open]="showFilter">
+  <ui5-bar slot="header" design="Header">
+    <ui5-title level="H5" slot="startContent" i18n>Filter</ui5-title>
+    <ui5-button slot="endContent" design="Transparent" icon="refresh" (click)="resetFilter()" i18n>Reset</ui5-button>
+  </ui5-bar>
+
+  <div class="p-4 space-y-4">
+    <div>
+      <ui5-label show-colon i18n>Date Range</ui5-label>
+      <ui5-daterange-picker class="w-full" #dateRangePicker format-pattern="dd/MM/yyyy"
+        (change)="dateRangePickerChange($event)" [max-date]="currentDate" [value]="dateRangeValue">
+      </ui5-daterange-picker>
+    </div>
+
+    <div>
+      <ui5-label show-colon i18n>Department</ui5-label>
+      <ui5-combobox class="w-full" placeholder="Select Department" [value]="selectedDeptText"
+        (selection-change)="onDepartmentChange($event)">
+        <ui5-cb-item *ngFor="let item of DepartmentList" [text]="item.name" [additional-text]="item.id"></ui5-cb-item>
+      </ui5-combobox>
+    </div>
+
+    <div>
+      <ui5-label show-colon i18n>Supplier</ui5-label>
+      <ui5-combobox class="w-full" placeholder="Select Supplier" [value]="selectedSupplierText"
+        (selection-change)="onSupplierChange($event)">
+        <ui5-cb-item *ngFor="let item of SuppliersList" [text]="item.name" [additional-text]="item.id"></ui5-cb-item>
+      </ui5-combobox>
+    </div>
+  </div>
+
+  <ui5-toolbar slot="footer">
+    <ui5-toolbar-button design="Emphasized" text="Apply" (click)="applyFilter()"></ui5-toolbar-button>
+    <ui5-toolbar-button design="Transparent" text="Cancel" (click)="showFilter = false"></ui5-toolbar-button>
+  </ui5-toolbar>
+</ui5-dialog>

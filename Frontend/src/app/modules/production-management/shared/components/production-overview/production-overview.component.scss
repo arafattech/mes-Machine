@@ -1,0 +1,67 @@
+:host {
+  display: block;
+}
+
+.panel {
+  background: var(--sapTile_Background, #fff);
+  border: 1px solid var(--sapTile_BorderColor, #d9d9d9);
+}
+
+.panel-title,
+.tile-value {
+  color: var(--sapTextColor, #1d2d3e);
+}
+
+.tile-label {
+  color: var(--sapContent_LabelColor, #556b82);
+}
+
+.period-btn {
+  color: var(--sapTextColor, #1d2d3e);
+  background: var(--sapList_Background, #f2f2f2);
+  border: 1px solid var(--sapTile_BorderColor, #d9d9d9);
+}
+
+.period-btn:hover {
+  background: var(--sapList_Hover_Background, #ececec);
+}
+
+.tile-icon-circle {
+  background: var(--sapTile_Background, #fff);
+}
+
+.tile-target {
+  background: var(--sapInformationBackground, #e8f4fe);
+  border: 1px solid var(--sapTile_BorderColor, #d9d9d9);
+}
+
+.tile-good {
+  background: var(--sapSuccessBackground, #f1fdf6);
+  border: 1px solid var(--sapTile_BorderColor, #d9d9d9);
+}
+
+.tile-achieved {
+  background: var(--sapWarningBackground, #fef7f1);
+  border: 1px solid var(--sapTile_BorderColor, #d9d9d9);
+}
+
+.tile-wastage {
+  background: var(--sapErrorBackground, #ffebeb);
+  border: 1px solid var(--sapTile_BorderColor, #d9d9d9);
+}
+
+.icon-target {
+  color: var(--sapInformationColor, #427cac);
+}
+
+.icon-good {
+  color: var(--sapPositiveColor, #257a3e);
+}
+
+.icon-achieved {
+  color: var(--sapCriticalColor, #e76500);
+}
+
+.icon-wastage {
+  color: var(--sapNegativeColor, #bb0000);
+}

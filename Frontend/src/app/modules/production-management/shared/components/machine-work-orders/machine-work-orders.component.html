@@ -1,0 +1,87 @@
+<div class="h-full w-full flex flex-col lg:flex-row gap-3 p-1 box-border">
+  <!-- Open work orders — master list -->
+  <div
+    class="lg:w-80 shrink-0 rounded-2xl p-3 bg-[var(--sapTile_Background,#fff)] border border-[var(--sapTile_BorderColor,#d9d9d9)] lg:h-full lg:overflow-y-auto"
+  >
+    <div class="flex items-center justify-between mb-2">
+      <h2 class="text-sm font-semibold text-[var(--sapTextColor,#1d2d3e)]" i18n>
+        Open Production Orders
+      </h2>
+      <span
+        *ngIf="workOrders.length"
+        class="rounded-full px-2 py-0.5 text-xs font-semibold bg-[var(--sapList_Background,#f2f2f2)] text-[var(--sapTextColor,#1d2d3e)]"
+        >{{ workOrders.length }}</span
+      >
+    </div>
+
+    <ui5-illustrated-message
+      *ngIf="!workOrders.length; else workOrderList"
+      name="NoData"
+      class="w-full"
+    >
+      <ui5-title slot="title" level="H6" i18n>No open production orders</ui5-title>
+      <div slot="subtitle" i18n>
+        Nothing planned or in progress for this machine.
+      </div>
+    </ui5-illustrated-message>
+
+    <ng-template #workOrderList>
+      <ui5-list
+        selection-mode="Single"
+        class="p-2 mb-2"
+        [loading]="loading"
+        loading-delay="0"
+        (selection-change)="onSelectionChange($event)"
+      >
+        <ui5-li
+          *ngFor="let wo of workOrders; trackBy: trackByWorkOrderId"
+          [value]="wo"
+          [selected]="wo.id === selectedWorkOrderId"
+          class=" w-full h-full p-2 mb-2 border-b border-[var(--sapList_BorderColor,#d9d9d9)] hover:bg-gray-50 *:hover:bg-[var(--sapList_Hover_Background,#f2f2f2)] border-redius-sm" 
+        >
+          <div class="flex items-start gap-2.5 w-full py-0.5">
+            <div
+              class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg"
+              [style.background]="getWorkOrderStatusTint(wo.status)"
+            >
+              <ui5-icon
+                name="document"
+                [style.color]="getWorkOrderStatusColor(wo.status)"
+              ></ui5-icon>
+            </div>
+            <div class="min-w-0 flex-1">
+              <div class="flex items-center justify-between gap-2">
+                <span class="font-semibold text-sm truncate">{{
+                  wo.customId || "WO-" + wo.id
+                }}</span>
+                <span
+                  *ngIf="wo.status"
+                  class="rounded-full px-1.5 py-0.5 text-[10px] font-semibold shrink-0"
+                  [style.background]="getWorkOrderStatusTint(wo.status)"
+                  [style.color]="getWorkOrderStatusColor(wo.status)"
+                  >{{ getWorkOrderStatusLabel(wo.status) }}</span
+                >
+              </div>
+              <div
+                class="text-xs text-[var(--sapContent_LabelColor,#556b82)] truncate"
+              >
+                {{ wo.productName }}
+                <span *ngIf="wo.quantity" i18n>· Qty {{ wo.quantity }}</span>
+              </div>
+            </div>
+          </div>
+        </ui5-li>
+      </ui5-list>
+    </ng-template>
+  </div>
+
+  <!-- This machine's own contribution to the selected work order — not the full cross-machine
+       work order dashboard (that view lives on the Work Orders list's info action now).
+       Renders its own "No active work order" empty state when workOrderId is null. -->
+  <div class="flex-1 min-h-0 overflow-auto">
+    <app-machine-work-order-overview
+      [workOrderId]="selectedWorkOrderId"
+      [machineKey]="machineKey"
+    ></app-machine-work-order-overview>
+  </div>
+</div>

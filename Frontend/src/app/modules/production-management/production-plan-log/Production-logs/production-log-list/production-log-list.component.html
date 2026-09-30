@@ -1,0 +1,64 @@
+<div class="h-[calc(100vh-55px)]">
+  <app-ag-grid-table
+    #agGridRef
+    [columns]="columns"
+    [dataSource]="dataSource"
+    [toolbarConfig]="toolbarConfig"
+    selectionMode="Single"
+    [isBase]="true"
+    [gridId]="gridId"
+    [showDateRangePicker]="true"
+    [dateRangePickerValue]="dateRangeValue"
+    (changeRangeDatePicker)="onDateRangeStringChange($event)"
+    [showAction]="true"
+    [showEditButton]="false"
+    [showDeleteButton]="false"
+    [showInfoButton]="true"
+    (newButtonClick)="openForm()"
+    (infoClick)="viewGroupDetail($event)"
+    [showIllustratedMessage]="true"
+    IllustratedName="NoData"
+    IllustratedTitle="No Production Logs Found"
+    IllustratedSubtitle="Log production against a work order to see entries here."
+  ></app-ag-grid-table>
+</div>
+
+<app-production-log-form
+  #logFormRef
+  (RefreshTable)="refresh()"
+></app-production-log-form>
+
+<ui5-dialog
+  [open]="detailOpen"
+  class="w-[60vw]"
+  [headerText]="detailHeaderText"
+  i18n-header-text
+  (before-close)="closeDetail()"
+>
+  <ui5-busy-indicator class="w-full" [delay]="0" [active]="detailLoading">
+    <div class="w-full p-2">
+      <app-ag-grid-table
+        class="block w-full"
+        [columns]="detailColumns"
+        [toolbarConfig]="detailToolbarConfig"
+        [dataSource]="detailDataSource"
+        [displayConfig]="detailDisplayConfig"
+        gridId="production-log-group-detail"
+        selectionMode="Single"
+        [isBase]="true"
+        [showIllustratedMessage]="true"
+        IllustratedName="NoEntries"
+        noRowsMessage="No machine logs in this group"
+        i18n-noRowsMessage
+      ></app-ag-grid-table>
+    </div>
+  </ui5-busy-indicator>
+  <ui5-toolbar slot="footer">
+    <ui5-toolbar-button
+      design="Transparent"
+      (click)="closeDetail()"
+      text="Close"
+      i18n-text
+    ></ui5-toolbar-button>
+  </ui5-toolbar>
+</ui5-dialog>

@@ -1,0 +1,232 @@
+<ui5-card>
+  <div class="mb-2 px-4 py-2 border-b card-header-divider">
+    <ui5-title level="H5" class="text-base font-semibold card-title"
+      >Machine Details</ui5-title
+    >
+  </div>
+  <div class="space-y-3 px-2 pb-4">
+    <div>
+      <ui5-title
+        level="H6"
+        class="text-sm font-semibold card-title mb-2 px-3"
+      >
+        Machine Info
+      </ui5-title>
+
+      <div class="px-3">
+        <div class="info-box rounded-xl p-3 shadow-sm">
+          <div class="flex items-center justify-between mb-2">
+            <div class="flex items-center gap-2">
+              <div
+                class="rounded-full p-1.5"
+                [style.background]="palette.info.tint"
+                [style.color]="palette.info.color"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  class="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path stroke-width="1.5" d="M4 7h16M4 12h8m-8 5h16" />
+                </svg>
+              </div>
+              <span class="text-xs info-label">Machine ID</span>
+            </div>
+            <span class="text-sm font-semibold info-value">
+              {{ machine?.id || "N/A" }}
+            </span>
+          </div>
+
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <div
+                class="rounded-full p-1.5"
+                [style.background]="palette.negative.tint"
+                [style.color]="palette.negative.color"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  class="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path stroke-width="1.5" d="M3 7l9 9 9-9-9-9-9 9zM12 16v5" />
+                </svg>
+              </div>
+              <span class="text-xs info-label">Machine Name</span>
+            </div>
+            <span
+              class="text-sm font-semibold info-value truncate max-w-[120px]"
+            >
+              {{ machine?.name || "N/A" }}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <ui5-title
+        level="H6"
+        class="text-sm font-semibold card-title mb-2 px-3"
+        >Configs</ui5-title
+      >
+      <div class="grid grid-cols-2 gap-2 text-xs px-3">
+        <ng-container *ngIf="configTile(machine?.maxRpm, palette.info) as tile">
+          <div
+            class="rounded-lg p-3 flex items-start gap-2 config-tile"
+            [class.config-tile-dashed]="tile.dashed"
+            [style.background]="tile.tint"
+            [style.border-color]="tile.color"
+          >
+            <div
+              class="shrink-0 rounded-full p-1.5 config-icon-circle"
+              [style.border-color]="tile.color"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="w-4 h-4"
+                [style.color]="tile.color"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <circle cx="12" cy="12" r="9" stroke-width="1.5" />
+                <path stroke-width="1.5" d="M12 12l3 2" />
+              </svg>
+            </div>
+            <div>
+              <p class="config-label text-[11px]">Max RPM</p>
+              <p
+                class="font-semibold text-sm"
+                [class.italic]="tile.dashed"
+                [class.font-normal]="tile.dashed"
+                [style.color]="tile.dashed ? tile.color : 'var(--sapTextColor, #1d2d3e)'"
+              >
+                {{ machine?.maxRpm || "Not configured" }}
+              </p>
+            </div>
+          </div>
+        </ng-container>
+
+        <ng-container *ngIf="configTile(machine?.minRpm, palette.critical) as tile">
+          <div
+            class="rounded-lg p-3 flex items-start gap-2 config-tile"
+            [class.config-tile-dashed]="tile.dashed"
+            [style.background]="tile.tint"
+            [style.border-color]="tile.color"
+          >
+            <div
+              class="shrink-0 rounded-full p-1.5 config-icon-circle"
+              [style.border-color]="tile.color"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="w-4 h-4"
+                [style.color]="tile.color"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <circle cx="12" cy="12" r="9" stroke-width="1.5" />
+                <path stroke-width="1.5" d="M12 12l-3 2" />
+              </svg>
+            </div>
+            <div>
+              <p class="config-label text-[11px]">Min RPM</p>
+              <p
+                class="font-semibold text-sm"
+                [class.italic]="tile.dashed"
+                [class.font-normal]="tile.dashed"
+                [style.color]="tile.dashed ? tile.color : 'var(--sapTextColor, #1d2d3e)'"
+              >
+                {{ machine?.minRpm || "Not configured" }}
+              </p>
+            </div>
+          </div>
+        </ng-container>
+
+        <ng-container *ngIf="configTile(machine?.maxTemp, palette.negative) as tile">
+          <div
+            class="rounded-lg p-3 flex items-start gap-2 config-tile"
+            [class.config-tile-dashed]="tile.dashed"
+            [style.background]="tile.tint"
+            [style.border-color]="tile.color"
+          >
+            <div
+              class="shrink-0 rounded-full p-1.5 config-icon-circle"
+              [style.border-color]="tile.color"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="w-4 h-4"
+                [style.color]="tile.color"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-width="1.5"
+                  d="M14 14.76V5a2 2 0 0 0-4 0v9.76a4 4 0 1 0 4 0Z"
+                />
+              </svg>
+            </div>
+            <div>
+              <p class="config-label text-[11px]">Max Temp</p>
+              <p
+                class="font-semibold text-sm"
+                [class.italic]="tile.dashed"
+                [class.font-normal]="tile.dashed"
+                [style.color]="tile.dashed ? tile.color : 'var(--sapTextColor, #1d2d3e)'"
+              >
+                {{ machine?.maxTemp || "Not configured" }}
+              </p>
+            </div>
+          </div>
+        </ng-container>
+
+        <ng-container *ngIf="configTile(machine?.minTemp, palette.critical) as tile">
+          <div
+            class="rounded-lg p-3 flex items-start gap-2 config-tile"
+            [class.config-tile-dashed]="tile.dashed"
+            [style.background]="tile.tint"
+            [style.border-color]="tile.color"
+          >
+            <div
+              class="shrink-0 rounded-full p-1.5 config-icon-circle"
+              [style.border-color]="tile.color"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="w-4 h-4"
+                [style.color]="tile.color"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-width="1.5"
+                  d="M10 14V5a2 2 0 0 1 4 0v9a3 3 0 1 1-4 0Z"
+                />
+              </svg>
+            </div>
+            <div>
+              <p class="config-label text-[11px]">Min Temp</p>
+              <p
+                class="font-semibold text-sm"
+                [class.italic]="tile.dashed"
+                [class.font-normal]="tile.dashed"
+                [style.color]="tile.dashed ? tile.color : 'var(--sapTextColor, #1d2d3e)'"
+              >
+                {{ machine?.minTemp || "Not configured" }}
+              </p>
+            </div>
+          </div>
+        </ng-container>
+      </div>
+    </div>
+  </div>
+</ui5-card>

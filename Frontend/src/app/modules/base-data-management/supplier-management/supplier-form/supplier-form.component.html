@@ -1,0 +1,142 @@
+<ui5-dialog class="w-[1000px] h-[750px]" [open]="open" [attr.header-text]="
+    this.saveMode === 'POST' ? localization.New : localization.Edit" (before-close)="CloseDialog()">
+  <ui5-busy-indicator class="w-full" [delay]="0" [active]="loading" size="M">
+    <ui5-tabcontainer class="ui5-tab" header-background-design="Solid" content-background-design="Transparent"
+      (tab-select)="onTabSelect($event)">
+      <ui5-tab class="p-0 bg-none border-none w-[900px]" text="Core Data" id="coreData" i18n-text
+        [selected]="selectedTab === 'coreData'">
+        <section class="w-full">
+          <div class="row">
+            <div class="col-md-12">
+              <ui5-label showColon class="w-100">{{
+                localization.Active
+                }}</ui5-label>
+              <ui5-switch checked [(ngModel)]="Supplier.is_active"></ui5-switch>
+            </div>
+            <div class="col-md-6">
+              <ui5-label show-colon required i18n>Supplier ID</ui5-label>
+              <ui5-input class="w-100" [(ngModel)]="Supplier.supplierID" placeholder="Enter Supplier ID"
+                i18n-placeholder (input)="checkValidation($event, 'supplierID')"
+                [attr.value-state]="valueStateOptionsSupplier.supplierID" type="Number">
+                <div slot="valueStateMessage">
+                  {{ validationMessage }}
+                </div>
+              </ui5-input>
+            </div>
+            <div class="col-md-6"></div>
+            <div class="col-md-6">
+              <ui5-label show-colon required i18n>Supplier Name</ui5-label>
+              <ui5-input class="w-100" [(ngModel)]="Supplier.name" placeholder="Enter Supplier name" i18n-placeholder
+                (input)="checkValidation($event, 'name')" [attr.value-state]="valueStateOptionsSupplier.name"
+                type="Text">
+                <div slot="valueStateMessage">
+                  {{ validationMessage }}
+                </div>
+              </ui5-input>
+              <ui5-label show-colon i18n>TIN</ui5-label>
+              <ui5-input class="w-100" [(ngModel)]="Supplier.tin" placeholder="Enter TIN" i18n-placeholder
+                type="Text"></ui5-input>
+              <ui5-label show-colon i18n>Contact person Name</ui5-label>
+              <ui5-input class="w-100" [(ngModel)]="Supplier.first_contact_person_name"
+                placeholder="Enter Contact person name" i18n-placeholder type="Text"></ui5-input>
+
+              <div>
+                <ui5-label show-colon i18n>Contact person Name(2)</ui5-label>
+                <ui5-input class="w-100" [(ngModel)]="Supplier.second_contact_person_name"
+                  placeholder="Enter Contact person name" i18n-placeholder type="Text"></ui5-input>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <ui5-label show-colon i18n>Email</ui5-label>
+              <ui5-input class="w-100" [(ngModel)]="Supplier.email" placeholder="Enter Email" i18n-placeholder
+                type="Text"></ui5-input>
+
+                <ui5-label show-colon i18n>Origin</ui5-label>
+              <ui5-combobox class="w-100" placeholder="Select Origin" i18n-placeholder [value]="originName"
+                (selectionChange)="onOriginChange($event)">
+                <ui5-cb-item *ngFor="let origin of origins" [text]="origin.name" [id]="origin.id"></ui5-cb-item>
+              </ui5-combobox>
+
+              <ui5-label show-colon i18n>BIN</ui5-label>
+              <ui5-input class="w-100" [(ngModel)]="Supplier.bin" placeholder="Enter BIN" i18n-placeholder
+                type="Text"></ui5-input>
+              <ui5-label show-colon required i18n>Contact person Number</ui5-label>
+              <ui5-input class="w-100" [(ngModel)]="Supplier.first_contact_person_phone"
+                placeholder="Enter Contact person number" i18n-placeholder type="Number"
+                (input)="checkValidation($event, 'first_contact_person_phone')"
+                [attr.value-state]="valueStateOptionsSupplier.first_contact_person_phone">
+                <div slot="valueStateMessage">
+                  {{ validationMessage }}
+                </div>
+              </ui5-input>
+              <div>
+                <ui5-label show-colon i18n>Contact person Number(2)</ui5-label>
+                <ui5-input class="w-100" [(ngModel)]="Supplier.second_contact_person_phone"
+                  placeholder="Enter Contact person number" i18n-placeholder type="Number"></ui5-input>
+              </div>
+            </div>
+            <div class="w-full">
+              <ui5-label show-colon required i18n>Address</ui5-label>
+              <ui5-textarea class="w-100 h-[85px]" [(ngModel)]="Supplier.address" placeholder="Enter Supplier Address"
+                i18n-placeholder (input)="checkValidation($event, 'address')"
+                [attr.value-state]="valueStateOptionsSupplier.address" type="Text">
+                <div slot="valueStateMessage">
+                  {{ validationMessage }}
+                </div>
+              </ui5-textarea>
+            </div>
+            <div class="w-full">
+              <ui5-label show-colon i18n>Note</ui5-label>
+              <ui5-textarea class="w-100 h-[85px]" [(ngModel)]="Supplier.note" placeholder="Enter Supplier Note"
+                i18n-placeholder type="Text"></ui5-textarea>
+            </div>
+          </div>
+        </section>
+      </ui5-tab>
+
+      <ui5-tab text="Cash Info" class="p-0 bg-none border-none overflow-x-hidden" id="cashInfo" i18n-text
+        [selected]="selectedTab === 'cashInfo'">
+        <app-card-info [items]="SupplierCashInfoList" [fields]="cashFields" icon="money-bills"
+          defaultTitle="Cash Details" newButtonText="{{ localization.New }}" (openModal)="openCashModal()"
+          (editItem)="editCash($event)" (deleteItemLocal)="SupplierCashInfoList.splice($event, 1)"
+          (deleteItemFromServer)="
+            IsDeleteCash.emit(
+              'SupplierBankInfos(' + SupplierCashInfoList[$event].id + ')'
+            )
+          ">
+          >
+        </app-card-info>
+      </ui5-tab>
+
+      <ui5-tab text="Bank Info" class="p-0 bg-none border-none overflow-x-hidden" id="bankInfo" i18n-text
+        [selected]="selectedTab === 'bankInfo'">
+        <app-card-info [items]="SupplierBankInfoList" [fields]="bankFields" icon="official-service"
+          defaultTitle="Bank Details" newButtonText="{{ localization.New }}" (openModal)="openBankModal()"
+          (editItem)="editBank($event)" (deleteItemLocal)="SupplierBankInfoList.splice($event, 1)"
+          (deleteItemFromServer)="
+            IsBankDelete.emit(
+              'SupplierBankInfos(' + SupplierBankInfoList[$event].id + ')'
+            )
+          ">
+        </app-card-info>
+      </ui5-tab>
+    </ui5-tabcontainer>
+
+    <app-cash-form [open]="cashModalOpen" [saveCashMode]="saveCashMode" [loading]="loading"
+      [SupplierBankInfo]="SupplierBankInfo" (submitCash)="submitCashAndBankInfo('CASH')"
+      (cancelCash)="cancelCash()"></app-cash-form>
+    <app-bank-form [open]="bankModalOpen" [saveBankMode]="saveBankMode" [loading]="loading"
+      [SupplierBankInfo]="SupplierBankInfo" (submitBank)="submitCashAndBankInfo('BANK')"
+      (cancelBank)="cancelBank()"></app-bank-form>
+  </ui5-busy-indicator>
+
+  <ui5-toolbar slot="footer">
+    <ui5-toolbar-button design="Emphasized" (click)="saveSupplier()" [disabled]="loading"
+      text="{{ localization.Submit }}"></ui5-toolbar-button>
+    <ui5-toolbar-button design="Transparent" [disabled]="loading" (click)="CloseDialog()"
+      text="{{ localization.Cancel }}"></ui5-toolbar-button>
+  </ui5-toolbar>
+</ui5-dialog>
+
+<app-delete-entity (isSuccess)="getCashAndBankInfo('CASH')" [IsDelete]="IsDeleteCash"></app-delete-entity>
+<app-delete-entity (isSuccess)="getCashAndBankInfo('BANK')" [IsDelete]="IsBankDelete"></app-delete-entity>

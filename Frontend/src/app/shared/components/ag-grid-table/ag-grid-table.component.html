@@ -1,0 +1,765 @@
+<div class="ag-grid-table-shell">
+  <!-- ─── Toolbar ─────────────────────────────────────────────────────────── -->
+  <div class="ag-grid-table-toolbar">
+    <!-- Title + custom title segment buttons + row count -->
+    <div class="ag-grid-table-toolbar__title">
+      <h2 class="ag-grid-table-toolbar__heading">
+        {{ ResolveToolbar.headerTitle }}
+        <span
+          *ngIf="ResolveToolbar.showRowCount"
+          class="ag-grid-table-toolbar__count"
+          >({{ totalRowCount }})</span
+        >
+      </h2>
+      <!-- Custom title segment buttons -->
+      <ng-container *ngFor="let btn of customTitleSegmentButtons">
+        <ui5-button
+          [design]="btn.design || 'Transparent'"
+          [icon]="btn.icon || ''"
+          (click)="toolbarAction.emit({ actionId: btn.id || btn.text, value: btn })
+          "
+          >{{ btn.text }}</ui5-button
+        >
+      </ng-container>
+    </div>
+
+    <!-- All controls on the right -->
+    <div class="ag-grid-table-toolbar__controls" [class.pointer-events-none]="isGridLoading">
+      <!-- ── Switch ─────────────────────────────────────────────────────── -->
+      <div *ngIf="showToolbarSwitch" class="ag-grid-table-toolbar__switch-wrap">
+        <span *ngIf="switchLabel" class="ag-grid-table-toolbar__switch-label">{{
+          switchLabel
+        }}</span>
+        <ui5-switch
+          [checked]="selectedSwitchValue"
+          (change)="handleSwitchChange()"
+        ></ui5-switch>
+      </div>
+
+      <!-- ── Value help ──────────────────────────────────────────────────── -->
+      <ui5-input
+        *ngIf="ResolveToolbar.showValueHelp"
+        class="ag-grid-table-toolbar__filter"
+        placeholder="Value Help"
+        (click)="valueHelperButtonClick.emit($event)"
+        readonly
+      >
+        <ui5-icon slot="icon" name="value-help"></ui5-icon>
+      </ui5-input>
+      <ng-container *ngFor="let vh of valueHelpers">
+        <ui5-input
+          class="ag-grid-table-toolbar__filter"
+          [placeholder]="vh.placeholder || 'Value Help'"
+          (click)="vh.onClick ? vh.onClick($event) : valueHelperButtonClick.emit(vh)
+          "
+          readonly
+        >
+          <ui5-icon slot="icon" name="value-help"></ui5-icon>
+        </ui5-input>
+      </ng-container>
+
+      <!-- ── Multi-selects (up to 4, legacy style) ──────────────────────── -->
+      <div
+        *ngIf="isMultiSelectOneActive"
+        class="ag-grid-table-toolbar__filter-group"
+      >
+        <span
+          *ngIf="multiSelectOneLabelText"
+          class="ag-grid-table-toolbar__filter-label"
+          >{{ multiSelectOneLabelText }}</span
+        >
+        <ui5-multi-combobox
+          class="ag-grid-table-toolbar__filter"
+          [placeholder]="multiSelectOnePlaceholder"
+          (ui5SelectionChange)="
+            multiSelectOneSelectionChanged.emit($any($event).detail)
+          "
+        >
+          <ui5-mcb-item
+            *ngFor="let opt of getMultiOptions(multiSelectOneData); trackBy: trackByLabel"
+            [text]="opt.label"
+            [selected]="opt.selected"
+          ></ui5-mcb-item>
+        </ui5-multi-combobox>
+      </div>
+
+      <div
+        *ngIf="isMultiSelectTwoActive"
+        class="ag-grid-table-toolbar__filter-group"
+      >
+        <span
+          *ngIf="multiSelectTwoLabelText"
+          class="ag-grid-table-toolbar__filter-label"
+          >{{ multiSelectTwoLabelText }}</span
+        >
+        <ui5-multi-combobox
+          class="ag-grid-table-toolbar__filter"
+          [placeholder]="multiSelectTwoPlaceholder"
+          (ui5SelectionChange)="
+            multiSelectTwoSelectionChanged.emit($any($event).detail)
+          "
+        >
+          <ui5-mcb-item
+            *ngFor="let opt of getMultiOptions(multiSelectTwoData); trackBy: trackByLabel"
+            [text]="opt.label"
+            [selected]="opt.selected"
+          ></ui5-mcb-item>
+        </ui5-multi-combobox>
+      </div>
+
+      <div
+        *ngIf="isMultiSelectThreeActive"
+        class="ag-grid-table-toolbar__filter-group"
+      >
+        <span
+          *ngIf="multiSelectThreeLabelText"
+          class="ag-grid-table-toolbar__filter-label"
+          >{{ multiSelectThreeLabelText }}</span
+        >
+        <ui5-multi-combobox
+          class="ag-grid-table-toolbar__filter"
+          [placeholder]="multiSelectThreePlaceholder"
+          (ui5SelectionChange)="
+            multiSelectThreeSelectionChanged.emit($any($event).detail)
+          "
+        >
+          <ui5-mcb-item
+            *ngFor="let opt of getMultiOptions(multiSelectThreeData); trackBy: trackByLabel"
+            [text]="opt.label"
+            [selected]="opt.selected"
+          ></ui5-mcb-item>
+        </ui5-multi-combobox>
+      </div>
+
+      <div
+        *ngIf="isMultiSelectFourActive"
+        class="ag-grid-table-toolbar__filter-group"
+      >
+        <span
+          *ngIf="multiSelectFourLabelText"
+          class="ag-grid-table-toolbar__filter-label"
+          >{{ multiSelectFourLabelText }}</span
+        >
+        <ui5-multi-combobox
+          class="ag-grid-table-toolbar__filter"
+          [placeholder]="multiSelectFourPlaceholder"
+          (ui5SelectionChange)="
+            multiSelectFourSelectionChanged.emit($any($event).detail)
+          "
+        >
+          <ui5-mcb-item
+            *ngFor="let opt of getMultiOptions(multiSelectFourData); trackBy: trackByLabel"
+            [text]="opt.label"
+            [selected]="opt.selected"
+          ></ui5-mcb-item>
+        </ui5-multi-combobox>
+      </div>
+
+      <!-- ── Combo boxes (up to 2, legacy style) ────────────────────────── -->
+      <div
+        *ngIf="isComboBoxOneActive"
+        class="ag-grid-table-toolbar__filter-group"
+      >
+        <span
+          *ngIf="comboBoxOneLabelText"
+          class="ag-grid-table-toolbar__filter-label"
+          >{{ comboBoxOneLabelText }}</span
+        >
+        <ui5-combobox
+          #cbo1
+          class="ag-grid-table-toolbar__filter"
+          filter="Contains"
+          [showClearIcon]="true"
+          [disabled]="comboBoxOneDisabled"
+          (ui5SelectionChange)="
+            comboBoxOneSelectionChanged.emit($any($event).detail)
+          "
+          (ui5Input)="!cbo1.value && comboBoxOneSelectionChanged.emit(null)"
+        >
+          <ui5-cb-item
+            *ngFor="let opt of getComboOptions(comboBoxOneData)"
+            [text]="opt.label"
+            [attr.value]="opt.value"
+          ></ui5-cb-item>
+        </ui5-combobox>
+      </div>
+
+      <div
+        *ngIf="isComboBoxTwoActive"
+        class="ag-grid-table-toolbar__filter-group"
+      >
+        <span
+          *ngIf="comboBoxTwoLabelText"
+          class="ag-grid-table-toolbar__filter-label"
+          >{{ comboBoxTwoLabelText }}</span
+        >
+        <ui5-combobox
+          #cbo2
+          class="ag-grid-table-toolbar__filter"
+          filter="Contains"
+          [showClearIcon]="true"
+          (ui5SelectionChange)="
+            comboBoxTwoSelectionChanged.emit($any($event).detail)
+          "
+          (ui5Input)="!cbo2.value && comboBoxTwoSelectionChanged.emit(null)"
+        >
+          <ui5-cb-item
+            *ngFor="let opt of getComboOptions(comboBoxTwoData)"
+            [text]="opt.label"
+            [attr.value]="opt.value"
+          ></ui5-cb-item>
+        </ui5-combobox>
+      </div>
+
+      <!-- ── Custom projected toolbar content (e.g. a range slider filter) ── -->
+      <ng-content select="[toolbarExtra]"></ng-content>
+
+      <!-- ── Date pickers (direct legacy inputs) ────────────────────────── -->
+      <ui5-date-picker
+        *ngIf="showDatePicker"
+        #dpDirect
+        class="ag-grid-table-toolbar__filter"
+        [placeholder]="datePickerPlaceholder || 'DD/MM/YYYY'"
+        [formatPattern]="datePickerFormat"
+        [value]="datePickerValue"
+        (ui5Change)="changeDatePicker.emit(dpDirect.value)"
+      ></ui5-date-picker>
+
+      <ui5-daterange-picker
+        *ngIf="showDateRangePicker"
+        #drpDirect
+        class="ag-grid-table-toolbar__filter"
+        [placeholder]="dateRangePickerPlaceholder || 'DD/MM/YYYY - DD/MM/YYYY'"
+        [value]="dateRangePickerValue"
+        delimiter=" - "
+        formatPattern="dd/MM/yyyy"
+        (ui5Change)="changeRangeDatePicker.emit(drpDirect.value)"
+      ></ui5-daterange-picker>
+
+      <!-- ── Advanced toolbar filter controls (new toolbarFilters API) ────── -->
+      <ng-container *ngFor="let f of toolbarFilters">
+        <ng-container [ngSwitch]="f.type">
+          <ui5-date-picker
+            *ngSwitchCase="'date'"
+            #dp
+            class="ag-grid-table-toolbar__filter"
+            [placeholder]="$any(f).placeholder || 'DD/MM/YYYY'"
+            [formatPattern]="$any(f).formatPattern || 'dd/MM/yyyy'"
+            (ui5Change)="onToolbarFilterChange(f.id, dp.value)"
+          ></ui5-date-picker>
+
+          <ui5-daterange-picker
+            *ngSwitchCase="'dateRange'"
+            #drp
+            class="ag-grid-table-toolbar__filter"
+            [placeholder]="$any(f).placeholder || 'DD/MM/YYYY - DD/MM/YYYY'"
+            [formatPattern]="$any(f).formatPattern || 'dd/MM/yyyy'"
+            delimiter=" - "
+            (ui5Change)="onToolbarFilterChange(f.id, drp.value)"
+          ></ui5-daterange-picker>
+
+          <ui5-combobox
+            *ngSwitchCase="'select'"
+            #cboF
+            class="ag-grid-table-toolbar__filter"
+            filter="Contains"
+            [showClearIcon]="true"
+            [placeholder]="$any(f).placeholder || 'Select...'"
+            [value]="getSelectFilterDisplayValue(f)"
+            (ui5SelectionChange)="
+              onToolbarFilterChange(
+                f.id,
+                resolveSelectFilterValue(f, $any($event).item?.text)
+              )
+            "
+            (ui5Input)="!cboF.value && onToolbarFilterChange(f.id, '')"
+          >
+            <ui5-cb-item
+              *ngFor="let opt of getFilterOptions(f)"
+              [text]="opt.label"
+            ></ui5-cb-item>
+          </ui5-combobox>
+
+          <ui5-multi-combobox
+            *ngSwitchCase="'multiSelect'"
+            class="ag-grid-table-toolbar__filter"
+            [placeholder]="$any(f).placeholder || 'Select...'"
+            (ui5SelectionChange)="onMultiSelectChange(f.id, $any($event))"
+          >
+            <ui5-mcb-item
+              *ngFor="let opt of getFilterOptions(f)"
+              [text]="opt.label"
+            ></ui5-mcb-item>
+          </ui5-multi-combobox>
+
+          <div
+            *ngSwitchCase="'switch'"
+            class="ag-grid-table-toolbar__switch-wrap"
+          >
+            <span
+              *ngIf="$any(f).label"
+              class="ag-grid-table-toolbar__switch-label"
+              >{{ $any(f).label }}</span
+            >
+            <ui5-switch
+              [checked]="$any(f).defaultChecked"
+              (ui5Change)="
+                onToolbarFilterChange(f.id, $any($event).target?.checked)
+              "
+            ></ui5-switch>
+          </div>
+        </ng-container>
+      </ng-container>
+
+      <!-- ── Custom toolbar segment groups (toolbarSegments) ───────────── -->
+      <ng-container *ngFor="let seg of toolbarSegments">
+        <ui5-segmented-button class="ag-grid-table-toolbar__seg" [disabled]="isGridLoading">
+          <ui5-segmented-button-item
+            *ngFor="let item of seg.items"
+            [pressed]="isSegmentSelected(seg.id, item.id)"
+            (click)="onSegmentClick(seg.id, item.id)"
+            >{{ item.text }}</ui5-segmented-button-item
+          >
+        </ui5-segmented-button>
+      </ng-container>
+
+      <!-- ── Legacy segmentButtonItems ─────────────────────────────────── -->
+      <ui5-segmented-button
+        *ngIf="segmentButtonItems.length"
+        class="ag-grid-table-toolbar__seg"
+        [disabled]="isGridLoading"
+      >
+        <ui5-segmented-button-item
+          *ngFor="let item of segmentButtonItems"
+          [pressed]="isLegacySegmentSelected(item)"
+          (click)="onLegacySegmentClick(item)"
+          >{{ item.name }}</ui5-segmented-button-item
+        >
+      </ui5-segmented-button>
+
+      <!-- ── Custom secondary buttons BEFORE default ─────────────────────── -->
+      <ng-container *ngIf="isBeforeDefaultButon">
+        <ng-container *ngFor="let btn of multipleButtons">
+          <ui5-button
+            [design]="btn.design || 'Transparent'"
+            [icon]="btn.icon || ''"
+            [disabled]="isGridLoading"
+            (click)="
+              multipleButtonEmitter.emit(btn);
+              toolbarAction.emit({
+                actionId: btn.id || btn.text || '',
+                value: btn,
+              })
+            "
+            >{{ btn.text }}</ui5-button
+          >
+        </ng-container>
+      </ng-container>
+
+      <!-- ── Search ─────────────────────────────────────────────────────── -->
+      <ui5-input
+        *ngIf="
+          ResolveToolbar.showSearch && ResolveToolbar.isGlobalSearchVisible
+        "
+        class="ag-grid-table-toolbar__search"
+        [value]="searchText"
+        [placeholder]="ResolveToolbar.searchPlaceholder"
+        show-clear-icon
+        (input)="onSearchInput($event)"
+        (keydown)="onSearchKeyDown($event)"
+      >
+        <ui5-icon
+          slot="icon"
+          name="search"
+          (click)="onSearchIconClick($event)"
+        ></ui5-icon>
+      </ui5-input>
+
+      <!-- ── Scanner ────────────────────────────────────────────────────── -->
+      <ui5-button
+        *ngIf="ResolveToolbar.showScanner"
+        design="Transparent"
+        icon="camera"
+        tooltip="Scan barcode"
+        [disabled]="isGridLoading"
+        (click)="toolbarAction.emit({ actionId: 'scanner' })"
+      ></ui5-button>
+
+      <!-- ── Built-in Active/Inactive/All + optional 4th segment ─────────── -->
+      <ui5-segmented-button
+        *ngIf="ResolveToolbar.showSegmentButton"
+        class="ag-grid-table-toolbar__seg"
+        [disabled]="isGridLoading"
+      >
+        <ui5-segmented-button-item
+          [pressed]="activeSegment === 'all'"
+          (click)="setActiveSegment('all')"
+          >{{ ResolveToolbar.button1Text }}</ui5-segmented-button-item
+        >
+        <ui5-segmented-button-item
+          [pressed]="activeSegment === 'active'"
+          (click)="setActiveSegment('active')"
+          >{{ ResolveToolbar.button2Text }}</ui5-segmented-button-item
+        >
+        <ui5-segmented-button-item
+          [pressed]="activeSegment === 'inactive'"
+          (click)="setActiveSegment('inactive')"
+          >{{ ResolveToolbar.button3Text }}</ui5-segmented-button-item
+        >
+        <ui5-segmented-button-item
+          *ngIf="ResolveToolbar.button4Text"
+          [pressed]="activeSegment === 'expired'"
+          (click)="setActiveSegment('expired')"
+          >{{ ResolveToolbar.button4Text }}</ui5-segmented-button-item
+        >
+      </ui5-segmented-button>
+
+      <!-- ── Custom secondary toolbar buttons ───────────────────────────── -->
+      <ng-container *ngFor="let btn of customSecondaryToolbarButtons">
+        <ui5-button
+          [design]="btn.design || 'Transparent'"
+          [icon]="btn.icon || ''"
+          [disabled]="isGridLoading"
+          (click)="
+            toolbarAction.emit({
+              actionId: btn.id || btn.text || '',
+              value: btn,
+            })
+          "
+          >{{ btn.text }}</ui5-button
+        >
+      </ng-container>
+
+      <!-- ── Standard action buttons ────────────────────────────────────── -->
+      <ui5-button
+        *ngIf="ResolveToolbar.showNewButton"
+        design="Emphasized"
+        [disabled]="ResolveToolbar.addButtonDisable || isGridLoading"
+        (click)="newButtonClick.emit()"
+        >{{ ResolveToolbar.addButtonText }}</ui5-button
+      >
+
+      <ui5-button
+        *ngIf="ResolveToolbar.showRefreshButton"
+        design="Transparent"
+        icon="refresh"
+        [disabled]="isGridLoading"
+        (click)="refreshButtonClick.emit(); refreshGridData(false)"
+        >{{ ResolveToolbar.refButtonText }}</ui5-button
+      >
+
+      <ui5-button
+        *ngIf="ResolveToolbar.showExtraButton"
+        [design]="ResolveToolbar.extraButtonDesign"
+        [disabled]="ResolveToolbar.extraButtonDisable || isGridLoading"
+        (click)="extraButtonClick.emit()"
+        >{{ ResolveToolbar.extraButtonText }}</ui5-button
+      >
+
+      <ui5-button
+        *ngIf="ResolveToolbar.showResetButton"
+        design="Emphasized"
+        [disabled]="isGridLoading"
+        (click)="resetButtonClick.emit()"
+        >{{ ResolveToolbar.resetButtonText }}</ui5-button
+      >
+
+      <ui5-button
+        *ngIf="ResolveToolbar.showSyncButton"
+        design="Transparent"
+        [disabled]="ResolveToolbar.syncButtonDisable || isGridLoading"
+        (click)="syncButtonClick.emit()"
+        >{{ ResolveToolbar.syncButtonText }}</ui5-button
+      >
+
+      <ui5-button
+        *ngIf="ResolveToolbar.showDownload"
+        design="Transparent"
+        icon="download"
+        [disabled]="ResolveToolbar.disableDownloadButton || isGridLoading"
+        (click)="downloadButtonClick.emit()"
+      ></ui5-button>
+
+      <ui5-button
+        *ngIf="ResolveToolbar.showUpload"
+        design="Transparent"
+        icon="upload"
+        [disabled]="ResolveToolbar.disableUploadButton || isGridLoading"
+        (click)="uploadButtonClick.emit()"
+      ></ui5-button>
+
+      <ui5-button
+        *ngIf="ResolveToolbar.showDeleteButtonInHeader"
+        design="Negative"
+        icon="delete"
+        [disabled]="isGridLoading"
+        (click)="deleteButtonClick.emit()"
+        >{{ ResolveToolbar.deleteButtonText }}</ui5-button
+      >
+
+      <ui5-button
+        *ngIf="ResolveToolbar.showTripButtons"
+        design="Transparent"
+        icon="clear-all"
+        [disabled]="isGridLoading"
+        (click)="clearButtonClick.emit()"
+        >{{ ResolveToolbar.clearTrip }}</ui5-button
+      >
+
+      <!-- Production buttons -->
+      <ui5-button
+        *ngIf="ResolveToolbar.productionDefaultButtonText"
+        design="Transparent"
+        [disabled]="isGridLoading"
+        (click)="productionDefaultButton.emit()"
+        >{{ ResolveToolbar.productionDefaultButtonText }}</ui5-button
+      >
+
+      <!-- ── Multiple buttons AFTER default ─────────────────────────────── -->
+      <ng-container *ngIf="!isBeforeDefaultButon">
+        <ng-container *ngFor="let btn of multipleButtons">
+          <ui5-button
+            [design]="btn.design || 'Transparent'"
+            [icon]="btn.icon || ''"
+            [disabled]="isGridLoading"
+            (click)="
+              multipleButtonEmitter.emit(btn);
+              toolbarAction.emit({
+                actionId: btn.id || btn.text || '',
+                value: btn,
+              })
+            "
+            >{{ btn.text }}</ui5-button
+          >
+        </ng-container>
+      </ng-container>
+
+      <!-- ── Column settings ────────────────────────────────────────────── -->
+      <ui5-button
+        *ngIf="ResolveToolbar.showTableSettingBtn"
+        design="Transparent"
+        icon="action-settings"
+        tooltip="Column Settings"
+        (click)="openColumnSettings()"
+      ></ui5-button>
+    </div>
+  </div>
+
+  <!-- ─── AG Grid ──────────────────────────────────────────────────────────── -->
+  <div
+    class="ag-grid-table-grid"
+    [style.height]="ResolveDisplay.gridHeight"
+    style="position: relative"
+  >
+    <ag-grid-angular
+      [theme]="agGridTheme"
+      style="width: 100%; height: 100%"
+      [modules]="modules"
+      [columnDefs]="columnDefs"
+      [defaultColDef]="defaultColDef"
+      [dataTypeDefinitions]="dataTypeDefinitions"
+      [maintainColumnOrder]="true"
+      [includeHiddenColumnsInQuickFilter]="true"
+      [context]="gridContext"
+      [headerHeight]="40"
+      [rowHeight]="resolvedRowHeight"
+      [getRowHeight]="getRowHeight"
+      [getRowStyle]="getRowStyle"
+      [rowModelType]="resolvedRowModelType"
+      [rowData]="resolvedRowData"
+      [cacheBlockSize]="ResolveDataSource.pageSize"
+      [rowBuffer]="20"
+      [maxBlocksInCache]="20"
+      [pagination]="ResolveDataSource.pagination"
+      [paginationPageSize]="resolvedPaginationPageSize"
+      [paginationAutoPageSize]="false"
+      [suppressPaginationPanel]="false"
+      [getRowId]="rowIdGetter"
+      [rowSelection]="resolvedSelectionMode"
+      [suppressServerSideFullWidthLoadingRow]="true"
+      [class.ag-no-alternate-rows]="!ResolveDisplay.alternateRowColors"
+      [suppressRowClickSelection]="isTreeTable || selectionRowBehavior === 'RowSelector'"
+      [suppressRowDeselection]="isTreeTable"
+      [rowMultiSelectWithClick]="selectionRowBehavior === 'Row'"
+      [noRowsOverlayComponent]="noRowsOverlayComponent"
+      [noRowsOverlayComponentParams]="noRowsOverlayParams"
+      [loadingOverlayComponent]="loadingOverlayComponent"
+      [loadingOverlayComponentParams]="{ rowHeight: resolvedRowHeight }"
+      [animateRows]="false"
+      [suppressScrollOnNewData]="true"
+      [suppressCellFocus]="true"
+      [suppressColumnVirtualisation]="false"
+      [suppressRowVirtualisation]="false"
+      [ensureDomOrder]="false"
+      (gridReady)="onGridReady($event)"
+      (modelUpdated)="onModelUpdated()"
+      (gridSizeChanged)="onGridSizeChanged()"
+      (firstDataRendered)="onFirstDataRendered()"
+      (cellValueChanged)="onCellValueChanged($event)"
+      (rowClicked)="handleRowClicked($event)"
+      (selectionChanged)="handleSelectionChanged($event)"
+      (sortChanged)="handleSortChanged($event)"
+      (filterChanged)="handleFilterChanged($event)"
+      (columnMoved)="handleColumnMoved($event)"
+      (columnResized)="handleColumnStateChanged($event)"
+      (columnVisible)="handleColumnVisibleChanged($event)"
+      (bodyScroll)="onGridBodyScroll($event)"
+      [isExternalFilterPresent]="treeIsExternalFilterPresent"
+      [doesExternalFilterPass]="treeDoesExternalFilterPass"
+    ></ag-grid-angular>
+
+    <!-- ─── Centered loader — shows during infinite-scroll API fetch ─────────── -->
+    <div class="ag-grid-scroll-loader">
+      <ui5-busy-indicator
+        size="M"
+        [active]="isGridLoading || isFetchingMore"
+        [delay]="0"
+      ></ui5-busy-indicator>
+    </div>
+  </div>
+</div>
+
+<!-- ─── Column Settings Dialog ────────────────────────────────────────────── -->
+<ui5-dialog
+  [open]="isColumnSettingsOpen"
+  class="w-[550px]"
+  (before-close)="closeColumnSettings()"
+>
+  <ui5-bar slot="header" design="Header">
+    <ui5-title level="H5" slot="startContent" i18n>Settings</ui5-title>
+    <div class="flex items-center gap-1" slot="endContent">
+      <ui5-button design="Transparent" icon="multiselect-all" (click)="selectAllColumns()" i18n>Select All</ui5-button>
+      <ui5-button design="Transparent" icon="reset" (click)="openResetConfirm()" i18n>Reset to Default</ui5-button>
+    </div>
+  </ui5-bar>
+
+  <div
+    *ngIf="isColumnSettingsOpen"
+    class="flex h-[70vh] flex-col"
+    [ngClass]="isDarkTheme ? 'bg-[#1e2329] text-neutral-200' : 'bg-white text-neutral-900'"
+  >
+    <!-- Sticky search + count -->
+    <div
+      class="shrink-0 border-b px-3 pb-2 pt-3"
+      [ngClass]="isDarkTheme ? 'border-neutral-700' : 'border-gray-200'"
+    >
+      <ui5-input
+        class="w-full"
+        [value]="columnSettingsSearch"
+        show-clear-icon
+        placeholder="Search columns"
+        i18n-placeholder
+        (input)="onColumnSettingsSearch($event)"
+      >
+        <ui5-icon slot="icon" name="search"></ui5-icon>
+      </ui5-input>
+      <div
+        class="mt-2 flex items-center justify-between text-xs"
+        [ngClass]="isDarkTheme ? 'text-neutral-400' : 'text-gray-500'"
+      >
+        <span><span i18n>Visible</span>: {{ visibleColumnCount }} / {{ columnSettingsDraft.length }}</span>
+        <span *ngIf="columnSettingsSearch" class="italic" i18n>Clear search to reorder</span>
+        <span *ngIf="!columnSettingsSearch" class="flex items-center gap-1">
+          <ui5-icon name="menu2" class="text-[0.7rem]"></ui5-icon>
+          <span i18n>Drag to reorder</span>
+        </span>
+      </div>
+    </div>
+
+    <!-- Scrollable column list -->
+    <div class="flex-1 overflow-y-auto px-2 py-1">
+      <div cdkDropList (cdkDropListDropped)="onColumnDrop($event)" class="flex flex-col">
+        <div
+          *ngFor="let setting of displayedColumnSettings; trackBy: trackBySettingColId"
+          cdkDrag
+          [cdkDragDisabled]="!!columnSettingsSearch"
+          class="group flex items-center gap-3 rounded-md px-2 py-2 transition-colors"
+          [ngClass]="isDarkTheme ? 'hover:bg-neutral-700/50' : 'hover:bg-gray-50'"
+        >
+          <ui5-icon
+            cdkDragHandle
+            name="menu2"
+            title="Drag to reorder"
+            i18n-title
+            class="shrink-0 transition-opacity"
+            [ngClass]="isDarkTheme ? 'text-neutral-500' : 'text-gray-400'"
+            [class.cursor-grab]="!columnSettingsSearch"
+            [class.opacity-40]="!columnSettingsSearch"
+            [class.group-hover:opacity-100]="!columnSettingsSearch"
+            [class.invisible]="!!columnSettingsSearch"
+          ></ui5-icon>
+          <ui5-checkbox
+            class="min-w-0 flex-1"
+            [text]="setting.headerName"
+            [checked]="setting.visible"
+            [disabled]="!!setting.lockVisible"
+            (change)="onColumnVisibilityToggle(setting, $event)"
+          ></ui5-checkbox>
+          <ui5-icon
+            *ngIf="setting.lockVisible"
+            name="locked"
+            title="Always visible"
+            i18n-title
+            class="shrink-0 text-xs"
+            [ngClass]="isDarkTheme ? 'text-neutral-500' : 'text-gray-400'"
+          ></ui5-icon>
+          <div
+            *cdkDragPlaceholder
+            class="h-10 rounded-md border-2 border-dashed"
+            [ngClass]="isDarkTheme ? 'border-blue-600 bg-blue-900/30' : 'border-blue-300 bg-blue-50'"
+          ></div>
+        </div>
+      </div>
+
+      <!-- Empty search state -->
+      <div
+        *ngIf="!displayedColumnSettings.length"
+        class="flex flex-col items-center justify-center gap-2 py-12"
+        [ngClass]="isDarkTheme ? 'text-neutral-500' : 'text-gray-400'"
+      >
+        <ui5-icon name="search" class="text-2xl"></ui5-icon>
+        <span i18n>No columns match your search</span>
+      </div>
+    </div>
+  </div>
+
+  <ui5-toolbar slot="footer">
+    <ui5-toolbar-button
+      design="Emphasized"
+      i18n-text
+      text="Submit"
+      (click)="applyColumnSettings()"
+    ></ui5-toolbar-button>
+    <ui5-toolbar-button
+      design="Transparent"
+      i18n-text
+      text="Cancel"
+      (click)="closeColumnSettings()"
+    ></ui5-toolbar-button>
+  </ui5-toolbar>
+</ui5-dialog>
+
+<!-- ─── Reset Confirmation Dialog ─────────────────────────────────────────── -->
+<ui5-dialog
+  [open]="isResetConfirmOpen"
+  header-text="Warning"
+  state="Critical"
+  class="w-[390px]"
+  i18n-header-text
+>
+  <p class="m-[-2px] text-center" i18n>Do you want to remove the Table Settings?</p>
+  <ui5-toolbar slot="footer">
+    <ui5-toolbar-button
+      design="Emphasized"
+      i18n-text
+      text="Submit"
+      (click)="confirmReset()"
+    ></ui5-toolbar-button>
+    <ui5-toolbar-button
+      design="Transparent"
+      i18n-text
+      text="Cancel"
+      (click)="closeResetConfirm()"
+    ></ui5-toolbar-button>
+  </ui5-toolbar>
+</ui5-dialog>

@@ -1,0 +1,27 @@
+@import "styles.sass";
+
+ui5-dialog {
+    width: $w-50;
+}
+
+.array-table {
+    height: $array-table-height;
+}
+
+@media (max-width: 1800px) {
+    .array-table {
+        height: $array-table-height-l;
+    }
+}
+
+@media (max-width: 1600px) {
+    .array-table {
+        height: $array-table-height-m;
+    }
+}
+
+@media (max-width: 1400px) {
+    .array-table {
+        height: $array-table-height-sm;
+    }
+}

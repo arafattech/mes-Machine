@@ -1,0 +1,30 @@
+@import "styles.sass";
+
+ui5-icon {
+  width: $icon-sm;
+  height: $icon-sm;
+  color: $blue-icon;
+}
+
+.dashboard {
+  width: $w-100;
+
+}
+.card-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+}
+ui5-card:hover {
+  border-radius: 15px;
+  border: 1px solid rgba(0, 0, 0, 0.308);
+  transition: box-shadow 0.1s ease-in-out;
+  transform: translateY(-2px);
+  cursor: pointer;
+  box-shadow: rgba(0, 0, 0, 0.205) 0px 10px 20px, rgba(0, 0, 0, 0.178) 0px 5px 5px;
+}
+.total-count {
+  font-size: $font-size-m;
+  color: $blue-icon;
+}

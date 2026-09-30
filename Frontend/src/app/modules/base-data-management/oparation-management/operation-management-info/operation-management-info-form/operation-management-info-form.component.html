@@ -1,0 +1,95 @@
+<ui5-dialog
+  class="ui5-xl-without-tab"
+  [open]="open"
+  [attr.header-text]="saveMode === 'POST' ? localization.New : localization.Edit"
+  (before-close)="CloseDialog()"
+>
+  <ui5-busy-indicator
+    class="w-full"
+    size="M"
+    class="w-100"
+    [delay]="0"
+    [active]="loading"
+  >
+    <section class="w-full">
+       <div class="col-md-12">
+            <ui5-label show-colon class="w-100">{{
+                localization.Active
+              }}</ui5-label>
+              <ui5-switch checked [(ngModel)]="operationPosition.is_active"></ui5-switch>
+            </div>
+      <div class="mt-2">
+        <ui5-label show-colon required i18n>Operation Position Name</ui5-label>
+        <ui5-input
+          class="w-100"
+          [(ngModel)]="operationPosition.name"
+          placeholder="Enter operation position name"
+          i18n-placeholder
+          (input)="checkValidation($event, 'name')"
+          [attr.value-state]="valueStateOptions.operation_name"
+          type="Text"
+        >
+          <div slot="valueStateMessage">
+            {{ validationMessage }}
+          </div>
+        </ui5-input>
+      </div>
+      <div class="mt-2">
+        <ui5-label show-colon required i18n>Select Product</ui5-label>
+        <ui5-combobox
+            (selection-change)="SelctedProduct($event)"
+            (input)="checkValidation($event, 'product')"
+            placeholder="Select Product"
+            i18n-placeholder
+            class="w-100"
+            [value]="productTitle ? productTitle : ''"
+            [attr.value-state]="valueStateOptions.product_selection"
+          >
+            <ui5-cb-item
+              *ngFor="let product of products"
+              [text]="product.product_name"
+              [id]="product.id"
+            ></ui5-cb-item>
+            <div slot="valueStateMessage">
+            {{ validationMessage }}
+            </div>
+          </ui5-combobox>
+      </div>
+      <div class="mt-2">
+        <ui5-label show-colon required i18n>Select Machine</ui5-label>
+        <ui5-combobox
+          (selection-change)="SelctedMachine($event)"
+          (input)="checkValidation($event, 'Machine')"
+          placeholder="Select Machine"
+          i18n-placeholder
+          class="w-100"
+          [value]="machineTitle ? machineTitle : ''"
+          [attr.value-state]="valueStateOptions.machine_selection"
+        >
+          <ui5-cb-item
+            *ngFor="let machine of machines"
+            [text]="machine.machine_name"
+            [id]="machine.id"
+          ></ui5-cb-item>
+          <div slot="valueStateMessage">
+            {{ validationMessage }}
+          </div>
+        </ui5-combobox>
+      </div>
+    </section>
+  </ui5-busy-indicator>
+  <ui5-toolbar slot="footer">
+    <ui5-toolbar-button
+      design="Emphasized"
+      (click)="saveOperationInfo()"
+      [disabled]="loading"
+      text="{{ localization.Submit }}"
+    ></ui5-toolbar-button>
+    <ui5-toolbar-button
+      design="Transparent"
+      (click)="CloseDialog()"
+      [disabled]="loading"
+      text="{{ localization.Cancel }}"
+    ></ui5-toolbar-button>
+  </ui5-toolbar>
+</ui5-dialog>

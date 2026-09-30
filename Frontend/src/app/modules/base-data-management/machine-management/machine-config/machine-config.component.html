@@ -1,0 +1,411 @@
+<app-ag-grid-table
+  #agGridRef
+  [columns]="columns"
+  [dataSource]="dataSource"
+  [toolbarConfig]="toolbarConfig"
+  selectionMode="Single"
+  [isBase]="true"
+  [gridId]="gridId"
+  [showAction]="false"
+  [showEditButton]="
+    rolePermissionService.hasPermission(
+      permissions.BASE_DATA_MACHINE_CONFIG_EDIT
+    )
+  "
+  [showDeleteButton]="
+    rolePermissionService.hasPermission(
+      permissions.BASE_DATA_MACHINE_CONFIG_DELETE
+    )
+  "
+  (newButtonClick)="newConfig()"
+  (editClick)="editConfig($event)"
+  (deleteClick)="deleteClick($event.id)"
+  (rowClick)="editConfig($event)"
+  [showIllustratedMessage]="true"
+  IllustratedName="NoData"
+  IllustratedTitle="No Machine Configurations Found"
+  IllustratedSubtitle="Try adjusting your search or active status."
+></app-ag-grid-table>
+
+<ui5-dialog
+  class="w-[96vw] max-w-7xl"
+  [open]="open"
+  [attr.header-text]="
+    this.saveMode === 'POST'
+      ? 'New Machine Configuration'
+      : 'Edit Machine Configuration'
+  "
+  (before-close)="CloseDialog()"
+>
+  <ui5-busy-indicator [delay]="0" [active]="loading" size="M">
+    <section
+      class="space-y-6 p-6 w-full max-w-full overflow-x-hidden bg-slate-50/30"
+    >
+      <div *ngIf="saveMode === 'POST' && hasExistingMachineConfig" class="px-1">
+        <ui5-message-strip design="Critical" class="w-full">
+          {{ duplicateConfigMessage }}
+        </ui5-message-strip>
+      </div>
+
+      <div class="px-1 flex items-center gap-3">
+        <ui5-label
+          show-colon
+          class="text-xs font-semibold uppercase tracking-wider text-slate-600"
+          >Invert</ui5-label
+        >
+        <ui5-switch
+          [checked]="machineConfig.inverse_auto"
+          (change)="onSwitchChange('inverse_auto', $event)"
+        ></ui5-switch>
+      </div>
+
+      <ui5-card>
+        <ui5-card-header slot="header" title-text="GENERAL INFORMATION">
+        </ui5-card-header>
+
+        <div class="p-6 space-y-6">
+          <!-- Primary details row -->
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="flex flex-col gap-1.5">
+              <ui5-label show-colon required class="text-xs text-slate-600"
+                >Machine Name</ui5-label
+              >
+              <ui5-combobox
+                #machineName
+                class="w-full"
+                placeholder="Select Machine"
+                i18n-placeholder
+                [readonly]="saveMode === 'PUT'"
+                (selectionChange)="onMachineSelection($event)"
+                [value]="
+                  machineConfig.machine_id ? machineConfig.machine_name : ''
+                "
+                (change)="checkValidation($event, 'machine_name')"
+                [attr.value-state]="valueStateOptions.machine_name"
+              >
+                <ui5-cb-item
+                  *ngFor="let item of Machines"
+                  [text]="item.machine_name"
+                  [id]="item.id"
+                  [value]="item.id"
+                ></ui5-cb-item>
+                <div slot="valueStateMessage">
+                  {{ localization.requiredField }}
+                </div>
+              </ui5-combobox>
+            </div>
+
+            <div class="flex flex-col gap-1.5">
+              <ui5-label show-colon class="text-xs text-slate-600"
+                >ID Machine</ui5-label
+              >
+              <ui5-input
+                class="w-full"
+                [value]="
+                  machineConfig.machine_id
+                    ? machineConfig.machine_id.toString()
+                    : ''
+                "
+                disabled
+              ></ui5-input>
+            </div>
+
+            <div class="flex flex-col gap-1.5">
+              <ui5-label show-colon required class="text-xs text-slate-600"
+                >IP PLC</ui5-label
+              >
+              <ui5-input
+                class="w-full"
+                [(ngModel)]="machineConfig.ip_plc"
+                (input)="checkValidation($event, 'ip_plc')"
+                [attr.value-state]="valueStateOptions.ip_plc"
+                placeholder="Enter PLC IP (e.g., 192.168.1.10)"
+              >
+                <div slot="valueStateMessage">
+                  {{ localization.requiredField }}
+                </div>
+              </ui5-input>
+            </div>
+          </div>
+
+          <!-- Protocol details row -->
+          <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <div class="flex flex-col gap-1.5">
+              <ui5-label show-colon class="text-xs text-slate-600"
+                >Protocol</ui5-label
+              >
+              <ui5-select
+                class="w-full"
+                (change)="onSelectChange('protocol', $event)"
+              >
+                <ui5-option
+                  *ngFor="let item of protocolOptions"
+                  [attr.value]="item"
+                  [selected]="machineConfig.protocol === item"
+                  >{{ item }}</ui5-option
+                >
+              </ui5-select>
+            </div> 
+
+          <!-- <div class="flex flex-col gap-1.5">
+              <ui5-label show-colon class="text-xs text-slate-600"
+                >Type</ui5-label
+              >
+              <ui5-select
+                class="w-full"
+                (change)="onSelectChange('type', $event)"
+              >
+                <ui5-option
+                  *ngFor="let item of typeOptions"
+                  [attr.value]="item"
+                  [selected]="machineConfig.type === item"
+                  >{{ item }}</ui5-option
+                >
+              </ui5-select>
+            </div> -->
+
+            <div class="flex flex-col gap-1.5">
+              <ui5-label show-colon class="text-xs text-slate-600"
+                >Read From</ui5-label
+              >
+              <ui5-select
+                class="w-full"
+                (change)="onSelectChange('read_from', $event)"
+              >
+                <ui5-option
+                  *ngFor="let item of readFromOptions"
+                  [attr.value]="item"
+                  [selected]="machineConfig.read_from === item"
+                  >{{ item }}</ui5-option
+                >
+              </ui5-select>
+            </div> 
+
+            <div class="flex flex-col gap-1.5" *ngIf="machineConfig.read_from === 'MQTT'">
+              <ui5-label show-colon class="text-xs text-slate-600"
+                >Topic</ui5-label
+              >
+              <ui5-input
+                class="w-full"
+                type="Text"
+                [(ngModel)]="machineConfig.id_iot"
+              ></ui5-input>
+            </div>
+
+            <div class="flex flex-col gap-1.5">
+              <ui5-label show-colon class="text-xs text-slate-600"
+                >Shot Buffer</ui5-label
+              >
+              <ui5-input
+                class="w-full"
+                type="Number"
+                [(ngModel)]="machineConfig.shot_buffer"
+              ></ui5-input>
+            </div>
+          </div>
+
+          <!-- Timers and Type Selection row -->
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="flex flex-col gap-1.5">
+              <ui5-label show-colon class="text-xs text-slate-600"
+                >Timeout (sec)</ui5-label
+              >
+              <ui5-input
+                class="w-full"
+                type="Number"
+                [(ngModel)]="machineConfig.timeout_sec"
+              ></ui5-input>
+            </div>
+
+            <div class="flex flex-col gap-1.5">
+              <ui5-label show-colon class="text-xs text-slate-600"
+                >Server Call (sec)</ui5-label
+              >
+              <ui5-input
+                class="w-full"
+                type="Number"
+                [(ngModel)]="machineConfig.server_call_sec"
+              ></ui5-input>
+            </div>
+
+            <div class="flex flex-col gap-1.5">
+              <ui5-label show-colon class="text-xs text-slate-600"
+                >Ideal Cycle (sec)</ui5-label
+              >
+              <ui5-input
+                class="w-full"
+                type="Number"
+                [(ngModel)]="machineConfig.ideal_cycle_seconds"
+              ></ui5-input>
+            </div>
+
+            <!-- <div class="flex flex-col gap-1.5">
+              <ui5-label show-colon class="text-xs text-slate-600"
+                >Type Selection</ui5-label
+              >
+              <ui5-select
+                class="w-full"
+                (change)="onSelectChange('selection_type', $event)"
+              >
+                <ui5-option value="">Select Type</ui5-option>
+                <ui5-option
+                  *ngFor="let item of typeOptions"
+                  [attr.value]="item"
+                  [selected]="machineConfig.selection_type === item"
+                  >{{ item }}</ui5-option
+                >
+              </ui5-select>
+            </div> -->
+          </div>
+        </div>
+      </ui5-card>
+
+      <ui5-card>
+        <ui5-card-header slot="header" title-text="CHANNEL STATUS MAPPING">
+        </ui5-card-header>
+
+        <div class="p-3">
+          <div
+            *ngIf="machineConfig.machine_id && !machineStates.length"
+            class="mb-4"
+          >
+            <ui5-message-strip design="Critical" class="w-full" i18n>
+              This machine has no tagged states yet. Assign states to it from
+              the Machine State screen before wiring channels.
+            </ui5-message-strip>
+          </div>
+
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- Left Side -->
+            <div class="flex flex-col gap-2">
+              <ui5-label show-colon i18n> Select Channels </ui5-label>
+
+              <ui5-multi-combobox
+                *ngIf="open"
+                class="w-full"
+                placeholder="Select channels"
+                i18n-placeholder
+                [disabled]="!machineStates.length"
+                (selection-change)="onChannelSelectionChange($event)"
+              >
+                <ui5-mcb-item
+                  *ngFor="let channelId of channelOptions"
+                  [text]="'CH-' + channelId"
+                  [id]="channelId"
+                  [selected]="isChannelSelected(channelId)"
+                >
+                </ui5-mcb-item>
+              </ui5-multi-combobox>
+            </div>
+
+            <!-- Right Side -->
+            <div
+              *ngIf="machineConfig.channels.length"
+              class="grid grid-cols-1 sm:grid-cols-2 gap-4"
+            >
+              <div
+                class="flex flex-col gap-1.5"
+                *ngFor="let entry of machineConfig.channels"
+              >
+                <ui5-label show-colon class="text-xs text-slate-600">
+                  {{ "CH-" + entry.channel_id }}
+                </ui5-label>
+
+                <ui5-select
+                  class="w-full"
+                  (change)="onChannelStatusChange(entry.channel_id, $event)"
+                >
+                  <ui5-option
+                    *ngFor="let state of machineStates"
+                    [attr.value]="state.id"
+                    [selected]="entry.machine_state_id === state.id"
+                  >
+                    {{ state.name }}
+                  </ui5-option>
+                </ui5-select>
+              </div>
+            </div>
+          </div>
+        </div>
+      </ui5-card>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Live Server configuration parameters -->
+        <ui5-card>
+          <ui5-card-header slot="header" title-text=" LIVE SERVER">
+          </ui5-card-header>
+          <div class="p-6 space-y-4">
+            <div class="flex flex-col gap-1.5">
+              <ui5-label show-colon class="text-xs text-slate-600"
+                >Status API</ui5-label
+              >
+              <ui5-input
+                class="w-full"
+                [(ngModel)]="machineConfig.live_status_api"
+                placeholder="Enter live status API endpoint"
+              ></ui5-input>
+            </div>
+            <div class="flex flex-col gap-1.5">
+              <ui5-label show-colon class="text-xs text-slate-600"
+                >Shot API</ui5-label
+              >
+              <ui5-input
+                class="w-full"
+                [(ngModel)]="machineConfig.live_shot_api"
+                placeholder="Enter live shot API endpoint"
+              ></ui5-input>
+            </div>
+          </div>
+        </ui5-card>
+
+        <!-- Test Server configuration parameters -->
+        <ui5-card>
+          <ui5-card-header slot="header" title-text=" TEST SERVER">
+          </ui5-card-header>
+          <div class="p-6 space-y-4">
+            <div class="flex flex-col gap-1.5">
+              <ui5-label show-colon class="text-xs text-slate-600"
+                >Status API</ui5-label
+              >
+              <ui5-input
+                class="w-full"
+                [(ngModel)]="machineConfig.test_status_api"
+                placeholder="Enter test status API endpoint"
+              ></ui5-input>
+            </div>
+            <div class="flex flex-col gap-1.5">
+              <ui5-label show-colon class="text-xs text-slate-600"
+                >Shot API</ui5-label
+              >
+              <ui5-input
+                class="w-full"
+                [(ngModel)]="machineConfig.test_shot_api"
+                placeholder="Enter test shot API endpoint"
+              ></ui5-input>
+            </div>
+          </div>
+        </ui5-card>
+      </div>
+    </section>
+  </ui5-busy-indicator>
+
+  <ui5-toolbar slot="footer">
+    <ui5-toolbar-button
+      design="Transparent"
+      text="Cancel"
+      [disabled]="loading"
+      (click)="CloseDialog()"
+    ></ui5-toolbar-button>
+    <ui5-toolbar-button
+      design="Emphasized"
+      text="Save Configuration"
+      [disabled]="loading || (saveMode === 'POST' && hasExistingMachineConfig)"
+      (click)="SaveConfig()"
+    ></ui5-toolbar-button>
+  </ui5-toolbar>
+</ui5-dialog>
+
+<app-delete-entity
+  (isSuccess)="processData($event)"
+  [IsDelete]="IsDelete"
+></app-delete-entity>

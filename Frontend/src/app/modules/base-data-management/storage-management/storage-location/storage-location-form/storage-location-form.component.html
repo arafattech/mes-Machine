@@ -1,0 +1,56 @@
+<ui5-dialog
+  class="ui5-xl-without-tab"
+  [open]="open"
+  [attr.header-text]="
+    this.saveMode === 'POST' ? localization.New : localization.Edit
+  "(before-close)="CloseDialog()"
+>
+  <ui5-busy-indicator class="w-full" [delay]="0" [active]="loading" size="M">
+    <section class="w-full">
+      <div>
+        <div class="flex items-start flex-col">
+          <ui5-label showColon>{{ localization.Active }}</ui5-label>
+          <ui5-switch
+            checked
+            [(ngModel)]="storageLocation.is_active"
+          ></ui5-switch>
+        </div>
+      </div>
+
+      <ui5-label show-colon required i18n>Locaition Name</ui5-label>
+      <ui5-input
+        class="w-100"
+        [(ngModel)]="storageLocation.name"
+        placeholder="Enter location name"
+        (input)="checkValidation($event)"
+        [attr.value-state]="valueStateOptions.name"
+        type="Text"
+        i18n-placeholder
+      >
+        <div slot="valueStateMessage">
+          {{ validationMessage }}
+        </div>
+      </ui5-input>
+    </section>
+  </ui5-busy-indicator>
+
+  <ui5-toolbar slot="footer">
+    <ui5-toolbar-button
+      design="Emphasized"
+      (click)="AddLocation()"
+      [disabled]="loading"
+      text="{{ localization.Submit }}"
+    ></ui5-toolbar-button>
+    <ui5-toolbar-button
+      design="Transparent"
+      [disabled]="loading"
+      (click)="CloseDialog()"
+      text="{{ localization.Cancel }}"
+    ></ui5-toolbar-button>
+  </ui5-toolbar>
+</ui5-dialog>
+
+<app-toaster-message
+  [IsOpenToastAlert]="IsOpenToastAlert"
+  [ToastType]="ToastType"
+></app-toaster-message>

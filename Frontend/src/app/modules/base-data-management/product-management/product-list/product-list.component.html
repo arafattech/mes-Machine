@@ -1,0 +1,91 @@
+<div
+  class="relative grid gap-2"
+  [ngClass]="{
+    'grid-cols-1': isListCollapsed || isTabCollapsed,
+    'grid-cols-2': !isListCollapsed && !isTabCollapsed,
+  }"
+>
+  <div class="h-[calc(100vh-55px)]" [class.hidden]="isListCollapsed === true">
+    <app-ag-grid-table
+      #agGridRef
+      [columns]="columns"
+      [dataSource]="dataSource"
+      [toolbarConfig]="toolbarConfig"
+      [selectionMode]="'Single'"
+      [selectionRowBehavior]="'RowOnly'"
+      [isBase]="true"
+      [gridId]="gridId"
+      [showAction]="false"
+      [editPermission]="true"
+      [showEditButton]="rolePermissionService.hasPermission(permissions.BASE_DATA_ITEM_EDIT)"
+      [showDeleteButton]="rolePermissionService.hasPermission(permissions.BASE_DATA_ITEM_DELETE)"
+      (newButtonClick)="newItem()"
+      (editClick)="handleRowSelect($event)"
+      (deleteClick)="deleteClick($event.id)"
+      (rowClick)="handleRowSelect($event)"
+      (downloadButtonClick)="downloadData()"
+      [showIllustratedMessage]="true"
+      IllustratedName="NoData"
+      IllustratedTitle="No Items Found"
+      IllustratedSubtitle="Try adjusting your search, filters, or active status."
+      (cellEdited)="onCellEdited($event)"
+    ></app-ag-grid-table>
+
+    <!-- Collapse arrow -->
+    <div
+      class="flex flex-col absolute top-1/2 -translate-x-1/2 -translate-y-1/2 z-50"
+      [ngClass]="{
+        'left-[99%]': isTabCollapsed,
+        'left-[50%]': !isTabCollapsed,
+      }"
+    >
+      <ui5-avatar
+        class="relative top-[-40px] border border-slate-400 bg-white"
+        [icon]="isTabCollapsed ? 'navigation-left-arrow' : 'navigation-right-arrow'"
+        interactive
+        size="XS"
+        color-scheme="Placeholder"
+        (click)="onCLickTabCollapsed()"
+      ></ui5-avatar>
+    </div>
+  </div>
+
+  <div [class.hidden]="isTabCollapsed === true">
+    <div
+      class="flex flex-col absolute top-1/2 -translate-x-1/2 -translate-y-1/2 z-50"
+      [ngClass]="{
+        'left-[1%]': isListCollapsed,
+        'left-[50%]': !isListCollapsed,
+        'top-[45%]': isListCollapsed,
+      }"
+    >
+      <ui5-avatar
+        class="border border-slate-400 bg-white"
+        [icon]="isListCollapsed ? 'navigation-right-arrow' : 'navigation-left-arrow'"
+        interactive
+        size="XS"
+        color-scheme="Placeholder"
+        (click)="onCLickListCollapsed()"
+      ></ui5-avatar>
+    </div>
+
+    <app-item-form
+      #itemForm
+      [saveMode]="saveMode"
+      [isclone]="clone"
+      [product]="product"
+      (RefreshTable)="processData($event)"
+      (closeFrom)="cancelEdit()"
+      (isSuccessChange)="processData($event)"
+    ></app-item-form>
+  </div>
+</div>
+
+<app-delete-entity (isSuccess)="processData($event)" [IsDelete]="IsDelete">
+</app-delete-entity>
+
+<ui5-dialog size="L" [open]="isLoading">
+  <ui5-busy-indicator text="Loading data.." active [delay]="0">
+    <div class="h-[100px] w-[400px]"></div>
+  </ui5-busy-indicator>
+</ui5-dialog>

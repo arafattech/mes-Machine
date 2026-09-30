@@ -1,0 +1,84 @@
+<ng-container [ngSwitch]="kind">
+  <!-- text -->
+  <input
+    *ngSwitchCase="'text'"
+    #inputEl
+    type="text"
+    [style]="INPUT"
+    [value]="value"
+    [placeholder]="placeholder"
+    [attr.maxlength]="maxLength"
+    (input)="onInput($event)"
+    (keydown)="onKeyDown($event)"
+  />
+
+  <!-- number -->
+  <input
+    *ngSwitchCase="'number'"
+    #inputEl
+    type="number"
+    [style]="INPUT_RIGHT"
+    [value]="value"
+    [min]="min ?? ''"
+    [max]="max ?? ''"
+    [step]="step"
+    [placeholder]="placeholder"
+    (input)="onInput($event)"
+    (keydown)="onKeyDown($event)"
+  />
+
+  <!-- integer -->
+  <input
+    *ngSwitchCase="'integer'"
+    #inputEl
+    type="number"
+    step="1"
+    [style]="INPUT_RIGHT"
+    [value]="value"
+    [min]="min ?? ''"
+    [max]="max ?? ''"
+    (input)="onInput($event)"
+    (keydown)="onKeyDown($event)"
+  />
+
+  <!-- textarea -->
+  <textarea
+    *ngSwitchCase="'textarea'"
+    #inputEl
+    [style]="TEXTAREA"
+    [value]="value"
+    [rows]="rows"
+    [placeholder]="placeholder"
+    [attr.maxlength]="maxLength"
+    (input)="onInput($event)"
+    (keydown)="onKeyDown($event)"
+  ></textarea>
+
+  <!-- select -->
+  <ui5-combobox
+    *ngSwitchCase="'select'"
+    style="width:100%;height:100%"
+    filter="Contains"
+    [showClearIcon]="true"
+    [value]="displayValue"
+    [placeholder]="placeholder"
+    (ui5SelectionChange)="handleSelect($any($event.item)?.getAttribute('value') || '')"
+  >
+    <ui5-cb-item
+      *ngFor="let opt of options"
+      [text]="opt.label"
+      [attr.value]="opt.value"
+    ></ui5-cb-item>
+  </ui5-combobox>
+
+  <!-- checkbox -->
+  <div
+    *ngSwitchCase="'checkbox'"
+    style="display:flex;align-items:center;justify-content:center;height:100%;cursor:pointer"
+    (click)="toggle()"
+  >
+    <span [style.font-size]="'1.1rem'" [style.color]="value ? '#16a34a' : '#dc2626'">
+      {{ value ? '✓' : '✗' }}
+    </span>
+  </div>
+</ng-container>

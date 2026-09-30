@@ -1,0 +1,17 @@
+<div class="block w-full h-full">
+  <div class="flex items-baseline justify-between mb-2">
+    <div class="chart-title font-semibold text-lg">{{ title }}</div>
+  </div>
+
+  <div class="relative w-full h-[calc(100%-2.25rem)]">
+    <canvas
+      baseChart
+      class="w-full h-full"
+      [type]="chartType"
+      [data]="chartData()"
+      [options]="chartOptions()"
+      (chartClick)="onChartClick($event)"
+      (chartHover)="onChartHover($event)">
+    </canvas>
+  </div>
+</div>

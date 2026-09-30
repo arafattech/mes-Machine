@@ -1,0 +1,43 @@
+/* To learn more about this file see: https://angular.io/config/tsconfig. */
+{
+  "compileOnSave": false,
+  "compilerOptions": {
+    "outDir": "./dist/out-tsc",
+    "strict": true,
+    "noImplicitOverride": true,
+    "noPropertyAccessFromIndexSignature": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "sourceMap": true,
+    "declaration": false,
+    "experimentalDecorators": true,
+    "moduleResolution": "node",
+    "importHelpers": true,
+    "target": "ES2022",
+    "module": "ES2022",
+    "jsx": "react",
+    "useDefineForClassFields": false,
+    "lib": ["ES2022", "dom"],
+    "baseUrl": "src",
+    "paths": {
+      "@env/*": ["environments/*"],
+      "@app/*": ["app/*"],
+      "@assets/*": ["assets/"],
+      "@shared/*": ["app/shared/*"],
+      "@base-data-module/*": ["app/modules/base-data-management/*"],
+      "@production-module/*": ["app/modules/production-management/*"],
+      "@store-module/*": ["app/modules/store-management/*"],
+      "@sales-module/*": ["app/modules/sales-management/*"],
+      "@purchese-module/*": ["app/modules/purchese-management/*"]
+    }
+  },
+  "exclude": ["**/*.md"],
+  "angularCompilerOptions": {
+    "enableI18nLegacyMessageIdFormat": false,
+    "strictInjectionParameters": true,
+    "strictInputAccessModifiers": true,
+    "strictTemplates": true
+  }
+}

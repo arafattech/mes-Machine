@@ -1,0 +1,157 @@
+<ui5-dialog
+  [open]="open"
+  id="dialog"
+  class="w-[min(760px,calc(100vw-2rem))]"
+  header-text="Login Activity Information"
+  i18n-header-text
+>
+  <ui5-tabcontainer
+    class="ui5-tab"
+    header-background-design="Solid"
+    content-background-design="Transparent"
+  >
+    <ui5-tab
+      text="Core Data"
+      selected
+      i18n-text
+      header-background-design="Transparent"
+      content-background-design="Transparent"
+    >
+      <section class="ui5-selected-tab">
+        <div class="row mx-0">
+          <div class="col-md-6">
+            <ui5-label show-colon i18n>ID</ui5-label>
+            <ui5-input
+              class="w-100"
+              [value]="toStr(activityData.id)"
+              readonly
+              type="Text"
+            >
+            </ui5-input>
+          </div>
+          <div class="col-md-6">
+            <ui5-label show-colon i18n>IP Address</ui5-label>
+            <ui5-input
+              class="w-100"
+              [value]="activityData.ip_address || ''"
+              readonly
+              type="Text"
+            >
+            </ui5-input>
+          </div>
+          <div class="col-md-6">
+            <ui5-label show-colon i18n>Login Date</ui5-label>
+            <ui5-input
+              class="w-100"
+              [value]="activityData.login_date || ''"
+              readonly
+              type="Text"
+            >
+            </ui5-input>
+          </div>
+           <div class="col-md-6">
+            <ui5-label show-colon i18n>Logout Date</ui5-label>
+            <ui5-input
+              class="w-100"
+              [value]="activityData.logout_time ? formatDate(activityData.logout_time) : '--'"
+              readonly
+              type="Text"
+            >
+            </ui5-input>
+          </div>
+          <div class="col-md-6">
+            <ui5-label show-colon i18n>Login Time</ui5-label>
+            <ui5-input
+              class="w-100"
+              [value]="formatTime(activityData.login_time)"
+              readonly
+              type="Text"
+            >
+            </ui5-input>
+          </div>
+          <div class="col-md-6">
+            <ui5-label show-colon i18n>Logout Time</ui5-label>
+            <ui5-input
+              class="w-100"
+              [value]="activityData.logout_time ? formatTime(activityData.logout_time) : '--'"
+              readonly
+              type="Text"
+            >
+            </ui5-input>
+          </div>
+        </div>
+      </section>
+    </ui5-tab>
+    <ui5-tab
+      text="Audit Details"
+      i18n-text
+      header-background-design="Transparent"
+      content-background-design="Transparent"
+    >
+      <section class="ui5-selected-tab">
+        <div class="row mx-0">
+          <div class="col-md-6">
+            <ui5-label show-colon i18n>Table Name</ui5-label>
+            <ui5-input
+              class="w-100"
+              [value]="activityData.table_name || ''"
+              readonly
+              type="Text"
+            >
+            </ui5-input>
+          </div>
+          <div class="col-md-6">
+            <ui5-label show-colon i18n>User Name</ui5-label>
+            <ui5-input
+              class="w-100"
+              [value]="activityData.user_name || ''"
+              readonly
+              type="Text"
+            >
+            </ui5-input>
+          </div>
+        </div>
+
+        <div class="row mx-0">
+          <div class="col-md-5">
+            <ui5-card class="m-2">
+              <ui5-card-header
+                slot="header"
+                title-text="Login Data"
+                i18n-title-text
+                interactive
+              >
+              </ui5-card-header>
+
+              <pre class="p-3">{{ formatJSON(activityData.login_response) }}</pre>
+            </ui5-card>
+          </div>
+          <div class="col-md-1"></div>
+
+          <div class="col-md-5">
+            <ui5-card class="m-2">
+              <ui5-card-header
+                slot="header"
+                title-text="Logout Data"
+                i18n-title-text
+                interactive
+              >
+              </ui5-card-header>
+
+              <pre class="p-3">{{ activityData.logout_response ? formatJSON(activityData.logout_response) : 'Not logged out yet' }}</pre>
+            </ui5-card>
+          </div>
+        </div>
+      </section>
+    </ui5-tab>
+  </ui5-tabcontainer>
+
+  <div
+    class="w-100 d-flex justify-content-end align-items-center"
+    slot="footer"
+  >
+    <ui5-button (click)="open = false" design="Emphasized">{{
+      localization.Cancel
+    }}</ui5-button>
+  </div>
+</ui5-dialog>

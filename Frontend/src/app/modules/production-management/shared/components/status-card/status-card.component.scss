@@ -1,0 +1,17 @@
+:host {
+  display: block;
+}
+
+.status-card {
+  background: var(--sapTile_Background, #fff);
+  border: 1px solid var(--sapTile_BorderColor, #d9d9d9);
+}
+
+.status-value {
+  color: var(--sapTextColor, #1d2d3e);
+}
+
+.status-label,
+.status-total {
+  color: var(--sapContent_LabelColor, #556b82);
+}

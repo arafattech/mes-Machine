@@ -1,0 +1,49 @@
+ <app-ag-grid-table
+    #agGridRef
+    [gridId]="gridId"
+    [columns]="columns"
+    [dataSource]="dataSource"
+    [toolbarConfig]="toolbarConfig"
+    [showAction]="true"
+    (newButtonClick)="newSchedule()"
+    (editClick)="editSchedule($event)"
+    (deleteClick)="deleteClick($event)"
+    [showEditButton]="
+      rolePermissionService.hasPermission(permissions.PRODUCTION_ADMIN)
+    "
+    [showDeleteButton]="
+      rolePermissionService.hasPermission(permissions.PRODUCTION_ADMIN)
+    "
+  >
+  </app-ag-grid-table>
+
+
+<app-machine-maintenance-schedule-form
+  #maintenanceForm
+  [saveMode]="saveMode"
+  (formSubmitted)="processData($event)"
+></app-machine-maintenance-schedule-form>
+
+<!-- Delete Confirmation Dialog -->
+<ui5-dialog
+  class="w-[90vw] max-w-sm"
+  [open]="deleteDialogOpen"
+  header-text="Confirm Deletion"
+  (before-close)="closeDeleteDialog()"
+>
+  <p>Are you sure you want to delete this schedule?</p>
+  <ui5-toolbar slot="footer">
+    <ui5-toolbar-button
+      design="Negative"
+      (click)="confirmDelete()"
+      [disabled]="deleting"
+      text="Delete"
+    ></ui5-toolbar-button>
+    <ui5-toolbar-button
+      design="Transparent"
+      [disabled]="deleting"
+      (click)="closeDeleteDialog()"
+      text="Cancel"
+    ></ui5-toolbar-button>
+  </ui5-toolbar>
+</ui5-dialog>

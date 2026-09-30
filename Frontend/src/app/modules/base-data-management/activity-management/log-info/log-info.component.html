@@ -1,0 +1,187 @@
+<ui5-dialog
+  [open]="open"
+  id="dialog"
+  [attr.header-text]="[localization.logInfo]"
+>
+  <ui5-tabcontainer
+    class="ui5-tab"
+    header-background-design="Solid"
+    content-background-design="Transparent"
+  >
+    <ui5-tab
+      text="Core Data"
+      selected
+      i18n-text
+      header-background-design="Transparent"
+      content-background-design="Transparent"
+    >
+      <section class="ui5-selected-tab">
+        <div class="row">
+          <div class="col-md-4">
+            <ui5-label show-colon class="w-100">{{
+              localization.Active
+            }}</ui5-label>
+            <ui5-switch [(ngModel)]="logData.is_active" disabled></ui5-switch>
+          </div>
+
+          <div class="col-md-4">
+            <ui5-label show-colon class="w-100" i18n>Read</ui5-label>
+            <ui5-switch [(ngModel)]="logData.is_read" disabled></ui5-switch>
+          </div>
+        </div>
+        <div class="row">
+          <div class="col-md-6">
+            <ui5-label show-colon i18n>Log Id</ui5-label>
+            <ui5-input
+              class="w-100"
+              [value]="logData.custom_id || ''"
+              readonly
+              type="Text"
+            >
+            </ui5-input>
+          </div>
+          <div class="col-md-6">
+            <ui5-label show-colon i18n>Table Name</ui5-label>
+            <ui5-input
+              class="w-100"
+              [value]="getModelName(logData.model_type) || ''"
+              readonly
+              type="Text"
+            >
+            </ui5-input>
+          </div>
+          <div class="col-md-6">
+            <ui5-label show-colon i18n>Table ID</ui5-label>
+            <ui5-input
+              class="w-100"
+              [value]="logData.model_custom_id || ''"
+              readonly
+              type="Text"
+            >
+            </ui5-input>
+          </div>
+          <div class="col-md-6">
+            <ui5-label show-colon i18n>Action Type</ui5-label>
+            <ui5-input
+              class="w-100"
+              [value]="logData.action_type || ''"
+              readonly
+              type="Text"
+            >
+            </ui5-input>
+          </div>
+          <div class="col-md-6">
+            <ui5-label show-colon i18n>User Name</ui5-label>
+            <ui5-input
+              class="w-100"
+              [value]="logData.user_name || ''"
+              readonly
+              type="Text"
+            >
+            </ui5-input>
+          </div>
+          <div class="col-md-6">
+            <ui5-label show-colon i18n>User Email</ui5-label>
+            <ui5-input
+              class="w-100"
+              [value]="logData.user_email || ''"
+              readonly
+              type="Text"
+            >
+            </ui5-input>
+          </div>
+          <div class="col-md-6">
+            <ui5-label show-colon i18n>User IP</ui5-label>
+            <ui5-input
+              class="w-100"
+              [value]="logData.ip_address || ''"
+              readonly
+              type="Text"
+            >
+            </ui5-input>
+          </div>
+          <div class="col-md-6">
+            <ui5-label show-colon i18n>Created date</ui5-label>
+            <ui5-input
+              class="w-100"
+              [value]="formatDate(logData.created_at || '')"
+              readonly
+              type="Text"
+            >
+            </ui5-input>
+          </div>
+          <div class="col-md-6"></div>
+        </div>
+      </section>
+    </ui5-tab>
+    <ui5-tab
+      text="Audit Details"
+      i18n-text
+      header-background-design="Transparent"
+      content-background-design="Transparent"
+    >
+      <section class="ui5-selected-tab">
+        <div class="row">
+          <div class="col-md-6">
+            <ui5-label show-colon i18n>Table Name</ui5-label>
+            <ui5-input
+              class="w-100"
+              [value]="getModelName(logData.model_type) || ''"
+              readonly
+              type="Text"
+            >
+            </ui5-input>
+          </div>
+          <div class="col-md-6">
+            <ui5-label show-colon i18n>Action Type</ui5-label>
+            <ui5-input
+              class="w-100"
+              [value]="logData.action_type || ''"
+              readonly
+              type="Text"
+            >
+            </ui5-input>
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="col-md-5">
+            <ui5-card class="m-2">
+              <ui5-card-header
+                slot="header"
+                [attr.title-text]="localization.newData"
+                interactive
+              >
+              </ui5-card-header>
+
+              <pre class="p-3">{{ formatJSON(logData.new_value) }}</pre>
+            </ui5-card>
+          </div>
+          <div class="col-md-1"></div>
+
+          <div class="col-md-5">
+            <ui5-card class="m-2">
+              <ui5-card-header
+                slot="header"
+                [attr.title-text]="localization.OldData"
+                interactive
+              >
+              </ui5-card-header>
+
+              <pre class="p-3">{{ formatJSON(logData.old_value) }}</pre>
+            </ui5-card>
+          </div>
+        </div>
+      </section>
+    </ui5-tab>
+  </ui5-tabcontainer>
+
+  <div
+    class="w-100 d-flex justify-content-end align-items-center"
+    slot="footer"
+  >
+    <ui5-button (click)="open = false" design="Emphasized">{{
+      localization.Cancel
+    }}</ui5-button>
+  </div>
+</ui5-dialog>

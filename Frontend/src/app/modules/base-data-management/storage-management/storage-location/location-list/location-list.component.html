@@ -1,0 +1,28 @@
+<div class="h-[calc(100vh-55px)]">
+  <app-ag-grid-table
+    #agGridRef
+    [columns]="columns"
+    [dataSource]="dataSource"
+    [toolbarConfig]="toolbarConfig"
+    selectionMode="Single"
+    [isBase]="true"
+    [gridId]="gridId"
+    [showAction]="true"
+    [showEditButton]="rolePermissionService.hasPermission('BASE_DATA_STORAGE_LOCATION_EDIT')"
+    [showDeleteButton]="rolePermissionService.hasPermission('BASE_DATA_STORAGE_LOCATION_DELETE')"
+    (newButtonClick)="newLocation()"
+    (editClick)="editLocation($event)"
+    (deleteClick)="deleteClick($event.id)"
+    (rowClick)="editLocation($event)"
+    [showIllustratedMessage]="true"
+  ></app-ag-grid-table>
+</div>
+
+<app-delete-entity
+  [IsDelete]="IsDelete"
+  (isSuccess)="processData($event)"
+></app-delete-entity>
+<app-storage-location-form
+  #storageLocationForm
+  (RefreshTable)="processData($event)"
+></app-storage-location-form>

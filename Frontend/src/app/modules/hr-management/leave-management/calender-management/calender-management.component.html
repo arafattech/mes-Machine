@@ -1,0 +1,296 @@
+<ui5-busy-indicator class="w-full" [delay]="0" [active]="loading">
+  <div class="flex flex-col h-[calc(100vh-3rem)] w-full overflow-hidden p-4 lg:p-5 gap-3 bg-[var(--sapBackgroundColor)]">
+
+    <div class="flex items-center gap-2 px-3 py-1.5 rounded-2xl border border-[var(--sapList_BorderColor)] shadow-sm shrink-0 bg-[var(--sapGroup_ContentBackground)]">
+      <ui5-title level="H5" class="font-bold shrink-0 tracking-tight">{{ calendarTitle }}</ui5-title>
+
+      <div class="flex-1"></div>
+
+      <ui5-select (change)="onCalendarTypeChange($event)" class="min-w-[125px]">
+        <ui5-option *ngFor="let type of calendarTypes" [value]="type">{{ type }}</ui5-option>
+      </ui5-select>
+      <ng-container *ngIf="showDeptEmployee">
+        <app-server-dropdown
+          class="min-w-[150px]"
+          url="Employees"
+          [searchFields]="['employee_no', 'first_name', 'last_name']"
+          [filterQuery]="'is_active eq true'"
+          [value]="employeeDisplayValue"
+          placeholder="Employee"
+          [labelFn]="employeeLabelFn"
+          (selectionChange)="onEmployeeSelect($event)"
+        ></app-server-dropdown>
+      </ng-container>
+
+      <div class="w-px h-5 bg-[var(--sapList_BorderColor)] shrink-0"></div>
+
+      <div class="flex items-center gap-0.5">
+        <ui5-button icon="slim-arrow-left" design="Transparent" (click)="prevMonth()"></ui5-button>
+        <span class="text-sm font-semibold min-w-[130px] text-center select-none tabular-nums text-[var(--sapTextColor)]">{{ currentMonthYearLabel }}</span>
+        <ui5-button icon="slim-arrow-right" design="Transparent" (click)="nextMonth()"></ui5-button>
+      </div>
+      <ui5-button design="Transparent" (click)="goToday()" i18n>Today</ui5-button>
+
+      <div class="w-px h-5 bg-[var(--sapList_BorderColor)] shrink-0"></div>
+      <ui5-button icon="action-settings" design="Transparent" title="Calendar Settings" (click)="openSettings()"></ui5-button>
+    </div>
+
+    <div class="flex flex-col flex-1 min-h-0 rounded-xl border border-[var(--sapList_BorderColor)] shadow-sm overflow-hidden bg-[var(--sapGroup_ContentBackground)]">
+      <div class="flex-1 min-h-0 overflow-x-auto overflow-y-auto" [ngStyle]="{
+        '--fc-border-color': 'var(--sapList_BorderColor)',
+        '--fc-today-bg-color': 'var(--sapList_SelectionBackgroundColor)',
+        '--fc-page-bg-color': 'var(--sapGroup_ContentBackground)',
+        '--fc-neutral-bg-color': 'var(--sapList_HeaderBackground)'
+      }">
+        <full-calendar #fullCalendar [options]="calendarOptions" class="w-full h-full">
+          <ng-template #dayHeaderContent let-arg>
+            <span class="text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--sapContent_LabelColor)]">{{ arg.text }}</span>
+          </ng-template>
+          <ng-template #dayCellContent let-arg>
+            <div class="group relative w-full h-full flex items-center justify-center p-3">
+              <span *ngIf="arg.isToday"
+                class="w-[26px] h-[26px] rounded-full bg-[var(--sapButton_Emphasized_Background)] text-[var(--sapButton_Emphasized_TextColor)] text-[13px] font-bold flex items-center justify-center">
+                {{ arg.dayNumberText }}
+              </span>
+              <span *ngIf="!arg.isToday" class="text-[13px] font-medium text-[var(--sapTextColor)]" [class.opacity-30]="arg.isOther">
+                {{ arg.dayNumberText }}
+              </span>
+              <button type="button" title="Add holiday" (click)="addHoliday($event, arg.date)"
+                class="absolute top-0.5 right-0.5 w-5 h-5 flex items-center justify-center rounded-full border border-[var(--sapButton_Emphasized_Background)]/40 text-[var(--sapButton_Emphasized_Background)] text-sm font-semibold leading-none bg-[var(--sapGroup_ContentBackground)] opacity-0 group-hover:opacity-100 transition-opacity">+</button>
+            </div>
+          </ng-template>
+        </full-calendar>
+      </div>
+      <div class="px-4 py-2.5 border-t border-[var(--sapList_BorderColor)] bg-[var(--sapList_HeaderBackground)] shrink-0" [ngClass]="{ 'animate-pulse': loading }">
+        <div class="flex flex-wrap gap-2">
+          <div *ngFor="let type of legendTypes"
+            class="flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-[var(--sapList_BorderColor)] bg-[var(--sapGroup_ContentBackground)] shadow-sm">
+            <div class="w-2 h-2 rounded-full shrink-0" [style.background-color]="type.color"></div>
+            <span class="text-[10px] font-bold uppercase tracking-tight text-[var(--sapTextColor)]">{{ type.name }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</ui5-busy-indicator>
+
+<ui5-dialog #settingsDialog [attr.open]="settingsOpen ? true : null" [header-text]="settingsTitle" style="width: 980px; max-width: 97vw">
+
+  <ui5-busy-indicator class="w-full" [delay]="0" [active]="loading">
+  <div class="grid grid-cols-2 gap-2 p-2" style="height: 70vh; min-height: 400px">
+
+    <div class="flex flex-col gap-2 overflow-y-auto">
+
+      <div class="rounded-lg border shrink-0">
+        <div class="flex items-center gap-2 px-3 py-2 border-b bg-[var(--sapList_HeaderBackground)] rounded-t-lg">
+          <ui5-icon name="calendar"></ui5-icon>
+          <span class="text-xs font-semibold text-[var(--sapTextColor)]" i18n>Calendar</span>
+        </div>
+        <div class="p-3 space-y-2">
+          <div class="space-y-1">
+            <label class="text-xs font-medium text-[var(--sapContent_LabelColor)]" i18n>Type</label>
+            <ui5-select style="width:100%" (change)="onCalendarTypeChange($event)">
+              <ui5-option *ngFor="let type of calendarTypes" [value]="type">{{ type }}</ui5-option>
+            </ui5-select>
+          </div>
+          <ng-container *ngIf="showDeptEmployee">
+            <div class="space-y-1">
+              <label class="text-xs font-medium text-[var(--sapContent_LabelColor)]" i18n>Employee</label>
+              <app-server-dropdown
+                url="Employees"
+                [searchFields]="['employee_no', 'first_name', 'last_name']"
+                [filterQuery]="'is_active eq true'"
+                [multiple]="true"
+                [selectedItems]="selectedEmployees"
+                placeholder="Select employee"
+                [labelFn]="employeeLabelFn"
+                (selectionListChange)="onEmployeeMultiSelectChange($event)"
+              ></app-server-dropdown>
+            </div>
+          </ng-container>
+        </div>
+      </div>
+
+      <ng-container *ngIf="calendarType !== 'Industrial'">
+        <div class="flex justify-center shrink-0 pt-1">
+          <ui5-segmented-button>
+            <ui5-segmented-button-item [attr.pressed]="individualTab === 'Holiday' ? true : null" (click)="individualTab = 'Holiday'" i18n>Holiday</ui5-segmented-button-item>
+            <ui5-segmented-button-item [attr.pressed]="individualTab === 'OffDay' ? true : null" (click)="individualTab = 'OffDay'" i18n>Off Day</ui5-segmented-button-item>
+          </ui5-segmented-button>
+        </div>
+      </ng-container>
+
+      <div *ngIf="calendarType === 'Industrial' || individualTab === 'Holiday'" class="rounded-lg border overflow-hidden shrink-0">
+        <div class="flex items-center gap-2 px-3 py-2 border-b bg-[var(--sapList_HeaderBackground)]">
+          <ui5-icon name="add-activity"></ui5-icon>
+          <span class="text-xs font-semibold text-[var(--sapTextColor)]" i18n>Add Holiday</span>
+        </div>
+        <div class="p-3 space-y-2">
+          <div class="grid grid-cols-2 gap-2">
+            <div class="space-y-1">
+              <label class="text-xs font-medium text-[var(--sapContent_LabelColor)]" i18n>Start Date</label>
+              <ui5-date-picker style="width:100%" [value]="newStartDate" [attr.value-state]="startDateValueState" (change)="onStartDateChange($event)"></ui5-date-picker>
+            </div>
+            <div class="space-y-1">
+              <label class="text-xs font-medium text-[var(--sapContent_LabelColor)]" i18n>End Date</label>
+              <ui5-date-picker style="width:100%" [value]="newEndDate" (change)="onEndDateChange($event)"></ui5-date-picker>
+            </div>
+          </div>
+          <div class="space-y-1">
+            <label class="text-xs font-medium text-[var(--sapContent_LabelColor)]" i18n>Holiday Type</label>
+            <ui5-combobox style="width:100%" placeholder="Select type" [value]="typeTitle" [attr.value-state]="holidayTypeValueState" (selectionChange)="onNewTypeChange($event)">
+              <ui5-cb-item *ngFor="let type of holidayTypes" [text]="type.name" [attr.value]="type.id"></ui5-cb-item>
+            </ui5-combobox>
+          </div>
+          <ui5-message-strip design="Negative" *ngIf="addHolidayValidationMessage" (ui5Close)="addHolidayValidationMessage = ''">
+            {{ addHolidayValidationMessage }}
+          </ui5-message-strip>
+          <ui5-button design="Emphasized" style="width:100%" (click)="addHolidayFromDialog($event)">
+            <ui5-icon name="add" slot="icon"></ui5-icon> {{ addHolidayButton }}
+          </ui5-button>
+        </div>
+      </div>
+
+      <div *ngIf="calendarType !== 'Industrial' && individualTab === 'OffDay'" class="rounded-lg border overflow-hidden shrink-0">
+        <div class="flex items-center gap-2 px-3 py-2 border-b bg-[var(--sapList_HeaderBackground)]">
+          <ui5-icon name="date-time"></ui5-icon>
+          <span class="text-xs font-semibold text-[var(--sapTextColor)]" i18n>Off Days</span>
+        </div>
+        <div class="p-3 space-y-3">
+          <div class="space-y-1.5">
+            <label class="text-xs font-medium text-[var(--sapContent_LabelColor)]" i18n>Weekend Days</label>
+            <div class="flex flex-wrap gap-1.5">
+              <div *ngFor="let option of weekendOptions"
+                class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-semibold transition-all cursor-pointer select-none"
+                [class.border-[var(--sapInformationBorderColor)]]="option.checked"
+                [class.bg-[var(--sapInformationBackground)]]="option.checked"
+                [class.text-[var(--sapInformationColor)]]="option.checked"
+                (click)="option.checked = !option.checked">
+                <input type="checkbox" [id]="'dlg-' + option.id" [(ngModel)]="option.checked"
+                  style="accent-color: var(--sapInformationColor)"
+                  class="w-3.5 h-3.5 rounded pointer-events-none" />
+                {{ option.label }}
+              </div>
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            <div class="space-y-1">
+              <label class="text-xs font-medium text-[var(--sapContent_LabelColor)]" i18n>Year</label>
+              <ui5-select style="width:100%" (change)="onOffDayYearChange($event)">
+                <ui5-option *ngFor="let year of years" [value]="year.toString()" [selected]="year === offDayYear">{{ year }}</ui5-option>
+              </ui5-select>
+            </div>
+            <div *ngIf="applyScope !== 'Entire Year'" class="space-y-1">
+              <label class="text-xs font-medium text-[var(--sapContent_LabelColor)]" i18n>Month</label>
+              <ui5-select style="width:100%" (change)="onOffDayMonthChange($event)">
+                <ui5-option *ngFor="let month of months; index as i" [value]="i.toString()" [selected]="i === offDayMonth">{{ month }}</ui5-option>
+              </ui5-select>
+            </div>
+          </div>
+
+          <div class="space-y-1.5">
+            <label class="text-xs font-medium text-[var(--sapContent_LabelColor)]" i18n>Scope</label>
+            <div class="flex gap-2">
+              <ui5-select [value]="applyScope" (change)="onApplyScopeChange($event)" class="flex-1">
+                <ui5-option *ngFor="let type of weekendTypes" [value]="type">{{ type }}</ui5-option>
+              </ui5-select>
+              <ui5-button design="Emphasized" (click)="applyWeekendConfig()" [disabled]="showDeptEmployee && !selectedEmployees.length">
+                {{ applyWeekend }}
+              </ui5-button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="flex flex-col rounded-lg border overflow-hidden">
+      <div class="flex items-center justify-between px-3 py-2 border-b bg-[var(--sapList_HeaderBackground)] shrink-0 gap-2">
+        <div class="flex items-center gap-2 min-w-0">
+          <ui5-checkbox *ngIf="holidays.length > 0" [checked]="isAllHolidaysSelected" title="Select all" i18n-title (click)="toggleSelectAllHolidays()"></ui5-checkbox>
+          <span class="text-xs font-semibold text-[var(--sapTextColor)] truncate">{{ currentHoliday }}</span>
+        </div>
+        <div class="flex items-center gap-2 shrink-0">
+          <ui5-button *ngIf="selectedBonusIndexes.size > 0" design="Emphasized" (click)="openBonusDialog()">
+            {{ setBonusButton }} ({{ selectedBonusIndexes.size }})
+          </ui5-button>
+          <ui5-button *ngIf="selectedBonusIndexes.size > 0" design="Negative" icon="delete" (click)="removeSelectedHolidays()">
+            <span i18n>Remove</span> ({{ selectedBonusIndexes.size }})
+          </ui5-button>
+          <span class="text-[10px] font-semibold text-[var(--sapContent_LabelColor)] bg-[var(--sapList_HeaderBackground)] px-2 py-0.5 rounded-full">{{ holidays.length }}</span>
+        </div>
+      </div>
+      <div class="flex-1 overflow-y-auto">
+        <div *ngFor="let holiday of holidays; let i = index"
+          (click)="selectedHolidayIndex = i; selectedDate = ''"
+          class="flex items-center justify-between px-3 py-2 border-b last:border-b-0 transition-colors cursor-pointer hover:bg-[var(--sapList_HeaderBackground)]"
+          [class.bg-[var(--sapInformationBackground)]]="selectedHolidayIndex === i || (selectedDate && holiday.start_date === selectedDate)">
+          <div class="flex items-center gap-2 min-w-0">
+            <ui5-checkbox [checked]="selectedBonusIndexes.has(i)" (click)="toggleBonusSelection(i, $event)"></ui5-checkbox>
+            <div class="w-2 h-2 rounded-full shrink-0"
+              [style.background-color]="getSpecialDateColor(holiday.start_date) || 'var(--sapNeutralColor)'">
+            </div>
+            <div class="min-w-0">
+              <div class="text-xs font-semibold truncate">{{ holiday.start_date }}</div>
+              <div class="text-[10px] text-[var(--sapContent_LabelColor)] truncate">{{ holiday.type || getHolidayTypeName(holiday.type_id) }}</div>
+            </div>
+            <span *ngIf="holiday.bonus_mode" class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-[var(--sapWarningBackground)] text-[var(--sapWarningColor)] shrink-0">
+              {{ bonusLabel(holiday) }}
+            </span>
+          </div>
+          <ui5-button
+            [disabled]="calendarType === 'Indivdual' && !rolePermissionService.hasPermission(permissions.HR_CALENDAR_INDIVIDUAL_DELETE)
+                     || calendarType === 'Industrial' && !rolePermissionService.hasPermission(permissions.HR_CALENDAR_INDUSTRIAL_DELETE)"
+            icon="delete" design="Transparent" (click)="removeHoliday(i)">
+          </ui5-button>
+        </div>
+        <div *ngIf="holidays.length === 0"
+          class="flex flex-col items-center justify-center h-full py-10 gap-2 text-[var(--sapContent_LabelColor)]">
+          <ui5-icon name="calendar" style="font-size: 1.75rem"></ui5-icon>
+          <span class="text-xs font-medium" i18n>No holidays yet</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+  </ui5-busy-indicator>
+
+  <ui5-dialog [open]="bonusDialogOpen" header-text="Set Bonus" i18n-header-text (before-close)="closeBonusDialog()">
+    <div class="min-w-[360px] max-w-[90vw] p-3 space-y-3">
+      <div class="space-y-1">
+        <label class="text-xs font-medium text-[var(--sapContent_LabelColor)]" i18n>Bonus Type</label>
+        <ui5-combobox
+          class="w-full"
+          [value]="bonusModeDraft === 'NONE' ? 'None' : bonusModeDraft === 'DOUBLE' ? 'Double (OT)' : bonusModeDraft === 'TRIPLE' ? 'Triple' : 'Fixed'"
+          (selection-change)="onBonusModeChange($event)"
+        >
+          <ui5-cb-item id="NONE" text="None"></ui5-cb-item>
+          <ui5-cb-item id="DOUBLE" text="Double (OT)"></ui5-cb-item>
+          <ui5-cb-item id="TRIPLE" text="Triple"></ui5-cb-item>
+          <ui5-cb-item id="FIXED" text="Fixed"></ui5-cb-item>
+        </ui5-combobox>
+      </div>
+      <div *ngIf="bonusModeDraft === 'FIXED'" class="space-y-1">
+        <label class="text-xs font-medium text-[var(--sapContent_LabelColor)]" i18n>Fixed Amount</label>
+        <ui5-input type="Number" style="width:100%" [value]="bonusAmountDraft ?? ''" (input)="bonusAmountDraft = +$any($event).target.value"></ui5-input>
+      </div>
+    </div>
+    <div slot="footer" class="flex items-center justify-end gap-2 w-full px-4 py-2">
+      <ui5-button design="Transparent" (click)="closeBonusDialog()" i18n>Cancel</ui5-button>
+      <ui5-button design="Emphasized" [disabled]="bonusModeDraft === 'FIXED' && !bonusAmountDraft" (click)="applyBonusToSelected()" i18n>Apply</ui5-button>
+    </div>
+  </ui5-dialog>
+
+  <ui5-toolbar slot="footer">
+    <ui5-toolbar-button design="Emphasized"
+      [disabled]="calendarType === 'Indivdual' && !rolePermissionService.hasPermission(permissions.HR_CALENDAR_INDIVIDUAL_CREATE)
+               || calendarType === 'Industrial' && !rolePermissionService.hasPermission(permissions.HR_CALENDAR_INDUSTRIAL_CREATE)"
+      (click)="saveAllChanges()"
+      [text]="saveButton">
+    </ui5-toolbar-button>
+    <ui5-toolbar-button design="Transparent" (click)="closeSettings()" text="Close" i18n-text>
+    </ui5-toolbar-button>
+  </ui5-toolbar>
+
+</ui5-dialog>

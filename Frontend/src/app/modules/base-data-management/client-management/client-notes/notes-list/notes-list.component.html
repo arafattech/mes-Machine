@@ -1,0 +1,34 @@
+<div class="h-[calc(100vh-55px)]">
+  <app-ag-grid-table
+    #agGridRef
+    [columns]="columns"
+    [dataSource]="dataSource"
+    [toolbarConfig]="toolbarConfig"
+    selectionMode="Single"
+    [isBase]="true"
+    [gridId]="gridId"
+    [showAction]="true"
+    [showEditButton]="rolePermissionService.hasPermission(permissions.BASE_DATA_CLIENT_NOTE_EDIT)"
+    [showDeleteButton]="rolePermissionService.hasPermission(permissions.BASE_DATA_CLIENT_NOTE_DELETE)"
+    (newButtonClick)="newClientNote()"
+    (editClick)="editClientNote($event)"
+    (deleteClick)="deleteClick($event.id)"
+    (rowClick)="editClientNote($event)"
+    [showIllustratedMessage]="true"
+    IllustratedName="NoData"
+    IllustratedTitle="No Asset Groups Found"
+    IllustratedSubtitle="Try adjusting your search or active status."
+  ></app-ag-grid-table>
+</div>
+
+<app-delete-entity
+  [IsDelete]="IsDelete"
+  (isSuccess)="processData()"
+></app-delete-entity>
+
+<app-client-note-form
+  #clientNoteForm
+  [saveMode]="saveMode"
+  [clientNote]="ClientNote"
+  (RefreshTable)="processData($event)"
+></app-client-note-form>

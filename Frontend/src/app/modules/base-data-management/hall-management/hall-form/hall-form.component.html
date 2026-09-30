@@ -1,0 +1,61 @@
+<ui5-dialog [open]="open" id="dialog" class="h-[calc(250vh-100px)]" [attr.header-text]="
+    this.saveMode === 'POST' ? localization.New : localization.Edit
+  " (before-close)="CloseDialog()">
+  <ui5-busy-indicator [delay]="0" [active]="loading" size="M" class="w-full">
+    <ui5-tabcontainer class="ui5-tab" header-background-design="Solid" content-background-design="Transparent" (tab-select)="onTabSelect($event)">
+      <ui5-tab class="p-0 bg-none border-none overflow-hidden" id="coreData" text="Core Data" i18n-text [selected]="selectedTab === 'coreData'">
+        <section class="ui5-selected-tab">
+          <div class="row">
+            <div class="col-md-12">
+              <ui5-label showColon class="w-100">{{ localization.Active }}</ui5-label>
+              <ui5-switch checked [(ngModel)]="hall.is_active"></ui5-switch>
+            </div>
+            <div class="col-md-6">
+              <ui5-label show-colon required i18n>Hall Name</ui5-label>
+              <ui5-input class="w-100" [(ngModel)]="hall.name" placeholder="Enter name"
+                (input)="checkValidation($event)" [attr.value-state]="valueStateOptions.name" type="Text"
+                i18n-placeholder>
+                <div slot="valueStateMessage">{{ validationMessage }}</div>
+              </ui5-input>
+            </div>
+          </div>
+        </section>
+      </ui5-tab>
+
+      <ui5-tab class="p-0 bg-none border-none" i18n-text text="Plant" id="plant" [selected]="selectedTab === 'plant'">
+        <section class="ui5-selected-tab">
+          <app-ag-grid-table
+            [columns]="plantColumns"
+            [dataSource]="plantDataSource"
+            [toolbarConfig]="plantToolbarConfig"
+            [displayConfig]="plantDisplayConfig"
+            [showAction]="true"
+            [editPermission]="true"
+            [showEditButton]="false"
+            [showDeleteButton]="rolePermissionService.hasPermission(permissions.BASE_DATA_HALL_DELETE)"
+            [showIllustratedMessage]="true"
+            IllustratedName="NoData"
+            (newButtonClick)="isHallAssociate()"
+            (deleteClick)="removePlantData($event)"
+          ></app-ag-grid-table>
+        </section>
+      </ui5-tab>
+    </ui5-tabcontainer>
+  </ui5-busy-indicator>
+
+  <ui5-toolbar slot="footer">
+    <ui5-toolbar-button design="Emphasized" (click)="newHall()" [disabled]="loading"
+      text="{{ localization.Submit }}"></ui5-toolbar-button>
+    <ui5-toolbar-button design="Transparent" [disabled]="loading" (click)="CloseDialog()"
+      text="{{ localization.Cancel }}"></ui5-toolbar-button>
+  </ui5-toolbar>
+</ui5-dialog>
+
+<app-assosiate
+  #plantAssociate
+  [apiUrl]="'Plants?$orderby=id desc&$filter=is_active eq true'"
+  [model]="plantList"
+  [isMultiselect]="false"
+  [tableColumn]="associatePlantTableColum()"
+  (selectedData)="GetSelectedHall($event)"
+></app-assosiate>

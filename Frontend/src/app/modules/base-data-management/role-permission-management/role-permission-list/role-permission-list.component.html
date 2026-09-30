@@ -1,0 +1,66 @@
+<div
+  class="role-permission gap-1"
+  *ngIf="permissions['BASE_DATA_ROLE_PERMISSION']"
+>
+  <div class="role">
+    <app-ag-grid-table
+      #agRoleGridRef
+      [columns]="roleColumns"
+      [dataSource]="roleDataSource"
+      [toolbarConfig]="roleToolbarConfig"
+      [isBase]="true"
+      [gridId]="roleGridId"
+      [selectionMode]="'Single'"
+      [selectionRowBehavior]="'Row'"
+      [showAction]="true"
+      [showEditButton]="false"
+      [showDeleteButton]="false"
+      [customActionButtons]="roleActionButtons"
+      [isBusy]="!groupsReady || roleTableLoading"
+      [displayConfig]="{ gridHeight: 'calc(100vh - 170px)', fillEmptyRows: false }"
+      (newButtonClick)="newRole()"
+      (rowClick)="handleRowSelect($event)"
+      (processData)="handleRoleTableData($event)"
+    ></app-ag-grid-table>
+    <ui5-bar> </ui5-bar>
+  </div>
+
+  <div class="permission">
+    <app-ag-grid-table
+      #agPermissionGridRef
+      [columns]="permissionColumns"
+      [dataSource]="permissionDataSource"
+      [toolbarConfig]="{ headerTitle: 'Role : ' + selectedRole.name, showSearch: true, showRowCount: false, showNewButton: false, showTableSettingBtn: false }"
+      [isTreeTable]="true"
+      [selectionMode]="'Multiple'"
+      [selectionRowBehavior]="'Row'"
+      [showAction]="false"
+      [isBase]="false"
+      [isBusy]="permissionGridLoading"
+      [disableColumnRule]="disableSelect ? disableRow : enableRow"
+      [displayConfig]="{ gridHeight: 'calc(100vh - 170px)', fillEmptyRows: false }"
+      (selectionChanged)="onPermissionSelectionChanged($event)"
+    ></app-ag-grid-table>
+    <ui5-bar>
+      <ui5-button
+        slot="endContent"
+        design="Emphasized"
+        [disabled]="selectedRole.name == 'super-admin'"
+        (click)="submitPermission()"
+        >{{ localization.Submit }}</ui5-button
+      >
+      <ui5-button slot="endContent" design="Emphasized" (click)="onCancel()">{{
+        localization.Cancel
+      }}</ui5-button>
+    </ui5-bar>
+  </div>
+</div>
+
+<app-role-form
+  #roleForm
+  [saveMode]="saveMode"
+  (onSuccess)="handleRoleSaved($event)"
+></app-role-form>
+
+<app-delete-entity [IsDelete]="IsDelete" (isSuccess)="refreshRole()">
+</app-delete-entity>

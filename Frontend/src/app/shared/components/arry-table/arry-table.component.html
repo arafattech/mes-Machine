@@ -1,0 +1,27 @@
+<div class="w-100" style="height: 42vh">
+  <react-analytical-table
+    [headerTitle]="'Supplier List'"
+    [insertTitle]="'Associate'"
+    [isStatic]="true"
+    [apiUrl]="''"
+    [staticData]="this.getStaticData"
+    [alternateRowColors]="true"
+    [isInsertData]="true"
+    [isSearchFilter]="false"
+    [isFilterable]="true"
+    [isOdata]="true"
+    [model]="this.model"
+    [isGroupable]="false"
+    [isSortable]="true"
+    [isTableTree]="false"
+    [isInfiniteScroll]="true"
+    [infiniteScrollNumber]="10"
+    [minRowsNumber]="15"
+    [headerHeight]="30"
+    [rowHeight]="30"
+    [selectionMode]="'None'"
+    [emptyDataText]="'No Data Found'"
+    [tableColumn]="tableColum()"
+    (isInsertDataChange)="handleInsertData($event)"
+  ></react-analytical-table>
+</div>

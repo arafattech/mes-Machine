@@ -1,0 +1,28 @@
+<div class="h-[calc(100vh-55px)]">
+  <app-ag-grid-table
+    #agGridRef
+    [columns]="columns"
+    [dataSource]="dataSource"
+    [toolbarConfig]="toolbarConfig"
+    selectionMode="Single"
+    [isBase]="true"
+    [gridId]="gridId"
+    [showAction]="true"
+    [showEditButton]="rolePermissionService.hasPermission(permissions.BASE_DATA_ASSET_EDIT)"
+    [showDeleteButton]="rolePermissionService.hasPermission(permissions.BASE_DATA_ASSET_DELETE)"
+    (newButtonClick)="newAsset()"
+    (editClick)="editAsset($event)"
+    (deleteClick)="deleteClick($event.id)"
+    (rowClick)="editAsset($event)"
+    [showIllustratedMessage]="true"
+    IllustratedName="NoData"
+    IllustratedTitle="No Assets Found"
+    IllustratedSubtitle="Try adjusting your search or active status."
+  ></app-ag-grid-table>
+</div>
+
+<app-asset-form #assetsForm [saveMode]="saveMode" (RefreshTable)="processData($event)">
+</app-asset-form>
+
+<app-delete-entity [IsDelete]="IsDelete" (isSuccess)="processData($event)">
+</app-delete-entity>

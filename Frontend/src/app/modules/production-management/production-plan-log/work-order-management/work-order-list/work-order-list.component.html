@@ -1,0 +1,57 @@
+<div class="h-[calc(100vh-55px)]">
+  <app-ag-grid-table
+    #agGridRef
+    [columns]="columns"
+    [dataSource]="dataSource"
+    [toolbarConfig]="toolbarConfig"
+    selectionMode="Single"
+    [isBase]="true"
+    [gridId]="gridId"
+    [showDateRangePicker]="true"
+    [dateRangePickerValue]="dateRangeValue"
+    (changeRangeDatePicker)="onDateRangeStringChange($event)"
+    (resetButtonClick)="resetFilters()"
+    [showAction]="true"
+    [showInfoButton]="true"
+    [showEditButton]="rolePermissionService.hasPermission(permissions.BASE_DATA_WORK_ORDER_EDIT)"
+    [showDeleteButton]="rolePermissionService.hasPermission(permissions.BASE_DATA_WORK_ORDER_DELETE)"
+    (newButtonClick)="newWorkOrder()"
+    (editClick)="editWorkOrder($event)"
+    (deleteClick)="deleteClick($event.id)"
+    (infoClick)="viewDetail($event)"
+    (rowClick)="editWorkOrder($event)"
+    [showIllustratedMessage]="true"
+    IllustratedName="NoData"
+    IllustratedTitle="No Production Orders Found"
+    IllustratedSubtitle="Try adjusting your search or active status."
+  ></app-ag-grid-table>
+</div>
+
+<app-work-order-form
+  #workOrderForm
+  [saveMode]="saveMode"
+  [workOrder]="workOrder"
+  (RefreshTable)="processData($event)"
+></app-work-order-form>
+
+<app-delete-entity [IsDelete]="IsDelete" (isSuccess)="processData()">
+</app-delete-entity>
+
+<ui5-dialog
+  [open]="detailOpen"
+  class="w-[95vw] max-w-[1600px]"
+  [headerText]="detailSubtitle"
+  (before-close)="closeDetail()"
+>
+  <div class="w-full bg-[var(--sapBackgroundColor,#f5f7fa)] p-2" style="overflow-y: auto; min-height: 70vh;">
+    <app-work-order-detail [workOrderId]="detailWorkOrderId"></app-work-order-detail>
+  </div>
+  <ui5-toolbar slot="footer">
+    <ui5-toolbar-button
+      design="Transparent"
+      (click)="closeDetail()"
+      text="Close"
+      i18n-text
+    ></ui5-toolbar-button>
+  </ui5-toolbar>
+</ui5-dialog>

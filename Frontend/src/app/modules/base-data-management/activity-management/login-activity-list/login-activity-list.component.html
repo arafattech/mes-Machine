@@ -1,0 +1,16 @@
+<app-ag-grid-table
+  #agGridRef
+  [columns]="columns"
+  [dataSource]="dataSource"
+  [toolbarConfig]="toolbarConfig"
+  [gridId]="gridId"
+  [showIllustratedMessage]="true"
+  IllustratedName="NoData"
+  IllustratedTitle="No Login Activity Found"
+  IllustratedSubtitle="Try adjusting your search."
+></app-ag-grid-table>
+
+<app-login-activity-info
+  [isOpen]="IsOpenLoginActivityInfo"
+  [activityData]="seletedActivity"
+></app-login-activity-info>

@@ -1,0 +1,54 @@
+<ui5-dialog class="ui5-xl-without-tab" [open]="open"
+   [attr.header-text] ="this.saveMode === 'POST' ? localization.New : localization.Edit" (before-close)="CloseDialog()">
+  <ui5-busy-indicator
+    class="w-full bg-red"
+    [delay]="0"
+    [active]="loading"
+    size="M"(before-close)="CloseDialog()"
+  >
+    <section class="w-full">
+      <div class="flex flex-col">
+        <ui5-label show-colon class="w-100" >{{localization.Active}}</ui5-label>
+        <ui5-switch checked [(ngModel)]="itemCategory.is_active"></ui5-switch>
+      </div>
+      <ui5-label show-colon required i18n>Category Name</ui5-label>
+      <ui5-input
+        class="w-100"
+        [(ngModel)]="itemCategory.name"
+        placeholder="Enter category name"
+        i18n-placeholder
+        (input)="checkValidation($event)"
+        [attr.value-state]="valueStateOptions.name"
+        type="Text"
+      >
+        <div slot="valueStateMessage">
+          {{ validationMessage }}
+        </div>
+      </ui5-input>
+
+      <ui5-label show-colon i18n>Category Prefix</ui5-label>
+      <ui5-input
+        class="w-100"
+        [(ngModel)]="itemCategory.prefix"
+        placeholder="Enter category Prefix"
+        i18n-placeholder
+        type="Text"
+      >
+      </ui5-input>
+    </section>
+  </ui5-busy-indicator>
+  <ui5-toolbar slot="footer">
+    <ui5-toolbar-button
+        design="Emphasized"
+        (click)="AddItemCategory()"
+        [disabled]="loading"
+        text="{{localization.Submit}}"
+    ></ui5-toolbar-button>
+    <ui5-toolbar-button
+        design="Transparent"
+        [disabled]="loading"
+        (click)="CloseDialog()"
+        text="{{localization.Cancel}}"
+    ></ui5-toolbar-button>
+  </ui5-toolbar>
+</ui5-dialog>

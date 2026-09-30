@@ -1,0 +1,272 @@
+<div class="min-h-screen bg-gray-50 font-sans text-gray-800">
+  <div class="p-6 space-y-4">
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      <h1 class="text-xl font-semibold text-gray-800" i18n>Sales Analytics</h1>
+      <ui5-button design="Transparent" icon="filter" (click)="toggleFilter()" i18n>Filter</ui5-button>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+      <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-3 h-16 flex justify-between items-center">
+        <div>
+          <p class="text-xs font-medium text-gray-500" i18n>Total Orders</p>
+          <h2 class="text-lg font-bold text-gray-800">{{ kpiData.totalOrders }}</h2>
+        </div>
+        <div class="w-10 h-10 rounded-full bg-emerald-50 flex items-center justify-center">
+          <ui5-icon name="list" class="text-emerald-600" style="width: 1rem; height: 1rem;"></ui5-icon>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-3 h-16 flex justify-between items-center">
+        <div>
+          <p class="text-xs font-medium text-gray-500" i18n>Total Sales</p>
+          <h2 class="text-lg font-bold text-gray-800">{{ kpiData.totalSales }}</h2>
+        </div>
+        <div class="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center">
+          <ui5-icon name="accept" class="text-blue-600" style="width: 1rem; height: 1rem;"></ui5-icon>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-3 h-16 flex justify-between items-center">
+        <div>
+          <p class="text-xs font-medium text-gray-500" i18n>Total Amount(BDT)</p>
+          <h2 class="text-lg font-bold text-gray-800">{{ kpiData.totalOrderAmount }}</h2>
+        </div>
+        <div class="w-10 h-10 rounded-full bg-amber-50 flex items-center justify-center">
+          <ui5-icon name="money-bills" class="text-amber-600" style="width: 1rem; height: 1rem;"></ui5-icon>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-3 h-16 flex justify-between items-center">
+        <div>
+          <p class="text-xs font-medium text-gray-500" i18n>Draft Amount(BDT)</p>
+          <h2 class="text-lg font-bold text-gray-800">{{ kpiData.totalDraftAmount }}</h2>
+        </div>
+        <div class="w-10 h-10 rounded-full bg-pink-50 flex items-center justify-center">
+          <ui5-icon name="edit" class="text-pink-600" style="width: 1rem; height: 1rem;"></ui5-icon>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-3 h-16 flex justify-between items-center">
+        <div>
+          <p class="text-xs font-medium text-gray-500" i18n>Approved Amount(BDT)</p>
+          <h2 class="text-lg font-bold text-gray-800">{{ kpiData.totalApprovedAmount }}</h2>
+        </div>
+        <div class="w-10 h-10 rounded-full bg-sky-50 flex items-center justify-center">
+          <ui5-icon name="sys-enter-2" class="text-sky-600" style="width: 1rem; height: 1rem;"></ui5-icon>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-xl border border-gray-100 shadow-sm p-3 h-16 flex justify-between items-center">
+        <div>
+          <p class="text-xs font-medium text-gray-500" i18n>Rejections</p>
+          <h2 class="text-lg font-bold text-gray-800">{{ kpiData.totalRejection }}</h2>
+        </div>
+        <div class="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center">
+          <ui5-icon name="error" class="text-red-600" style="width: 1rem; height: 1rem;"></ui5-icon>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      <div class="rounded-xl border border-gray-100 shadow-sm overflow-hidden h-[320px] bg-white">
+        <ui5-card class="w-full h-full border-none shadow-none">
+          <ui5-card-header slot="header" title-text="Monthly Sales" i18n-title-text></ui5-card-header>
+          <div class="p-2">
+            <app-shared-bar-chart [data]="monthlySales" [categoryField]="'month'" [valueField]="'amount'"
+              [chartHeight]="'250px'" [barColor]="'#3B82F6'">
+            </app-shared-bar-chart>
+          </div>
+        </ui5-card>
+      </div>
+
+      <div class="rounded-xl border border-gray-100 shadow-sm overflow-hidden h-[320px] bg-white">
+        <ui5-card class="w-full h-full border-none shadow-none">
+          <ui5-card-header slot="header" title-text="Order Status" i18n-title-text></ui5-card-header>
+          <div class="p-2 h-full">
+            <app-shared-donut-chart *ngIf="expenseBreakdown.length > 0" [data]="expenseBreakdown"
+              [labelField]="'category'" [valueField]="'amount'" [chartHeight]="'220px'" [colors]="donutColors"
+              [showLegend]="true" [innerRadius]="'60%'" [tooltipMode]="'label'" [legendPosition]="'bottom'"
+              [legendFontSize]="12" [legendItemPaddingTop]="10" [legendMarkerCornerRadius]="2">
+            </app-shared-donut-chart>
+          </div>
+        </ui5-card>
+      </div>
+
+      <div class="rounded-xl border border-gray-100 shadow-sm overflow-hidden h-[320px] bg-white">
+        <ui5-card class="w-full h-full border-none shadow-none">
+          <ui5-card-header slot="header" title-text="Market Analysis" i18n-title-text></ui5-card-header>
+          <div class="p-0 mt-[-8px]">
+            <app-market-analysis-chart [data]="marketAnalysisData" [categoryField]="'date'"
+              [valueField]="'averagePrice'" [chartHeight]="'250px'"> </app-market-analysis-chart>
+          </div>
+        </ui5-card>
+      </div>
+    </div>
+
+    <ui5-tabcontainer class="w-full h-full custom-tab-container">
+      <ui5-tab text="Orders" i18n-text>
+        <div class="flex gap-4 w-full h-[50vh]">
+          <div class="flex-1 overflow-hidden rounded-xl border border-gray-100 shadow-sm bg-white">
+            <app-ag-grid-table
+              [columns]="latestOrderColumns"
+              [dataSource]="latestOrdersDataSource"
+              [toolbarConfig]="latestOrdersToolbarConfig"
+              [displayConfig]="ordersDisplayConfig"
+              [isBase]="true"
+              [showAction]="false"
+              [showNewButton]="false"
+              [showIllustratedMessage]="true"
+              IllustratedName="NoData"
+            ></app-ag-grid-table>
+          </div>
+
+          <div class="flex-1 overflow-hidden rounded-xl border border-gray-100 shadow-sm bg-white">
+            <app-ag-grid-table
+              [columns]="overdueOrderColumns"
+              [dataSource]="overdueDataSource"
+              [toolbarConfig]="overdueToolbarConfig"
+              [displayConfig]="ordersDisplayConfig"
+              [isBase]="true"
+              [showAction]="false"
+              [showNewButton]="false"
+              [showIllustratedMessage]="true"
+              IllustratedName="NoData"
+            ></app-ag-grid-table>
+          </div>
+        </div>
+      </ui5-tab>
+
+      <ui5-tab text="Clients & Audit" i18n-text>
+        <div class="flex gap-4 w-full h-[50vh]">
+          <ui5-card class="flex-1 flex flex-col bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+            <ui5-bar *ngIf="!isClientSearchOpen" design="Header">
+              <ui5-title slot="startContent" level="H5"><span i18n>Top Client List</span> ({{ topClients.length}})</ui5-title>
+              <ui5-icon name="search" (click)="toggleClientSearch()" slot="endContent"
+                class="mr-2 cursor-pointer"></ui5-icon>
+            </ui5-bar>
+
+            <div *ngIf="isClientSearchOpen" class="m-auto py-1">
+              <div class="flex items-center w-[95%] m-auto">
+                <ui5-input #clientSearchInput placeholder="Search name or ID..." i18n-placeholder design="Transparent"
+                  class="w-[90%]" [(ngModel)]="clientSearchText" (input)="filterTopClients()">
+                </ui5-input>
+                <ui5-icon name="decline" (click)="toggleClientSearch()" class="mx-3 cursor-pointer"></ui5-icon>
+              </div>
+            </div>
+
+            <div class="flex-1 custom-scroll">
+              <ui5-list class="w-full" no-data-text="No clients available">
+                <ui5-li-custom *ngFor="let client of filteredTopClients"
+                  class="cursor-pointer py-2 border-b border-gray-200">
+                  <div class="flex items-center justify-between w-full px-4">
+                    <div class="flex items-center gap-2">
+                      <ui5-avatar [initials]="client.initials" size="XS"></ui5-avatar>
+                      <div class="flex flex-col">
+                        <ui5-label class="font-[600]">{{ client.name }}</ui5-label>
+                        <ui5-label class="text-xs"><span i18n>Client ID:</span> {{ client.custom_id }}</ui5-label>
+                      </div>
+                    </div>
+                    <ui5-badge color-scheme="8">{{ client.total_amount }}</ui5-badge>
+                  </div>
+                </ui5-li-custom>
+              </ui5-list>
+            </div>
+          </ui5-card>
+
+          <ui5-card class="flex-1 flex flex-col bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+            <ui5-bar design="Header">
+              <ui5-title slot="startContent" level="H5"><span i18n>Recent Audit Trail</span> ({{ activityLogs.length }})</ui5-title>
+            </ui5-bar>
+
+            <div class="flex-1 custom-scroll">
+              <ui5-list class="border" separators="None" mode="None">
+                <ng-container *ngIf="activityLogs.length == 0">
+                  <ui5-illustrated-message name="UnableToLoad" class="my-4">
+                    <div slot="illustration">
+                      <ui5-icon name="error"></ui5-icon>
+                    </div>
+                    <ui5-title slot="title" level="H5" class="text-center" i18n>No Audit Logs Found</ui5-title>
+                    <div slot="subtitle">
+                      <p i18n>There are no recent sales order activities to display.</p>
+                    </div>
+                  </ui5-illustrated-message>
+                </ng-container>
+
+                <ui5-li-notification *ngFor="let log of activityLogs" class="p-1 border-b border-gray-200"
+                  [attr.title-text]="getNotificationTitle(log)" i18n-title-text
+                  [attr.additional-text]="getNotificationMessage(log)" [attr.state]="getState(log.action_type)"
+                  [importance]="getImportance(log)" [attr.additional-text-state]="getImportance(log)">
+                  <ui5-avatar [initials]="getInitials(log.user?.name || '')" color-scheme="Accent5" size="XS"
+                    slot="avatar"></ui5-avatar>
+                  <span slot="footnotes">
+                    <strong i18n>User:</strong> {{ log.user?.name || "Unknown" }}
+                  </span>
+                  <span slot="footnotes">
+                    <strong i18n>Date:</strong> {{ formatDate(log.created_at || "") }}
+                  </span>
+                </ui5-li-notification>
+              </ui5-list>
+            </div>
+          </ui5-card>
+        </div>
+      </ui5-tab>
+    </ui5-tabcontainer>
+  </div>
+</div>
+
+<ui5-dialog header-text="Filter" [open]="showFilter">
+  <ui5-bar slot="header" design="Header">
+    <ui5-title level="H5" slot="startContent" i18n>Filter</ui5-title>
+    <ui5-button slot="endContent" design="Transparent" icon="reset" (click)="resetFilter()" i18n>Reset
+    </ui5-button>
+  </ui5-bar>
+
+  <div class="dialog-content">
+    <ui5-busy-indicator class="w-full" [active]="loading" size="M" [delay]="0">
+      <section class="w-full">
+        <div class="pb-2">
+          <ui5-label for="username" class="w-full" show-colon i18n>Date Range</ui5-label>
+          <ui5-daterange-picker class="w-full" #dateRangePicker format-pattern="dd/MM/yyyy"
+            (change)="dateRangePickerChange($event)" [max-date]="currentDate" [value]="dateRangeValue">
+          </ui5-daterange-picker>
+        </div>
+        <div class="pb-2">
+          <ui5-label show-colon i18n>Clients</ui5-label>
+          <ui5-combobox class="w-full" (selectionChange)="onClientChange($event)" placeholder="Select Client"
+            i18n-placeholder>
+            <ui5-cb-item *ngFor="let item of clientList" [text]="item.name" [id]="item.id" [value]="item.id">
+            </ui5-cb-item>
+          </ui5-combobox>
+        </div>
+        <div class="pb-2">
+          <ui5-label show-colon i18n>Status</ui5-label>
+          <ui5-combobox
+            [value]="statusTitle ? statusTitle : ''"
+            (selectionChange)="onStatusChange($event)"  [readonly]="isStatusReadOnly"
+            class="w-full"
+            id="status"
+            placeholder="Select Status" i18n-placeholder>
+              @for(item of SalesStatus; track $index) {
+                  <ui5-cb-item [text]="item" [id]="item"></ui5-cb-item>
+              }
+          </ui5-combobox>
+        </div>
+        <div class="pb-2">
+          <ui5-label show-colon i18n>Item</ui5-label>
+          <ui5-combobox class="w-full" (selectionChange)="onMarketItemChange($event)" placeholder="Select Item"
+            [value]="selectedMarketItemId ? getProductNameById(selectedMarketItemId) : ''">
+            <ui5-cb-item *ngFor="let item of itemList" [text]="item.product_name" [id]="item.id">
+            </ui5-cb-item>
+          </ui5-combobox>
+        </div>
+      </section>
+    </ui5-busy-indicator>
+  </div>
+
+  <ui5-toolbar slot="footer">
+    <ui5-toolbar-button class="dialogCloser" design="Emphasized" text="Apply" (click)="applyFilter()">
+    </ui5-toolbar-button>
+    <ui5-toolbar-button class="dialogCloser" design="Transparent" (click)="showFilter = false" text="Cancel">
+    </ui5-toolbar-button>
+  </ui5-toolbar>
+</ui5-dialog>

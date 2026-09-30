@@ -1,0 +1,185 @@
+@import "styles.sass";
+.login {
+  height: 100vh;
+  display: flex;
+  align-items: center;
+}
+
+.copy-right {
+  position: absolute;
+  bottom: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 999;
+  color: #505050;
+  font-size: 14px;
+  font-weight: 500;
+}
+.copy-right a {
+  color: #505050;
+  text-decoration: underline;
+}
+.bg-image {
+  width: 100%;
+  height: 100vh;
+  background-size: cover;
+  filter: blur(40px);
+}
+
+.login-container {
+  height: 100vh;
+  width: 100%;
+}
+
+@keyframes backgroundMove {
+  0% {
+    background-position: 0% 50%;
+  }
+  100% {
+    background-position: 100% 50%;
+  }
+}
+#container {
+  box-shadow: rgba(0, 0, 0, 0.35) 0px 5px 15px;
+  background: #e9e9e9e3;
+  z-index: 99999999;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 500px;
+  border-radius: 10px;
+  transition-duration: 1s;
+}
+
+#left,
+#right {
+  margin: auto;
+  width: 95%;
+  height: 96%;
+}
+#welcome,
+#lorem {
+  margin: 20px;
+  text-shadow: var(--box-shadow);
+  text-align: center;
+}
+#welcome {
+  margin-top: 250px !important;
+  text-align: center;
+  font-size: 75px;
+  font-weight: 500;
+}
+.message-strip {
+  width: 90%;
+  margin: auto;
+}
+
+#login {
+  padding-top: 15%;
+  text-align: center;
+  text-transform: uppercase;
+  font-weight: 100;
+  text-shadow: var(--box-shadow);
+}
+.client-info {
+  display: block;
+  margin: 30px auto;
+  width: 90%;
+  height: 50px;
+  border: solid #999 1px;
+  border-radius: 5px;
+  text-indent: 15px;
+  transition: all 200ms;
+  box-shadow: var(--box-shadow);
+  background-color: transparent;
+}
+
+label {
+  position: absolute;
+  margin: -86px 40px;
+  font-size: 12px;
+  white-space: nowrap;
+  background: #e9e9e9e3;
+  padding: 0 10px;
+  border-radius: 5px;
+  color: #616161;
+  transition: all 200ms;
+  text-shadow: var(--box-shadow);
+}
+#email:focus ~ label[for="email"] {
+  margin: -86px 40px;
+  background: #9055ff;
+  color: rgb(230, 230, 230);
+}
+#password:focus ~ label[for="password"] {
+  margin: -86px 40px;
+  background: #9055ff;
+  color: rgb(230, 230, 230);
+}
+#submit {
+  border: none;
+  background-color: #9055ff;
+  color: white;
+  width: 90%;
+}
+.login-button:hover {
+  background-color: #9055ffc7;
+}
+.login-button {
+  background-color: #9055ff;
+}
+.social {
+  background-color: #fff;
+  display: block;
+  margin: 10px auto;
+  width: 70%;
+  height: 50px;
+  border: none;
+  border-radius: 5px;
+  text-transform: uppercase;
+  transition-duration: 200ms;
+  box-shadow: var(--box-shadow);
+  text-shadow: var(--box-shadow);
+}
+
+.remember {
+  position: relative;
+  top: -15px;
+  width: 90%;
+  display: flex;
+  align-items: center;
+  margin: auto;
+  font-size: 12px;
+  white-space: nowrap;
+  padding: 0 5px;
+  color: #616161;
+}
+
+.password-input {
+  position: relative;
+}
+.password-icon {
+  position: absolute;
+  right: 40px;
+  top: 18px;
+}
+
+@media (max-width: 575px) {
+  #container {
+    width: 90%;
+    height: 600px;
+  }
+  #login {
+    padding-top: 20%;
+  }
+  #welcome {
+    font-size: 60px;
+  }
+  #lorem {
+    font-size: 15px;
+  }
+  .copy-right {
+    width: 90%;
+  }
+}

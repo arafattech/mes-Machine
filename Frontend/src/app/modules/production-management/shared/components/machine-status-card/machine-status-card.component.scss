@@ -1,0 +1,49 @@
+:host {
+  display: block;
+}
+
+.machine-card {
+  background: var(--sapTile_Background, #fff);
+  border: 1px solid var(--sapTile_BorderColor, #d9d9d9);
+  box-shadow: 0 10px 35px rgba(0, 0, 0, 0.06);
+  transition: box-shadow 0.3s ease, transform 0.3s ease;
+}
+
+.machine-card:hover {
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.1);
+}
+
+.is-alert {
+  background: var(--sapErrorBackground, #ffebeb);
+  border-color: var(--sapNegativeColor, #bb0000);
+}
+
+.over-threshold {
+  color: var(--sapNegativeColor, #bb0000) !important;
+}
+
+.alert-icon {
+  color: var(--sapCriticalColor, #e76500);
+}
+
+.metric-label,
+.metric-icon {
+  color: var(--sapContent_LabelColor, #556b82);
+}
+
+.metric-value {
+  color: var(--sapTextColor, #1d2d3e);
+}
+
+.card-divider {
+  border: 0;
+  background: var(--sapToolbar_SeparatorColor, #e5e5e5);
+}
+
+.machine-progress {
+  width: 100%;
+}
+
+ui5-tag {
+  vertical-align: middle;
+}

@@ -1,0 +1,439 @@
+<ui5-dialog [open]="open" class="w-[1000px] h-[780px]" [attr.header-text]="
+    this.saveMode === 'POST' ? localization.New : localization.Edit
+  " (before-close)="CloseDialog()">
+  <ui5-busy-indicator [delay]="0" [active]="loading" size="M">
+    <ui5-tabcontainer class="ui5-tab" header-background-design="Solid" content-background-design="Transparent"
+      (tab-select)="onTabSelect($event)">
+      <ui5-tab class="p-0 bg-none border-none overflow-hidden" text="Core Data" id="coreData" i18n-text
+        [selected]="selectedTab === 'coreData'">
+        <section class="w-full">
+          <div class="row">
+            <div class="col-md-12" *ngIf="message_strip">
+              <ui5-message-strip (ui5Close)="message_strip = false" design="Critical">{{ duplicate_email
+                }}</ui5-message-strip>
+            </div>
+            <div class="d-flex justify-between">
+              <div class="row">
+                <div class="col-md-3">
+                  <ui5-label showColon class="w-100">{{ localization.Active }}</ui5-label>
+                  <ui5-switch checked [(ngModel)]="employee.is_active"></ui5-switch>
+                </div>
+              </div>
+              <div>
+                <ng-container *ngIf="this.saveMode === 'PUT' && EmployeeImage; else noImage">
+                  <img
+                    class="w-[120px] h-[120px] object-cover transition-[filter] duration-500 ease-out"
+                    [ngClass]="employeeImageLoaded ? 'blur-none' : 'blur-md'"
+                    [lazyLoad]="EmployeeImage"
+                    (onStateChange)="onEmployeeImageStateChange($event)"
+                    alt="Employee Image"
+                  />
+                </ng-container>
+                <ng-template #noImage>
+                  <div *ngIf="this.saveMode === 'PUT'"
+                    class="w-[120px] h-[120px] flex items-center justify-center border text-xs text-gray-500 bg-gray-100"
+                    i18n>No Image Preview </div>
+                </ng-template>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <ui5-label show-colon required i18n>Employee ID</ui5-label>
+              <ui5-input class="w-100" [(ngModel)]="employee.employee_no" placeholder="Enter Employee ID" [readonly]="
+                  this.saveMode === 'PUT'
+                " i18n-placeholder (input)="checkValidation($event, 'employee_id')"
+                [attr.value-state]="valueStateOptions.employee_no" type="Text">
+                <div slot="valueStateMessage"> {{ validationMessage }} </div>
+              </ui5-input>
+            </div>
+            <div class="col-md-6"></div>
+            <div class="col-md-6">
+              <ui5-label show-colon required i18n>First Name</ui5-label>
+              <ui5-input class="w-100" [(ngModel)]="employee.first_name" placeholder="Enter Name" i18n-placeholder
+                (input)="checkValidation($event, 'first_name')" [attr.value-state]="valueStateOptions.first_name"
+                type="Text">
+                <div slot="valueStateMessage"> {{ validationMessage }} </div>
+              </ui5-input>
+            </div>
+            <div class="col-md-6">
+              <ui5-label show-colon i18n>Last Name</ui5-label>
+              <ui5-input class="w-100" [(ngModel)]="employee.last_name" placeholder="Enter last name" i18n-placeholder
+                type="Text">
+              </ui5-input>
+            </div>
+            <div class="col-md-6">
+              <ui5-label show-colon i18n>Email</ui5-label>
+              <ui5-input class="w-100" [(ngModel)]="employee.email" [attr.value-state]="valueStateOptions.email"
+                (input)="checkValidation($event, 'email')" i18n-placeholder placeholder="Enter Email" type="Text">
+                <div slot="valueStateMessage"> {{ validationMessage }} </div>
+              </ui5-input>
+            </div>
+            <div class="col-md-6">
+              <ui5-label show-colon required i18n>Contact Number</ui5-label>
+              <ui5-input class="w-100" [(ngModel)]="employee.contact_number" placeholder="Enter Contact Number" required
+                i18n-placeholder (input)="checkValidation($event, 'contact_number')"
+                [attr.value-state]="valueStateOptions.contact_number" type="Number">
+                <div slot="valueStateMessage"> {{ validationContactMessage }} </div>
+              </ui5-input>
+            </div>
+            <div class="col-md-6">
+              <ui5-label show-colon i18n>Department</ui5-label>
+              <ui5-combobox placeholder="Select Department" i18n-placeholder [value]="departmentName"
+                (selectionChange)="getDepartment($event)" class="w-full">
+                <ui5-cb-item *ngFor="let items of departments" [text]="items.name" [id]="items.id"></ui5-cb-item>
+              </ui5-combobox>
+            </div>
+            <div class="col-md-6">
+              <ui5-label show-colon i18n>Designation</ui5-label>
+              <ui5-combobox placeholder="Select Designation" i18n-placeholder [value]="designationName"
+                (selectionChange)="getDesignations($event)" class="w-full">
+                <ui5-cb-item *ngFor="let items of designations" [text]="items.name" [id]="items.id"></ui5-cb-item>
+              </ui5-combobox>
+            </div>
+            <div class="col-md-6">
+              <ui5-label show-colon i18n>Employee Type</ui5-label>
+              <ui5-combobox placeholder="Select Employee Type" [value]="employeeTypeName"
+                (selectionChange)="getEmployeeTypes($event)" class="w-full"
+                [attr.value-state]="valueStateOptions.employee_type_id">
+                <ui5-cb-item *ngFor="let items of employeeTypes" [text]="items.name" [id]="items.id"></ui5-cb-item>
+                <div slot="valueStateMessage"> {{ validationMessage }} </div>
+              </ui5-combobox>
+            </div>
+            <div class="col-md-6">
+              <ui5-label show-colon i18n>Supervisor</ui5-label>
+              <app-server-dropdown
+                url="Employees"
+                [searchFields]="['employee_no', 'first_name', 'last_name']"
+                [filterQuery]="'is_active eq true'"
+                placeholder="Select Supervisor"
+                i18n-placeholder
+                [value]="EmployeeName"
+                [labelFn]="employeeLabelFn"
+                (selectionChange)="setSupervisor($event)"
+                class="w-full block"
+              ></app-server-dropdown>
+            </div>
+            <div class="col-md-6">
+              <ng-container>
+                <ui5-label show-colon i18n>Employee Section</ui5-label>
+                <ui5-combobox placeholder="Select Employee Section" [value]="employeeSectionName"
+                  (selectionChange)="getEmployeeSections($event)" class="w-full"
+                  [attr.value-state]="valueStateOptions.employee_section_id">
+                  <ui5-cb-item *ngFor="let items of employeeSections" [text]="items.name" [id]="items.id"></ui5-cb-item>
+                  <div slot="valueStateMessage"> {{ validationMessage }} </div>
+                </ui5-combobox>
+              </ng-container>
+            </div>
+          </div>
+        </section>
+      </ui5-tab>
+      <ui5-tab class="p-0 bg-none border-none w-[900px]" text="Personal Data" id="personalData" i18n-text
+        [selected]="selectedTab === 'personalData'">
+        <section class="w-full">
+          <div class="row">
+            <div class="col-md-6">
+              <ui5-label show-colon i18n>Gender</ui5-label>
+              <ui5-select class="w-100" [(ngModel)]="employee.gender" [attr.value-state]="valueStateOptions.genders"
+                (change)="checkValidation($event, 'genders')">
+                <ui5-option value i18n>Select Gender</ui5-option>
+                <ui5-option *ngFor="let gender of genders" [value]="gender">{{ gender }}</ui5-option>
+                <div slot="valueStateMessage"> {{ validationMessage }} </div>
+              </ui5-select>
+            </div>
+            <div class="col-md-6">
+              <ui5-label show-colon i18n>Religion</ui5-label>
+              <ui5-select class="w-100" [(ngModel)]="employee.religion" [attr.value-state]="valueStateOptions.religions"
+                (change)="checkValidation($event, 'religions')">
+                <ui5-option value i18n>Select Religion</ui5-option>
+                <ui5-option *ngFor="let religion of religions" [value]="religion">{{ religion }}</ui5-option>
+                <div slot="valueStateMessage"> {{ validationMessage }} </div>
+              </ui5-select>
+            </div>
+            <div class="col-md-6">
+              <ui5-label show-colon i18n>NID/Birth Certificate</ui5-label>
+              <ui5-input class="w-100" [(ngModel)]="employee.nid" placeholder="Enter NID/Birth Certificate Number"
+                i18n-placeholder type="Number">
+              </ui5-input>
+            </div>
+            <div class="col-md-6">
+              <ui5-label show-colon i18n>Refered By</ui5-label>
+              <ui5-input class="w-100" [(ngModel)]="employee.refered_by" placeholder="Enter Refered By" i18n-placeholder
+                type="Text">
+              </ui5-input>
+            </div>
+            <div class="col-md-6">
+              <ui5-label show-colon i18n>Emargency Contact person Name</ui5-label>
+              <ui5-input class="w-100" [(ngModel)]="employee.emgerency_contact_person_name" [attr.value-state]="
+                  valueStateOptions.emgerency_contact_person_name
+                " placeholder="Enter Contact person Name" i18n-placeholder type="Text">
+              </ui5-input>
+            </div>
+            <div class="col-md-6">
+              <ui5-label show-colon i18n>Emargency Contact person Number</ui5-label>
+              <ui5-input class="w-100" [attr.value-state]="valueStateOptions.emeergency_number"
+                [(ngModel)]="employee.emgerency_contact_number" placeholder="Enter Contact person  Number"
+                i18n-placeholder type="Number">
+              </ui5-input>
+            </div>
+            <div class="col-md-6">
+              <ui5-label show-colon i18n>Emargency Contact Person Relation</ui5-label>
+              <ui5-input class="w-100" [(ngModel)]="employee.emgerency_contact_relation" [attr.value-state]="
+                  valueStateOptions.emgerency_contact_relation
+                " placeholder="Enter Contact Person Relation" i18n-placeholder type="Text">
+              </ui5-input>
+            </div>
+            <div class="col-md-6">
+              <ui5-label show-colon i18n>Blood Group</ui5-label>
+              <ui5-select class="w-100" [(ngModel)]="employee.blood_group"
+                (change)="checkValidation($event, 'blood_group')" [attr.value-state]="valueStateOptions.blood_group">
+                <ui5-option value i18n>Select Blood Group</ui5-option>
+                <ui5-option *ngFor="let bloodGroup of bloodGroups">{{ bloodGroup }}</ui5-option>
+                <div slot="valueStateMessage"> {{ validationMessage }} </div>
+              </ui5-select>
+            </div>
+            <div class="col-md-6">
+              <ui5-label show-colon i18n>Date of Joining</ui5-label>
+              <ui5-date-picker class="w-100" [(ngModel)]="employee.joining_date" placeholder="Enter Date of Joining"
+                i18n-placeholder format-pattern="dd-MM-yyyy">
+              </ui5-date-picker>
+            </div>
+            <div class="col-md-6">
+              <ui5-label show-colon i18n>Date of Birth</ui5-label>
+              <ui5-date-picker class="w-100" [(ngModel)]="employee.date_of_birth" i18n-placeholder
+                placeholder="Enter Date of Birth" format-pattern="dd-MM-yyyy">
+              </ui5-date-picker>
+            </div>
+            <div class="col-md-12">
+              <ui5-label show-colon required i18n>Present Address</ui5-label>
+              <ui5-textarea class="w-100 h-[100px]" [(ngModel)]="employee.present_address"
+                placeholder="Enter Present Address" i18n-placeholder (input)="onPresentAddressChange($event)"
+                [attr.value-state]="valueStateOptions.present_address">
+                <div slot="valueStateMessage"> {{ validationMessage }} </div>
+              </ui5-textarea>
+            </div>
+            <div class="col-md-12">
+              <ui5-checkbox text="Same as Present Address" i18n-text [(ngModel)]="sameAsPresentAddress"
+                [disabled]="!this.employee.present_address" (change)="toggleSameAddress()"></ui5-checkbox>
+            </div>
+            <div class="col-md-12">
+              <ui5-label show-colon i18n>Permanent Address</ui5-label>
+              <ui5-textarea class="w-100 h-[100px]" [(ngModel)]="employee.permanent_address"
+                placeholder="Enter Permanent Address" i18n-placeholder [readonly]="sameAsPresentAddress">
+              </ui5-textarea>
+            </div>
+          </div>
+        </section>
+      </ui5-tab>
+      <ui5-tab class="p-0 bg-none border-none w-[923px]" i18n-text text="Salary" id="salary"
+        [selected]="selectedTab === 'salary'">
+        <section class="w-full">
+          <div class="row">
+            <div class="col-md-6 mb-2">
+              <ui5-label show-colon i18n>Basic</ui5-label>
+              <ui5-input [readonly]="true" [(ngModel)]="EmployeeSalary.basic" class="w-100 text-end" type="Number"
+                placeholder="0.00"></ui5-input>
+            </div>
+            <div class="col-md-6 mb-2">
+              <ui5-label show-colon i18n>House Rent</ui5-label>
+              <ui5-input readonly [(ngModel)]="EmployeeSalary.house_rent" class="w-100 text-end" type="Number"
+                placeholder="0.00"></ui5-input>
+            </div>
+            <div class="col-md-6 mb-2">
+              <ui5-label show-colon i18n>Medical Allowance</ui5-label>
+              <ui5-input [readonly]="true" [(ngModel)]="EmployeeSalary.medical_allowance" class="w-100 text-end"
+                type="Number" placeholder="0.00" i18n-placeholder></ui5-input>
+            </div>
+            <div class="col-md-6 mb-2">
+              <ui5-label show-colon i18n>Transport Allowance</ui5-label>
+              <ui5-input [readonly]="true" [(ngModel)]="EmployeeSalary.transport_allowance" class="w-100 text-end"
+                type="Number" placeholder="0.00"></ui5-input>
+            </div>
+            <div class="col-md-6 mb-2">
+              <ui5-label show-colon i18n>Other Allowance</ui5-label>
+              <ui5-input [readonly]="true" (input)="onSalaryChange()" [(ngModel)]="EmployeeSalary.other_allowance"
+                class="w-100 text-end" type="Number" placeholder="0.00"></ui5-input>
+            </div>
+            <div class="col-md-6 mb-2"></div>
+            <div class="col-md-12 mt-2">
+              <ui5-label required showColon class="font-bold" i18n>Total Salary</ui5-label>
+              <ui5-input [(ngModel)]="EmployeeSalary.total_salary" (input)="onSalaryChange()"
+                class="w-100 text-end font-bold" type="Number" placeholder="0.00" i18n-placeholder></ui5-input>
+            </div>
+          </div>
+        </section>
+      </ui5-tab>
+      <ui5-tab class="p-0 bg-none border-none overflow-y-hidden h-full" i18n-text text="Bank" id="bank"
+        [selected]="selectedTab === 'bank'">
+        <app-ag-grid-table
+          *ngIf="saveMode === 'POST'"
+          #employeeBankTablePost
+          [columns]="bankColumns"
+          [dataSource]="bankStaticDataSource"
+          [toolbarConfig]="bankToolbarConfig"
+          [displayConfig]="bankDisplayConfig"
+          [showAction]="true"
+          [showEditButton]="rolePermissionService.hasPermission(permissions.HR_EMPLOYEE_EDIT)"
+          [showDeleteButton]="rolePermissionService.hasPermission(permissions.HR_EMPLOYEE_EDIT) || rolePermissionService.hasPermission(permissions.HR_EMPLOYEE_DELETE)"
+          (newButtonClick)="addStaticEmployeeBank()"
+          (editClick)="editEmployeeBank($event)"
+          (deleteClick)="onBankDelete($event)"
+        ></app-ag-grid-table>
+        <app-ag-grid-table
+          *ngIf="saveMode === 'PUT'"
+          #employeeBankTableEdit
+          url="EmployeeBankInfos"
+          [filterQuery]="'employee_id eq ' + employee.id"
+          [columns]="bankColumns"
+          [toolbarConfig]="bankToolbarConfig"
+          [displayConfig]="bankDisplayConfig"
+          [showAction]="true"
+          [showEditButton]="rolePermissionService.hasPermission(permissions.HR_EMPLOYEE_EDIT)"
+          [showDeleteButton]="rolePermissionService.hasPermission(permissions.HR_EMPLOYEE_EDIT) || rolePermissionService.hasPermission(permissions.HR_EMPLOYEE_DELETE)"
+          (newButtonClick)="newEmployeeBank()"
+          (editClick)="editEmployeeBank($event)"
+          (deleteClick)="onBankDelete($event)"
+        ></app-ag-grid-table>
+        <ui5-dialog class="ui5-xl-without-tab" [open]="isBankOpen"
+          [attr.header-text]="bankSaveMode === 'POST' ? localization.New : localization.Edit"
+          (before-close)="closeEmployeeBank()">
+          <ui5-busy-indicator class="w-full" [delay]="0" [active]="loading" size="M">
+            <section class="w-full">
+              <div class="col-md-12" *ngIf="bankWarningStrip">
+                <ui5-message-strip (ui5Close)="bankWarningStrip = false" design="Critical" i18n>Fill in at least one field.</ui5-message-strip>
+              </div>
+              <div class="col-md-3">
+                <ui5-label showColon class="w-100">{{ localization.Primary }}</ui5-label>
+                <ui5-switch checked [(ngModel)]="EmployeeBank.is_primary"></ui5-switch>
+              </div>
+              <ui5-label show-colon i18n>Bank Name</ui5-label>
+              <ui5-input class="w-full" [(ngModel)]="EmployeeBank.bank_name" placeholder="Enter Bank Name"
+                i18n-placeholder [attr.value-state]="valueStateOptions.bankName" (input)="checkValidation($event, 'bankName')" type="Text">
+                <div slot="valueStateMessage"> {{ validationMessage }} </div>
+              </ui5-input>
+              <ui5-label show-colon i18n>Branch Name</ui5-label>
+              <ui5-input class="w-full" [(ngModel)]="EmployeeBank.branch_name" placeholder="Enter Branch Name"
+                i18n-placeholder></ui5-input>
+              <ui5-label show-colon i18n>Account Number</ui5-label>
+              <ui5-input class="w-full" [(ngModel)]="EmployeeBank.account_number" placeholder="Enter Account Number"
+                i18n-placeholder></ui5-input>
+              <ui5-label show-colon i18n>Account Holder Name</ui5-label>
+              <ui5-input class="w-full" [(ngModel)]="EmployeeBank.account_holder_name"
+                placeholder="Enter Account Holder Name" i18n-placeholder></ui5-input>
+              <ui5-label show-colon i18n>Swift Code</ui5-label>
+              <ui5-input class="w-full" [(ngModel)]="EmployeeBank.swift_code" placeholder="Enter Swift Code"
+                i18n-placeholder></ui5-input>
+            </section>
+          </ui5-busy-indicator>
+          <ui5-toolbar slot="footer">
+            <ui5-toolbar-button design="Emphasized" (click)="saveEmployeeBankInfo()" [disabled]="isBankLoading"
+              text="{{ localization.Submit }}"></ui5-toolbar-button>
+            <ui5-toolbar-button design="Transparent" (click)="closeEmployeeBank()"
+              text="{{ localization.Cancel }}"></ui5-toolbar-button>
+          </ui5-toolbar>
+        </ui5-dialog>
+      </ui5-tab>
+      <ui5-tab class="p-0 bg-none border-none overflow-y-hidden h-full" id="assetData" i18n-text
+        [selected]="selectedTab === 'assetData'" text="Assets">
+        <app-ag-grid-table
+          *ngIf="saveMode === 'POST'"
+          #employeeAssetTablePost
+          [columns]="assetColumns"
+          [dataSource]="assetStaticDataSource"
+          [toolbarConfig]="assetToolbarConfig"
+          [displayConfig]="assetDisplayConfig"
+          [showAction]="true"
+          [showEditButton]="rolePermissionService.hasPermission(permissions.HR_EMPLOYEE_ASSET_EDIT)"
+          [showDeleteButton]="rolePermissionService.hasPermission(permissions.HR_EMPLOYEE_ASSET_EDIT) || rolePermissionService.hasPermission(permissions.HR_EMPLOYEE_ASSET_DELETE)"
+          (newButtonClick)="addStaticEmployeeAsset()"
+          (editClick)="editEmployeeAsset($event)"
+          (deleteClick)="onAssetDelete($event)"
+        ></app-ag-grid-table>
+        <app-ag-grid-table
+          *ngIf="saveMode === 'PUT'"
+          #employeeAssetTableEdit
+          url="EmployeeHasAssets"
+          expandQuery="employee,asset"
+          [filterQuery]="'employee_id eq ' + employee.id"
+          [columns]="assetColumns"
+          [toolbarConfig]="assetToolbarConfig"
+          [displayConfig]="assetDisplayConfig"
+          [showAction]="true"
+          [showEditButton]="rolePermissionService.hasPermission(permissions.HR_EMPLOYEE_ASSET_EDIT)"
+          [showDeleteButton]="rolePermissionService.hasPermission(permissions.HR_EMPLOYEE_ASSET_EDIT) || rolePermissionService.hasPermission(permissions.HR_EMPLOYEE_ASSET_DELETE)"
+          (newButtonClick)="newEmployeeAsset()"
+          (editClick)="editEmployeeAsset($event)"
+          (deleteClick)="onAssetDelete($event)"
+        ></app-ag-grid-table>
+        <ui5-dialog class="ui5-xl-without-tab" [open]="isAssetOpen"
+          [attr.header-text]="assetSaveMode === 'POST' ? localization.New : localization.Edit"
+          (before-close)="closeEmployeeAsset()">
+          <ui5-busy-indicator class="w-full" [delay]="0" [active]="loading" size="M">
+            <section class="w-full">
+              <div class="col-md-12" *ngIf="assetWarningStrip">
+                <ui5-message-strip (ui5Close)="assetWarningStrip = false" design="Critical" i18n>Fill in at least one field.</ui5-message-strip>
+              </div>
+              <ui5-label show-colon for="assetSelect" i18n>Asset</ui5-label>
+              <ui5-combobox placeholder="Select an Asset" i18n-placeholder [value]="assetTitle"
+                (selectionChange)="onAssetChange($event)" class="w-full" (change)="checkValidation($event, 'selectAssets')"[attr.value-state]="valueStateOptions.selectAssets">
+                <ui5-cb-item *ngFor="let asset of assets" [text]="asset.name" [id]="asset.id"></ui5-cb-item>
+                <div slot="valueStateMessage"> {{ validationMessage }} </div>
+              </ui5-combobox>
+              <ui5-label show-colon for="issuedDate" i18n>Issued Date</ui5-label>
+              <ui5-date-picker class="w-full" id="issuedDate" placeholder="Select Date" i18n-placeholder
+                [(ngModel)]="employeeHasAssets.issued_date"></ui5-date-picker>
+              <ui5-label show-colon for="returnDate" i18n>Return Date</ui5-label>
+              <ui5-date-picker class="w-full" id="returnDate" placeholder="Select Date" i18n-placeholder
+                [(ngModel)]="employeeHasAssets.return_date"></ui5-date-picker>
+              <ui5-label show-colon for="remark" i18n>Remarks</ui5-label>
+              <ui5-textarea class="w-full" id="remark" placeholder="Enter remarks" i18n-placeholder
+                [(ngModel)]="employeeHasAssets.remarks"></ui5-textarea>
+              <ui5-label show-colon for="note" i18n>Note</ui5-label>
+              <ui5-textarea id="note" placeholder="Additional notes" i18n-placeholder
+                [(ngModel)]="employeeHasAssets.note"></ui5-textarea>
+            </section>
+          </ui5-busy-indicator>
+          <ui5-toolbar slot="footer">
+            <ui5-toolbar-button design="Emphasized" (click)="saveEmployeeHasAsset()" [disabled]="loading"
+              [icon]="loading ? 'co' : undefined" class="{{ loading ? 'animate-spin' : '' }}"
+              text="{{ loading ? '' : localization.Submit }}"></ui5-toolbar-button>
+            <ui5-toolbar-button design="Transparent" [disabled]="loading" (click)="closeEmployeeAsset()"
+              text="{{ localization.Cancel }}"></ui5-toolbar-button>
+          </ui5-toolbar>
+        </ui5-dialog>
+      </ui5-tab>
+      <ui5-tab *ngIf="this.saveMode === 'PUT'" class="p-0 bg-none border-none w-[1000px]" text="Leave"
+        [selected]="selectedTab === 'leave'" id="leave" i18n-text>
+        <div class="bg-white p-4 rounded-xl shadow-sm hover:shadow-md transition">
+          <div class="flex justify-start items-center space-x-2 mb-3">
+            <ui5-icon name="alert" class="text-gray-500"></ui5-icon>
+            <ui5-label class="font-bold text-gray-700" i18n>Leave Summary</ui5-label>
+          </div>
+          <div *ngFor="let leave of leaveList" class="flex justify-between items-center py-1 border-b last:border-b-0">
+            <ui5-label class="font-medium text-gray-600">{{ leave.name }}</ui5-label>
+            <ui5-label class="font-bold text-red-700">{{ leave.total }}</ui5-label>
+          </div>
+          <div class="flex justify-between items-center mt-3 pt-2 ">
+            <ui5-label class="font-semibold text-gray-600" i18n>Total Leave</ui5-label>
+            <ui5-label class="font-bold text-red-700">{{ totalLeaves }}</ui5-label>
+          </div>
+          <div class="flex justify-between items-center mt-3 pt-2 ">
+            <ui5-label class="font-semibold text-gray-600" i18n>Leave Balance (Year)</ui5-label>
+            <ui5-label class="font-bold text-gray-600">{{ EmployeeStatus?.leaveStatus?.leaveBalance ?? 0 }}</ui5-label>
+          </div>
+        </div>
+      </ui5-tab>
+      <ui5-tab text="Attachments" class="p-0 bg-none border-none w-[1000px]" [selected]="selectedTab === 'attachments'"
+        id="attachments" i18n-text>
+        <app-attachment-upload #itemAttachmentsTab [model]="'Employee'" [id]="this.employee.id"
+          [apiUrl]="'Employees'"></app-attachment-upload>
+      </ui5-tab>
+    </ui5-tabcontainer>
+  </ui5-busy-indicator>
+  <ui5-toolbar slot="footer">
+    <ui5-toolbar-button design="Emphasized" (click)="saveEmployee()" [disabled]="loading"
+      text="{{ localization.Submit }}"></ui5-toolbar-button>
+    <ui5-toolbar-button design="Transparent" [disabled]="loading" (click)="CloseDialog()"
+      text="{{ localization.Cancel }}"></ui5-toolbar-button>
+  </ui5-toolbar>
+</ui5-dialog>
+<app-delete-entity [IsDelete]="IsDelete" (isSuccess)="onDeleteSuccess()">
+</app-delete-entity>

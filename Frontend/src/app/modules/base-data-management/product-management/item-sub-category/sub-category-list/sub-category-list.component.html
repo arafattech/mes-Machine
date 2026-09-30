@@ -1,0 +1,31 @@
+<div class="h-[calc(100vh-55px)]">
+  <app-ag-grid-table
+    #agGridRef
+    [columns]="columns"
+    [dataSource]="dataSource"
+    [toolbarConfig]="toolbarConfig"
+    selectionMode="Single"
+    [isBase]="true"
+    [gridId]="gridId"
+    [showAction]="true"
+    [showEditButton]="rolePermissionService.hasPermission(permissions.BASE_DATA_ITEM_SUBCATEGORY_EDIT)"
+    [showDeleteButton]="rolePermissionService.hasPermission(permissions.BASE_DATA_ITEM_SUBCATEGORY_DELETE)"
+    (newButtonClick)="newSubCategory()"
+    (editClick)="editSubCategory($event)"
+    (deleteClick)="deleteClick($event.id)"
+    (rowClick)="editSubCategory($event)"
+    [showIllustratedMessage]="true"
+    IllustratedName="NoData"
+    IllustratedTitle="No Sub-Categories Found"
+    IllustratedSubtitle="Try adjusting your search or active status."
+  ></app-ag-grid-table>
+</div>
+
+<app-delete-entity [IsDelete]="IsDelete" (isSuccess)="processData($event)">
+</app-delete-entity>
+
+<app-sub-category-form
+  #subCategoryForm
+  [saveMode]="saveMode"
+  (RefreshTable)="processData($event)"
+></app-sub-category-form>

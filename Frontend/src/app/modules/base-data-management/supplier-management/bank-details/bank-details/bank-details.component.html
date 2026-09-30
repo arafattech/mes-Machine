@@ -1,0 +1,73 @@
+<ui5-dialog [open]="open" [header-text]="BankDetails" state="Information" class="max-w-[850px]" (ui5BeforeClose)="CloseDialog()">
+  <div class="justify-content-center">
+    <div *ngIf="SupplierBankInfo">
+      <div class="d-flex align-items-center">
+        <ui5-label show-colon i18n>Approved</ui5-label>
+        <ui5-switch accessible-name="graphical" design="Graphical" disabled
+          [checked]="SupplierBankInfo.is_active"></ui5-switch>
+      </div>
+    </div>
+
+    <ng-container *ngIf="SupplierBankInfo.mode_of_payment === ModeOfPayment.BANK_TRANSFER">
+      <div class="row w-100">
+
+        <div class="col-md-6">
+          <ui5-label show-colon i18n>Account Holder Name </ui5-label>
+          <ui5-input class="w-100" [(ngModel)]="SupplierBankInfo.account_holder_name" readonly></ui5-input>
+          <ui5-label show-colon i18n>Account Type </ui5-label>
+          <ui5-input class="w-100" [(ngModel)]="SupplierBankInfo.account_type" readonly></ui5-input>
+          <ui5-label show-colon i18n>Routing Number </ui5-label>
+          <ui5-input class="w-100" [(ngModel)]="SupplierBankInfo.routing_number" readonly></ui5-input>
+          <ui5-label show-colon i18n>Branch Name</ui5-label>
+          <ui5-input class="w-100" [(ngModel)]="SupplierBankInfo.branch_name" readonly></ui5-input>
+          <ng-container *ngIf="this.approvedAt">
+            <ui5-label show-colon i18n>Verified At</ui5-label>
+            <ui5-input class="w-100" [value]="this.approvedAt || ''" readonly></ui5-input>
+          </ng-container>
+        </div>
+
+        <div class="col-md-6">
+          <ui5-label show-colon i18n>Bank Name</ui5-label>
+          <ui5-input class="w-100" [(ngModel)]="SupplierBankInfo.bank_name" readonly></ui5-input>
+          <ui5-label show-colon i18n>Account Number</ui5-label>
+          <ui5-input class="w-100" [(ngModel)]="SupplierBankInfo.account_number" readonly></ui5-input>
+          <ui5-label show-colon i18n>Country</ui5-label>
+          <ui5-input class="w-100" [(ngModel)]="SupplierBankInfo.country" readonly></ui5-input>
+          <ui5-label show-colon i18n>Created By</ui5-label>
+          <ui5-input class="w-100" [value]="createdBy || ''" readonly></ui5-input>
+          <ng-container *ngIf="SupplierBankInfo.user?.name || SupplierBankInfo.approved_by">
+            <ui5-label show-colon i18n>Verified By</ui5-label>
+            <ui5-input class="w-100" [value]="SupplierBankInfo.user && SupplierBankInfo.user.name ? 
+              SupplierBankInfo.user.name : (SupplierBankInfo.approved_by ? 'Unknown' : '')" readonly>
+            </ui5-input>
+          </ng-container>
+
+        </div>
+
+        <div class="col-md-12">
+          <ui5-label show-colon i18n>Branch Address</ui5-label>
+          <ui5-textarea class="w-100 h-[100px]" [(ngModel)]="SupplierBankInfo.branch_address" readonly></ui5-textarea>
+        </div>
+      </div>
+    </ng-container>
+    <ng-container *ngIf="SupplierBankInfo.mode_of_payment === ModeOfPayment.CASH">
+      <div class="col-md-12 d-flex flex-column align-items-start">
+        <ui5-label show-colon i18n>Created By</ui5-label>
+        <ui5-input class="w-100" [value]="createdBy || ''" readonly></ui5-input>
+        <ng-container *ngIf="this.approvedAt">
+        <ui5-label show-colon i18n>Verified At</ui5-label>
+        <ui5-input class="w-100" [value]="this.approvedAt || ''" readonly></ui5-input>
+        </ng-container>
+        <ui5-label show-colon i18n>Note</ui5-label>
+        <ui5-textarea class="w-[550px] h-[200px]" [value]="SupplierBankInfo.additional_notes || ''"
+          readonly></ui5-textarea>
+      </div>
+    </ng-container>
+  </div>
+  <ui5-toolbar slot="footer">
+    <ui5-toolbar-button *ngIf="!SupplierBankInfo?.is_active" design="Positive" (click)="markAsApprove()" text="{{ localization.Verify }}">
+      ></ui5-toolbar-button>
+    <ui5-toolbar-button design="Transparent" [disabled]="loading" (click)="CloseDialog()"
+      text="{{ localization.Cancel }}"></ui5-toolbar-button>
+  </ui5-toolbar>
+</ui5-dialog>

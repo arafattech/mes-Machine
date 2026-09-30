@@ -1,0 +1,494 @@
+<?php
+
+namespace Database\Seeders;
+
+use Illuminate\Database\Console\Seeds\WithoutModelEvents;
+use Illuminate\Database\Seeder;
+use Spatie\Permission\Models\Permission;
+
+class BtlPermissionSeeder extends Seeder
+{
+    /**
+     * Run the database seeds.
+     */
+    public function run(): void
+    {
+        $permissionGroups = [
+            'BASE_DATA' => [
+                'BASE_DATA_ADMIN',
+                'BASE_DATA_ITEM',
+                'BASE_DATA_ITEM_CREATE',
+                'BASE_DATA_ITEM_EDIT',
+                'BASE_DATA_ITEM_DELETE',
+                'BASE_DATA_ITEM_LIST',
+                'BASE_DATA_ITEM_CLONE',
+
+                // 'BASE_DATA_ITEM_TYPE_LIST',
+                // 'BASE_DATA_ITEM_TYPE_CREATE',
+                // 'BASE_DATA_ITEM_TYPE_EDIT',
+                // 'BASE_DATA_ITEM_TYPE_DELETE',
+
+                'BASE_DATA_UOM_LIST',
+                'BASE_DATA_UOM_CREATE',
+                'BASE_DATA_UOM_EDIT',
+                'BASE_DATA_UOM_DELETE',
+
+                'BASE_DATA_ORIGIN_LIST',
+                'BASE_DATA_ORIGIN_CREATE',
+                'BASE_DATA_ORIGIN_EDIT',
+                'BASE_DATA_ORIGIN_DELETE',
+
+                // 'BASE_DATA_ITEM_VARIANTS_LIST',
+                // 'BASE_DATA_ITEM_VARIANTS_DELETE',
+
+                // 'BASE_DATA_VARIANT_TYPE_LIST',
+                // 'BASE_DATA_VARIANT_TYPE_CREATE',
+                // 'BASE_DATA_VARIANT_TYPE_EDIT',
+                // 'BASE_DATA_VARIANT_TYPE_DELETE',
+
+                'BASE_DATA_EMPLOYEE',
+                'BASE_DATA_EMPLOYEE_VIEW',
+                'BASE_DATA_EMPLOYEE_ADD',
+                'BASE_DATA_EMPLOYEE_UPDATE',
+                'BASE_DATA_EMPLOYEE_REMOVE',
+
+                'BASE_DATA_MACHINE',
+                'BASE_DATA_MACHINE_LIST',
+                'BASE_DATA_MACHINE_CREATE',
+                'BASE_DATA_MACHINE_EDIT',
+                'BASE_DATA_MACHINE_DELETE',
+
+                'BASE_DATA_PLANT',
+                'BASE_DATA_PLANT_LIST',
+                'BASE_DATA_PLANT_CREATE',
+                'BASE_DATA_PLANT_EDIT',
+                'BASE_DATA_PLANT_DELETE',
+
+                'BASE_DATA_CRUD_PERMISSION',
+
+                'BASE_DATA_DEPARTMENT',
+                'BASE_DATA_DEPARTMENT_LIST',
+                'BASE_DATA_DEPARTMENT_CREATE',
+                'BASE_DATA_DEPARTMENT_EDIT',
+                'BASE_DATA_DEPARTMENT_DELETE',
+
+                // 'BASE_DATA_VARIANT',
+                // 'BASE_DATA_ITEM_VARIANTS',
+                // 'BASE_DATA_VARIANT_TYPE',
+                // 'BASE_DATA_ITEM_TYPE',
+
+                'BASE_DATA_CATEGORY',
+                'BASE_DATA_ITEM_CATEGORIES',
+                'BASE_DATA_ITEM_CATEGORY_CREATE',
+                'BASE_DATA_ITEM_CATEGORY_EDIT',
+                'BASE_DATA_ITEM_CATEGORY_DELETE',
+
+                // 'BASE_DATA_ITEM_SUBCATEGORIES',
+                // 'BASE_DATA_ITEM_SUBCATEGORY_CREATE',
+                // 'BASE_DATA_ITEM_SUBCATEGORY_EDIT',
+                // 'BASE_DATA_ITEM_SUBCATEGORY_DELETE',
+
+                'BASE_DATA_WORK_ORDER',
+                'BASE_DATA_WORK_ORDER_LIST',
+                'BASE_DATA_WORK_ORDER_CREATE',
+                'BASE_DATA_WORK_ORDER_EDIT',
+                'BASE_DATA_WORK_ORDER_DELETE',
+
+                'BASE_DATA_CLIENT',
+                'BASE_DATA_CLIENT_LIST',
+                'BASE_DATA_CLIENT_CREATE',
+                'BASE_DATA_CLIENT_EDIT',
+                'BASE_DATA_CLIENT_DELETE',
+
+                'BASE_DATA_CLIENT_NOTE',
+                'BASE_DATA_CLIENT_NOTE_CREATE',
+                'BASE_DATA_CLIENT_NOTE_EDIT',
+                'BASE_DATA_CLIENT_NOTE_DELETE',
+
+                'BASE_DATA_CLIENT_AREAS',
+                'BASE_DATA_CLIENT_AREA_CREATE',
+                'BASE_DATA_CLIENT_AREA_EDIT',
+                'BASE_DATA_CLIENT_AREA_DELETE',
+
+                'BASE_DATA_SUPPLIER',
+                'BASE_DATA_SUPPLIER_LIST',
+                'BASE_DATA_SUPPLIER_CREATE',
+                'BASE_DATA_SUPPLIER_EDIT',
+                'BASE_DATA_SUPPLIER_DELETE',
+
+                'BASE_DATA_ASSET',
+                'BASE_DATA_ASSET_VIEW',
+                'BASE_DATA_ASSET_CREATE',
+                'BASE_DATA_ASSET_EDIT',
+                'BASE_DATA_ASSET_DELETE',
+
+                'BASE_DATA_ASSET_GROUP',
+                'BASE_DATA_ASSET_GROUP_CREATE',
+                'BASE_DATA_ASSET_GROUP_EDIT',
+                'BASE_DATA_ASSET_GROUP_DELETE',
+
+                'BASE_DATA_STORAGE',
+                'BASE_DATA_STORAGE_LOCATION',
+                'BASE_DATA_STORAGE_LOCATION_CREATE',
+                'BASE_DATA_STORAGE_LOCATION_EDIT',
+                'BASE_DATA_STORAGE_LOCATION_DELETE',
+
+                'BASE_DATA_OPERATION',
+                'BASE_DATA_OPERATION_LIST',
+                'BASE_DATA_OPERATION_CREATE',
+                'BASE_DATA_OPERATION_EDIT',
+                'BASE_DATA_OPERATION_DELETE',
+
+                'BASE_DATA_OPERATION_INFO',
+                'BASE_DATA_OPERATION_INFO_CREATE',
+                'BASE_DATA_OPERATION_INFO_EDIT',
+                'BASE_DATA_OPERATION_INFO_DELETE',
+
+                'BASE_DATA_TOOLS',
+                'BASE_DATA_HANDING_UNITS',
+                'BASE_DATA_HANDING_UNITS_CREATE',
+                'BASE_DATA_HANDING_UNITS_EDIT',
+                'BASE_DATA_HANDING_UNITS_DELETE',
+
+                'BASE_DATA_CAPACITY',
+                'BASE_DATA_CAPACITY_LIST',
+                'BASE_DATA_CAPACITY_CREATE',
+                'BASE_DATA_CAPACITY_EDIT',
+                'BASE_DATA_CAPACITY_DELETE',
+
+                'BASE_DATA_HALL',
+                'BASE_DATA_HALL_LIST',
+                'BASE_DATA_HALL_CREATE',
+                'BASE_DATA_HALL_EDIT',
+                'BASE_DATA_HALL_DELETE',
+
+                'BASE_DATA_MACHINE_GROUP',
+                'BASE_DATA_MACHINE_GROUP_LIST',
+                'BASE_DATA_MACHINE_GROUP_CREATE',
+                'BASE_DATA_MACHINE_GROUP_EDIT',
+                'BASE_DATA_MACHINE_GROUP_DELETE',
+
+                'BASE_DATA_MACHINE_WASTAGE_TYPE',
+                'BASE_DATA_MACHINE_WASTAGE_TYPE_LIST',
+                'BASE_DATA_MACHINE_WASTAGE_TYPE_CREATE',
+                'BASE_DATA_MACHINE_WASTAGE_TYPE_EDIT',
+                'BASE_DATA_MACHINE_WASTAGE_TYPE_DELETE',
+
+                'BASE_DATA_MACHINE_STATE',
+                'BASE_DATA_MACHINE_STATE_LIST',
+                'BASE_DATA_MACHINE_STATE_CREATE',
+                'BASE_DATA_MACHINE_STATE_EDIT',
+                'BASE_DATA_MACHINE_STATE_DELETE',
+
+                'BASE_DATA_MACHINE_CONFIG',
+                'BASE_DATA_MACHINE_CONFIG_LIST',
+                'BASE_DATA_MACHINE_CONFIG_CREATE',
+                'BASE_DATA_MACHINE_CONFIG_EDIT',
+                'BASE_DATA_MACHINE_CONFIG_DELETE',
+
+
+                'BASE_DATA_SUPPLIER_BANK_DETAILS',
+                'BASE_DATA_SUPPLIER_BANK_VERIFIED',
+                'BASE_DATA_SUPPLIER_BANK_NON_VERIFIED',
+                'BASE_DATA_SUPPLIER_BANK_DELETE',
+
+                'BASE_DATA_USER',
+                'BASE_DATA_USER_LIST',
+                'BASE_DATA_USER_CREATE',
+                'BASE_DATA_USER_EDIT',
+                'BASE_DATA_USER_DELETE',
+                'BASE_DATA_ROLE_PERMISSION',
+                'BASE_DATA_ROLE_LIST',
+                'BASE_DATA_ROLE_CREATE',
+                'BASE_DATA_ROLE_EDIT',
+                'BASE_DATA_ROLE_DELETE',
+                'BASE_DATA_PERMISSION_ASSIGN',
+                'BASE_DATA_ACTIVITY_LOG',
+                'BASE_DATA_USER_ACTIVITY',
+                'BASE_DATA_ADMINISTRATION_POWER',
+            ],
+
+            'PRODUCTION' => [
+                'PRODUCTION_ADMIN',
+                'PRODUCTION_DASHBOARD',
+                'PRODUCTION_LOG',
+
+                'PRODUCTION_LOT',
+                'PRODUCTION_LOT_CREATE',
+                'PRODUCTION_LOT_BATCH_CREATE',
+                'PRODUCTION_LOT_EDIT',
+                'PRODUCTION_LOT_DELETE',
+                'PRODUCTION_LOT_VIEW',
+                'PRODUCTION_LOT_QC',
+                'PRODUCTION_LOT_PACK',
+                'PRODUCTION_LOT_GTN_SUBMIT',
+                'PRODUCTION_LOT_GTN_RECALL',
+                'WASTAGE_LOG',
+            ],
+
+            'HR' => [
+                'HR_ADMIN',
+                'HR_ANALYTICS',
+                'HR_EMPLOYEE_DASHBOARD',
+
+                'HR_EMPLOYEE',
+                'HR_EMPLOYEE_LIST',
+                'HR_EMPLOYEE_CREATE',
+                'HR_EMPLOYEE_EDIT',
+                'HR_EMPLOYEE_DELETE',
+
+                'HR_ATTENDANCE',
+                'HR_ATTENDANCE_LIST',
+                'HR_ATTENDANCE_CREATE',
+                'HR_ATTENDANCE_EDIT',
+                'HR_ATTENDANCE_DELETE',
+                'HR_DAILY_ATTENDANCE',
+                'HR_EMPLOYEE_OVERTIME',
+                'HR_ATTENDANCE_EXPORT',
+
+                'HR_EMPLOYEE_GROUP',
+                'HR_EMPLOYEE_GROUP_CREATE',
+                'HR_EMPLOYEE_GROUP_EDIT',
+                'HR_EMPLOYEE_GROUP_DELETE',
+
+                'HR_EMPLOYEE_ASSIGN',
+                'HR_EMPLOYEE_ASSIGN_DELETE',
+
+                'HR_PAYROLL',
+                'HR_PAYROLL_PROCESS',
+                'HR_PAYROLL_GENERATE',
+                'HR_PAYROLL_LIST',
+                'HR_PAYROLL_HISTORY',
+                'HR_SIDE_BILL',
+                'HR_SIDE_BILL_CREATE',
+                'HR_SIDE_BILL_EDIT',
+                'HR_SIDE_BILL_DELETE',
+                'HR_BONUS_CONFIG',
+                'HR_BONUS_CONFIG_CREATE',
+                'HR_BONUS_CONFIG_EDIT',
+                'HR_BONUS_CONFIG_DELETE',
+                'HR_EMPLOYEE_BONUSES',
+
+                'HR_LEAVE',
+                'HR_LEAVE_REQUEST',
+                'HR_LEAVE_REQUEST_APPROVE',
+                'HR_LEAVE_REQUEST_REJECT',
+                'HR_LEAVE_REQUEST_VIEW',
+
+                'HR_CALENDAR',
+                'HR_CALENDAR_INDIVIDUAL_CREATE',
+                'HR_CALENDAR_INDIVIDUAL_EDIT',
+                'HR_CALENDAR_INDIVIDUAL_DELETE',
+                'HR_CALENDAR_INDUSTRIAL_CREATE',
+                'HR_CALENDAR_INDUSTRIAL_EDIT',
+                'HR_CALENDAR_INDUSTRIAL_DELETE',
+
+                'HR_HOLIDAY_SWAP',
+                'HR_HOLIDAY_SWAP_CREATE',
+
+                'HR_ASSET',
+                'HR_EMPLOYEE_ASSET_LIST',
+                'HR_EMPLOYEE_ASSET_CREATE',
+                'HR_EMPLOYEE_ASSET_EDIT',
+                'HR_EMPLOYEE_ASSET_DELETE',
+
+                'HR_SHIFT',
+                'HR_SHIFT_LIST',
+                'HR_SHIFT_CREATE',
+                'HR_SHIFT_EDIT',
+                'HR_SHIFT_DELETE',
+
+                'HR_ROSTER',
+                'HR_ROSTER_CREATE',
+                'HR_ROSTER_EDIT',
+                'HR_ROSTER_SWAP',
+
+                'HR_SHIFT_OVERRIDES_LOG',
+
+                'HR_HOLIDAY_TYPE',
+                'HR_HOLIDAY_TYPE_LIST',
+                'HR_HOLIDAY_TYPE_CREATE',
+                'HR_HOLIDAY_TYPE_EDIT',
+                'HR_HOLIDAY_TYPE_DELETE',
+
+                'HR_BLACK_LIST',
+                'HR_BLACK_LIST_CREATE',
+
+                'HR_NOTICE',
+                'HR_NOTICE_LIST',
+                'HR_NOTICE_CREATE',
+                'HR_NOTICE_EDIT',
+                'HR_NOTICE_VIEW',
+                'HR_NOTICE_DELETE',
+
+                'HR_PROMOTION',
+                'HR_PROMOTION_LIST',
+                'HR_PROMOTION_CREATE',
+                'HR_PROMOTION_EDIT',
+                'HR_PROMOTION_DELETE',
+                'HR_PROMOTION_HISTORY',
+
+                'HR_PROMOTION_CONFIG',
+                'HR_PROMOTION_CONFIG_LIST',
+                'HR_PROMOTION_CONFIG_CREATE',
+                'HR_PROMOTION_CONFIG_EDIT',
+                'HR_PROMOTION_CONFIG_DELETE',
+                'HR_PROMOTION_CONFIG_HISTORY',
+
+                'HR_DESIGNATION',
+                'HR_DESIGNATION_LIST',
+                'HR_DESIGNATION_CREATE',
+                'HR_DESIGNATION_EDIT',
+                'HR_DESIGNATION_DELETE',
+
+                'HR_EMPLOYEE_TYPE',
+                'HR_EMPLOYEE_TYPE_LIST',
+                'HR_EMPLOYEE_TYPE_CREATE',
+                'HR_EMPLOYEE_TYPE_EDIT',
+                'HR_EMPLOYEE_TYPE_DELETE',
+
+                'HR_EMPLOYEE_SECTION',
+                'HR_EMPLOYEE_SECTION_LIST',
+                'HR_EMPLOYEE_SECTION_CREATE',
+                'HR_EMPLOYEE_SECTION_EDIT',
+                'HR_EMPLOYEE_SECTION_DELETE',
+
+                // 'HR_FACE_RECOGNITION',
+                // 'HR_FACE_RECOGNITION_ENROLL',
+                // 'HR_FACE_RECOGNITION_CHECKIN',
+                // 'HR_FACE_RECOGNITION_CHECKOUT',
+
+                'HR_BIOMETRIC',
+                'HR_BIOMETRIC_CREATE',
+                'HR_BIOMETRIC_EDIT',
+                'HR_BIOMETRIC_DELETE',
+            ],
+
+            'SALES_AND_MARKETING' => [
+                'MARKETING_SALES_MARKETING_ADMIN',
+                'MARKETING_SALES_MARKETING_DASHBOARD',
+            ],
+
+            'QUALITY' => [
+                'QUALITY_ADMIN',
+                'QUALITY_DASHBOARD',
+            ],
+
+            'STORE' => [
+                'STORE_ADMIN',
+                'STORE_ANALYTICS',
+
+                'STORE_LOCAL_MRR',
+                'STORE_LOCAL_MRR_CREATE',
+                'STORE_LOCAL_MRR_EDIT',
+                'STORE_LOCAL_MRR_DELETE',
+                'STORE_LOCAL_MRR_VIEW',
+
+                'STORE_PURCHASE_REQUISITION',
+                'STORE_PURCHASE_REQUISITION_CREATE',
+                'STORE_PURCHASE_REQUISITION_EDIT',
+                'STORE_PURCHASE_REQUISITION_DELETE',
+                'STORE_PURCHASE_REQUISITION_VIEW',
+                'STORE_PURCHASE_REQUISITION_APPROVE',
+                'STORE_PURCHASE_REQUISITION_REJECT',
+
+                'STORE_STORE_REQUISITION',
+                'STORE_STORE_REQUISITION_CREATE',
+                'STORE_STORE_REQUISITION_EDIT',
+                'STORE_STORE_REQUISITION_DELETE',
+                'STORE_STORE_REQUISITION_VIEW',
+                'STORE_STORE_REQUISITION_APPROVE',
+                'STORE_STORE_REQUISITION_REJECT',
+
+                'STORE_SR_REQUEST',
+                'STORE_SR_REQUEST_CREATE',
+                'STORE_SR_REQUEST_EDIT',
+                'STORE_SR_REQUEST_DELETE',
+                'STORE_SR_REQUEST_VIEW',
+                'STORE_SR_APPROVAL',
+                'STORE_SR_FINAL_APPROVAL',
+
+                'STORE_ITEM_RETURN',
+                'STORE_ITEM_RETURN_CREATE',
+                'STORE_ITEM_RETURN_EDIT',
+                'STORE_ITEM_RETURN_DELETE',
+                'STORE_ITEM_RETURN_VIEW',
+
+                'STORE_ITEM_INVENTORY',
+                'STORE_ITEM_INVENTORY_VIEW',
+                'STORE_IDLE_INVENTORY',
+                'STORE_LOW_STOCK',
+
+                'STORE_PURCHASE_ORDER',
+                'STORE_PURCHASE_ORDER_CREATE',
+                'STORE_PURCHASE_ORDER_EDIT',
+                'STORE_PURCHASE_ORDER_DELETE',
+                'STORE_PURCHASE_ORDER_VIEW',
+
+                'STORE_REMINDERS',
+                'STORE_REMINDERS_CREATE',
+                'STORE_REMINDERS_UPDATE',
+            ],
+
+            'TASK' => [
+                'TASK_ADMIN',
+                'TASK_DASHBOARD',
+            ],
+
+            'PURCHESE' => [
+                'PURCHESE_ADMIN',
+                'PURCHESE_ANALYTICS',
+
+                'PURCHESE_SPR_REQUESTS',
+                'PURCHESE_SPR_REQUEST_VIEW',
+                'PURCHESE_SPR_REQUEST_DELETE',
+                'PURCHESE_SPR_APPROVAL',
+                'PURCHESE_SPR_FINAL_APPROVAL',
+
+                'PURCHESE_SR_REQUEST',
+                'PURCHESE_SR_REQUEST_VIEW',
+                'PURCHESE_SR_REQUEST_DELETE',
+            ],
+
+            'SALES' => [
+                'SALES_ADMIN',
+                'SALES_ANALYTICS',
+
+                'SALES_PRICING_PLAN',
+                'SALES_PRICING_PLAN_CREATE',
+                'SALES_PRICING_PLAN_EDIT',
+                'SALES_PRICING_PLAN_DELETE',
+
+                'SALES_SALES_ORDERS',
+                'SALES_SALES_ORDER_CREATE',
+                'SALES_SALES_ORDER_EDIT',
+                'SALES_SALES_ORDER_DELETE',
+                'SALES_SALES_ORDER_SEND',
+
+                'SALES_SALES_REQUESTS',
+                'SALES_SALES_REQUEST_APPROVE',
+                'SALES_SALES_REQUEST_REJECT',
+                'SALES_SALES_REQUEST_VIEW',
+
+                'SALES_SALES_AUDIT',
+                'SALES_EXPIRED_SALES_ORDERS',
+
+                'SALES_MARKET_PRICE_HISTORY',
+                'SALES_MARKET_PRICE_ENTRY',
+            ],
+
+            'NOTIFICATION' => [
+                'NOTIFICATION_VIEW',
+            ],
+        ];
+
+        foreach ($permissionGroups as $group => $permissions) {
+            foreach ($permissions as $permission) {
+                Permission::updateOrCreate(
+                    ['name' => $permission, 'guard_name' => 'web'],
+                    ['group' => $group]
+                );
+            }
+        }
+    }
+}

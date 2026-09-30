@@ -1,0 +1,33 @@
+<div class="h-[calc(100vh-50px)] overflow-hidden">
+  <app-ag-grid-table
+    #agGridRef
+    [columns]="columns"
+    [dataSource]="dataSource"
+    [toolbarConfig]="toolbarConfig"
+    [displayConfig]="displayConfig"
+    selectionMode="Single"
+    gridId="purchese-spr-requests-list"
+    [isBase]="true"
+    [showIllustratedMessage]="true"
+    IllustratedName="NoData"
+    IllustratedTitle="No SPR Requests Found"
+    i18n-IllustratedTitle
+    [segmentButtonItems]="segmentButtonItems"
+    (rowClick)="viewItem($event)"
+    (segmentButtonChange)="segmentButtonChange($event)"
+    (processData)="onGridDataLoaded($event)"
+    (moreRowsLoaded)="onGridDataLoaded($event)"
+  ></app-ag-grid-table>
+</div>
+
+<app-requisition-from
+  #requisitionFrom
+  [saveMode]="'REQUEST'"
+  [requisitionType]="'SPR'"
+  [canApprove]="canApprove"
+  [canFinalApprove]="canFinalApprove"
+  [isDepartmentReadOnly]="true"
+  [isRequiredByReadOnly]="true"
+  [selectedData]="selectedData"
+  (saveEvent)="saveEvent()"
+></app-requisition-from>

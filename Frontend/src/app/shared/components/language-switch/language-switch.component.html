@@ -1,0 +1,18 @@
+<ui5-button
+  #languageBtn
+  id="languageButton"         
+  class="border-none"
+  end-icon="navigation-down-arrow"
+  (click)="languageMenu()">
+  {{ (selectedLanguageCode || 'en').toUpperCase() }}
+</ui5-button>
+
+<ui5-menu
+  #menu
+  (item-click)="onMenuItemSelect($event)">
+  <ui5-menu-item
+    *ngFor="let language of selectedLanguage"
+    [text]="language?.name"
+    [selected]="selectedLanguageCode === language?.code">
+  </ui5-menu-item>
+</ui5-menu>

@@ -1,0 +1,91 @@
+<div
+  *ngIf="size === 'large'"
+  class="flex flex-col w-full p-4 rounded-lg shadow-sm" [ngStyle]="theme.currentThemeStyle(false)"
+>
+  <div class="flex justify-between items-center mb-4">
+    <div class="flex items-center gap-4">
+      <h2 class="text-2xl font-bold ">
+        {{ displayMonth }} <span >{{ displayYear }}</span>
+      </h2>
+    </div>
+    <div class="flex gap-2">
+      <ui5-button icon="arrow-left" (click)="prevMonth()" i18n>Prev</ui5-button>
+      <ui5-button design="Emphasized" (click)="goToToday()"
+        i18n>Today</ui5-button>
+      <ui5-button icon="arrow-right" (click)="nextMonth()" i18n>Next</ui5-button>
+    </div>
+  </div>
+
+  <div class="border border-gray-200 rounded-lg overflow-hidden">
+    <div class="grid grid-cols-7 border-b border-gray-200">
+      <div
+        *ngFor="let day of weekDays"
+        class="py-3 text-center text-xs font-bold  uppercase tracking-wider"
+      >
+        {{ day }}
+      </div>
+    </div>
+
+    <div class="grid grid-cols-7 gap-px" >
+      <div
+        *ngFor="let day of days"
+        class="border p-2 min-h-[110px] flex flex-col transition-colors"
+      >
+        <ng-container *ngIf="!day.isEmpty">
+          <div class="flex justify-between mb-1">
+            <span
+              class="text-sm font-bold h-7 w-7 flex items-center justify-center rounded-full"
+              [ngClass]="{
+                'bg-blue-600 text-white': day.isToday,
+                'text-red-500': day.isWeekend && !day.isToday,
+              }"
+            >
+              {{ day.dayNum }}
+            </span>
+          </div>
+          <div class="flex-1 flex flex-col gap-1">
+            <div
+              *ngIf="day.specialData"
+              class="self-start px-2 py-0.5 text-[10px] font-medium rounded text-white shadow-sm truncate w-full"
+              [style.backgroundColor]="day.specialData.color"
+            >
+              {{ day.specialData.type }}
+            </div>
+          </div>
+        </ng-container>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div *ngIf="size === 'small'" class="w-[320px] border border-gray-300 p-3 rounded-xl select-none mx-auto">
+  <div class="flex justify-between items-center mb-2">
+    <ui5-button icon="arrow-left" design="Emphasized" (click)="prevMonth()"></ui5-button>
+    <span class="font-semibold text-lg">{{ displayMonth }}/{{ displayYear }}</span>
+    <ui5-button icon="arrow-right" design="Emphasized" (click)="nextMonth()"></ui5-button>
+  </div>
+
+  <div class="grid grid-cols-7 mb-1">
+    <div *ngFor="let day of weekDays" class="text-center text-xs font-bold text-gray-400">{{ day | slice:0:3 }}</div>
+  </div>
+
+  <div class="grid grid-cols-7 gap-1">
+    <ng-container *ngFor="let day of days">
+      <div *ngIf="day.isEmpty" class="w-9 h-9"></div>
+      <div *ngIf="!day.isEmpty"
+        class="w-9 h-9 flex justify-center items-center rounded-xl border border-transparent text-sm font-medium transition-all cursor-pointer"
+        [ngClass]="{
+            'bg-indigo-600 text-white shadow-md': day.isSelected,
+            'bg-gray-100 text-gray-400 cursor-not-allowed': day.isDisabled && !day.specialData,
+            'cursor-not-allowed': day.isDisabled && !!day.specialData,
+            'border-gray-300 hover:border-indigo-400': !day.isSelected && !day.isDisabled && !day.specialData
+          }"
+        [style.backgroundColor]="!day.isSelected && day.specialData ? day.specialData.color : null"
+        [style.color]="!day.isSelected && day.specialData ? '#ffffff' : null"
+        (click)="toggleDate(day)"
+      >
+        {{ day.dayNum }}
+      </div>
+    </ng-container>
+  </div>
+</div>

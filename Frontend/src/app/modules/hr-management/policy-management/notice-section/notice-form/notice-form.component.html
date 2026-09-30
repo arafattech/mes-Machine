@@ -1,0 +1,66 @@
+<ui5-dialog [open]="isopen" [attr.header-text]="
+    saveMode === 'POST' ? localization.New : localization.Edit
+  " class="w-[calc(120vh-100px)]" (before-close)="CloseDialog()">
+  <ui5-busy-indicator class="w-full" [delay]="0" [active]="isLoading" size="M">
+    <section class="w-full space-y-4">
+      <div class="row">
+        <div class="col-md-6">
+          <ui5-label show-colon required i18n>Target Audience</ui5-label>
+          <ui5-select class="w-100" [(ngModel)]="targetType" (change)="onTargetTypeChange($event)">
+            <ui5-option [value]="NoticeTargetAudience.ALL" i18n>All Employees</ui5-option>
+            <ui5-option [value]="NoticeTargetAudience.DEPARTMENT" i18n>Departments</ui5-option>
+            <ui5-option [value]="NoticeTargetAudience.INDIVIDUAL" i18n>Individual Employees</ui5-option>
+          </ui5-select>
+        </div>
+        <div class="col-md-6">
+          <div *ngIf="targetType === NoticeTargetAudience.DEPARTMENT">
+            <ui5-label show-colon i18n>Select Departments</ui5-label>
+            <ui5-multi-combobox (selection-change)="getDepartment($event)" class="w-100">
+              <ui5-mcb-item *ngFor="let dept of departments" [text]="dept.name" [id]="dept.id"
+                [selected]="selectedDepartmentIds.includes(dept.id)"></ui5-mcb-item>
+            </ui5-multi-combobox>
+          </div>
+          <div *ngIf="targetType === NoticeTargetAudience.INDIVIDUAL">
+            <ui5-label show-colon i18n>Select Employees</ui5-label>
+            <ui5-multi-combobox (selection-change)="selectedEmployeesChange($event)" class="w-100">
+              <ui5-mcb-item *ngFor="let employees of employeeList"
+                [text]="employees.employee_no + ' - ' + employees.first_name + ' ' + employees.last_name"
+                [id]="employees.id"  [selected]="
+                 (employees.id !== undefined &&
+                   selectedEmployeeIds.includes(employees.id))"></ui5-mcb-item>
+            </ui5-multi-combobox>
+          </div>
+        </div>
+      </div>
+      <div>
+        <ui5-label show-colon required i18n>Title</ui5-label>
+        <ui5-input class="w-100" [(ngModel)]="noticeList.title" (input)="checkValidation($event, 'title')"
+          [attr.value-state]="valueStateOptions.title" placeholder="Enter title" i18n-placeholder>
+          <div slot="valueStateMessage">{{ validationMessage }}</div>
+        </ui5-input>
+      </div>
+
+      <div>
+        <ui5-label show-colon required i18n>Content</ui5-label>
+        <ui5-message-strip design="Negative" *ngIf="valueStateOptions.content === valueState.Negative">
+          {{ validationMessage }}
+        </ui5-message-strip>
+        <app-angular-editor [(ngModel)]="htmlContent" (input)="checkValidation($event, 'content')"></app-angular-editor>
+      </div>
+      <div>
+        <ui5-checkbox [(ngModel)]="NoticeEmployeeList.is_acknowledged" [text]="RequireAcknowledgement"
+          [disabled]="isViewOpen">
+        </ui5-checkbox>
+      </div>
+    </section>
+  </ui5-busy-indicator>
+
+  <ui5-toolbar slot="footer">
+    <ui5-toolbar-button [disabled]="isLoading" text="{{ localization.Draft }}" (click)="saveAsDraft()">
+    </ui5-toolbar-button>
+    <ui5-toolbar-button design="Emphasized" (click)="publishNotice()" [disabled]="isLoading"
+      text="{{ localization.Published }}"></ui5-toolbar-button>
+    <ui5-toolbar-button design="Transparent" (click)="CloseDialog()" text="{{ localization.Cancel }}"
+      [disabled]="isLoading"></ui5-toolbar-button>
+  </ui5-toolbar>
+</ui5-dialog>

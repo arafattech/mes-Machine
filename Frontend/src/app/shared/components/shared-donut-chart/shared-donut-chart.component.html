@@ -1,0 +1,31 @@
+<div class="w-full flex gap-[10px]" [style.height]="chartHeight">
+  <div class="relative h-full" [ngClass]="showSideList ? 'flex-[0_0_54%] min-w-0' : 'flex-1 min-w-0'">
+    <div #chartdiv class="w-full h-full"></div>
+
+    <div *ngIf="showCenterOverlay" class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center pointer-events-none">
+      <div class="text-[9px] font-bold tracking-[0.6px]" style="color: var(--sapContent_LabelColor, #64748b)">{{ centerOverlayLabel }}</div>
+      <div class="text-[25px] font-extrabold leading-[1.1]" style="color: var(--sapTextColor, #1d2d3e)">{{ centerTotal }}{{ centerOverlayValueSuffix }}</div>
+    </div>
+  </div>
+
+  <ng-container *ngIf="showSideList">
+    <div *ngIf="chartData.length > 0" class="flex-1 min-w-0 max-h-full overflow-y-auto pr-1">
+      <div
+        class="flex items-center justify-between gap-2 p-[6px_8px] mb-[6px] border rounded-[10px]"
+        style="border-color: var(--sapList_BorderColor, #d9d9d9); background-color: var(--sapList_Background, #f5f6f7)"
+        *ngFor="let item of chartData; let i = index">
+        <div class="flex items-center gap-2 min-w-0">
+          <span class="w-2 h-2 rounded-full shrink-0" [style.background-color]="getColor(i)"></span>
+          <span class="text-[11px] font-semibold whitespace-nowrap overflow-hidden text-ellipsis"
+            style="color: var(--sapContent_LabelColor, #64748b)"
+            [title]="item[labelField]">{{ item[labelField] }}</span>
+        </div>
+        <span class="text-[11px] font-bold shrink-0" [style.color]="getColor(i)">{{ item[valueField] | number:'1.0-2' }}{{ sideListValueSuffix }}</span>
+      </div>
+    </div>
+
+    <div *ngIf="chartData.length === 0" class="flex-1 flex items-center justify-center h-full text-sm" style="color: var(--sapContent_LabelColor, #64748b)">
+      {{ noDataMessage }}
+    </div>
+  </ng-container>
+</div>

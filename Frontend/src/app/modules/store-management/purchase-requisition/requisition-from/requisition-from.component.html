@@ -1,0 +1,196 @@
+<ui5-dialog class="w-[70vw] h-[86vh]" [open]="open" [attr.header-text]="
+    this.saveMode === 'POST' ? localization.New : localization.Information
+  " (before-close)="CloseDialog()">
+  <ui5-busy-indicator class="w-full h-[72vh]" [delay]="0" [active]="loading || approvingSrStep || loadingSrApprovalSteps">
+    <div class="p-2 h-full flex flex-col">
+    <ui5-wizard
+      class="w-full h-[72vh] block"
+      content-layout="SingleStep"
+      (step-change)="onWizardStepChange($event)"
+    >
+      <!-- ─── Step 1: Requisition Details ─────────────────────────────────── -->
+      <ui5-wizard-step
+        [attr.data-step]="1"
+        title-text="Requisition Details"
+        i18n-title-text
+        icon="document-text"
+        [selected]="currentStep === 1"
+      >
+        <div class="w-full py-2 grid grid-cols-2 gap-3">
+          <div class="flex flex-col">
+            <ui5-label for="requiredDate" show-colon>{{ idLabelText }}</ui5-label>
+            <ui5-input id="requiredDate" class="w-full" [readonly]="isReadOnly" [(ngModel)]="Spr.custom_id"></ui5-input>
+          </div>
+          <div class="flex flex-col">
+            <ui5-label for="department" show-colon i18n>For Department</ui5-label>
+            <ui5-combobox [value]="departmentName ? departmentName : ''" (selectionChange)="getDepartment($event)"
+              [readonly]="isDepartmentReadOnly || isReadOnly" class="w-full" id="department" placeholder="Select Department"
+              i18n-placeholder> @for (item of departments; track $index) { <ui5-cb-item [text]="item.name"
+                [id]="item.id"></ui5-cb-item> } </ui5-combobox>
+          </div>
+          <div class="flex gap-3 col-span-2">
+            <div class="flex flex-col flex-1">
+              <ui5-label for="urgency" show-colon i18n>Urgency</ui5-label>
+              <ui5-combobox id="urgency" [value]="urgencyTitle ? urgencyTitle : ''" (selectionChange)="getUrgency($event)"
+                [readonly]="isReadOnly || isRequestMode()" class="w-full" placeholder="Select Urgency" i18n-placeholder>
+                <ui5-cb-item *ngFor="let urgency of urgencyOptions" [value]="urgency" [text]="urgency.text"
+                  [id]="urgency.value"></ui5-cb-item>
+              </ui5-combobox>
+            </div>
+            <div class="flex flex-col flex-1" *ngIf="requisitionType !== 'SR'">
+              <ui5-label for="indentType" show-colon i18n>Indent Type</ui5-label>
+              <ui5-combobox id="indentType" [value]="indentTypeTitle ? indentTypeTitle : ''" (selectionChange)="getIndentType($event)"
+                [readonly]="isReadOnly" class="w-full" placeholder="Select Indent Type" i18n-placeholder>
+                <ui5-cb-item *ngFor="let type of indentTypeOptions" [text]="type.text" [id]="type.value"></ui5-cb-item>
+              </ui5-combobox>
+            </div>
+            <div class="flex flex-col flex-1">
+              <ui5-label for="requiredDate" show-colon i18n>Required By</ui5-label>
+              <ui5-date-picker id="requiredDate" class="w-full" [(ngModel)]="Spr.required_by"
+                [readonly]="isReadOnly || isRequiredByReadOnly" format-pattern="dd-MM-yyyy"
+                [attr.min-date]="todayFormatted"></ui5-date-picker>
+            </div>
+          </div>
+          <div class="flex gap-4 col-span-2" [ngClass]="{
+              'flex-row': Spr.status === statusEnum.REJECTED,
+              'flex-col': Spr.status !== statusEnum.REJECTED
+            }">
+            <div class="flex flex-col flex-1">
+              <ui5-label for="justification" show-colon>{{ descriptionLabelText }}</ui5-label>
+              <ui5-textarea id="justification" placeholder="Type message..." [(ngModel)]="Spr.description" class="w-full"
+                [readonly]="isReadOnly || isRequestMode()">
+              </ui5-textarea>
+            </div>
+            <div class="flex flex-col flex-1" *ngIf="isRequestMode() || Spr.status === statusEnum.REJECTED">
+              <ui5-label for="rejectNote" show-colon i18n>Reject Note</ui5-label>
+              <ui5-textarea id="rejectNote" placeholder="Type message..." [(ngModel)]="Spr.rejected_reason"
+                [readonly]="isReadOnly && !isRequestMode()" class="w-full">
+              </ui5-textarea>
+            </div>
+          </div>
+
+          <div class="flex justify-end col-span-2 pt-2">
+            <ui5-button design="Emphasized" icon="slim-arrow-right" icon-end (click)="nextStep()" i18n>Next</ui5-button>
+          </div>
+        </div>
+      </ui5-wizard-step>
+
+      <!-- ─── Step 2: Items ────────────────────────────────────────────────── -->
+      <ui5-wizard-step
+        [attr.data-step]="2"
+        title-text="Items"
+        i18n-title-text
+        icon="list"
+        [selected]="currentStep === 2"
+      >
+        <div class="w-full h-full py-2 flex flex-col gap-2">
+          <div class="flex-1 min-h-0 rounded-lg border border-slate-300 pt-4">
+            <app-ag-grid-table #childComponentRef [columns]="column" [dataSource]="dataSource"
+              [toolbarConfig]="toolbarConfig" [displayConfig]="displayConfig" [selectionMode]="'None'" [showAction]="false"
+              (newButtonClick)="newItem()">
+            </app-ag-grid-table>
+          </div>
+
+          <div class="flex justify-between pt-1 shrink-0">
+            <ui5-button design="Transparent" icon="slim-arrow-left" (click)="prevStep()" i18n>Back</ui5-button>
+            <ui5-button *ngIf="hasApprovalChain" design="Emphasized" icon="slim-arrow-right" icon-end
+              (click)="nextStep()" i18n>Next</ui5-button>
+          </div>
+        </div>
+      </ui5-wizard-step>
+
+      <!-- ─── Step 3: Approvers (SR + SPR/Indent, display-only) ───────────── -->
+      <ui5-wizard-step
+        *ngIf="hasApprovalChain"
+        [attr.data-step]="3"
+        title-text="Approvers"
+        i18n-title-text
+        icon="employee"
+        [selected]="currentStep === 3"
+      >
+        <ui5-busy-indicator class="w-full h-full" [delay]="0" [active]="loadingSrApprovalSteps">
+        <div class="w-full h-full py-2 flex flex-col gap-2">
+          <p *ngIf="!loadingSrApprovalSteps && !srApprovalSteps.length" class="text-sm text-slate-500" i18n>
+            No approvers configured yet.
+          </p>
+
+          <div *ngIf="srApprovalSteps.length" class="grid grid-cols-4 gap-y-4">
+            <ng-container *ngFor="let step of srApprovalSteps; let i = index; let last = last">
+              <div class="flex items-start">
+                <div class="flex flex-col items-center gap-1 w-24">
+                  <div
+                    class="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold border-2 shrink-0"
+                    [ngClass]="{
+                      'bg-green-500 border-green-500 text-white': step.status === 'approved',
+                      'bg-red-500 border-red-500 text-white': step.status === 'rejected',
+                      'border-sky-500 text-sky-600 bg-white': step.status === 'pending' && step.isCurrentStep,
+                      'border-slate-300 text-slate-400 bg-white': step.status === 'pending' && !step.isCurrentStep
+                    }"
+                  >
+                    <ui5-icon *ngIf="step.status === 'approved'" name="accept"></ui5-icon>
+                    <ui5-icon *ngIf="step.status === 'rejected'" name="decline"></ui5-icon>
+                    <span *ngIf="step.status === 'pending'">{{ i + 1 }}</span>
+                  </div>
+                  <ui5-avatar [image]="step.photoUrl" initials="employee" size="XS" color-scheme="Accent6"></ui5-avatar>
+                  <span class="text-xs font-semibold text-center break-words">{{ step.name }}</span>
+                  <span class="text-[10px] text-slate-500 text-center break-words">{{ step.designation }}</span>
+                  <ui5-badge [colorScheme]="step.isRequired ? '1' : '8'">
+                    <span *ngIf="step.isRequired" i18n>Required</span>
+                    <span *ngIf="!step.isRequired" i18n>Optional</span>
+                  </ui5-badge>
+                </div>
+                <div
+                  *ngIf="!last && (i + 1) % 4 !== 0"
+                  class="h-0.5 flex-1 mt-4"
+                  [ngClass]="step.status === 'approved' ? 'bg-green-500' : 'bg-slate-300'"
+                ></div>
+              </div>
+            </ng-container>
+          </div>
+
+          <div class="flex justify-start pt-1 shrink-0">
+            <ui5-button design="Transparent" icon="slim-arrow-left" (click)="prevStep()" i18n>Back</ui5-button>
+          </div>
+        </div>
+        </ui5-busy-indicator>
+      </ui5-wizard-step>
+    </ui5-wizard>
+    </div>
+  </ui5-busy-indicator>
+  <ui5-toolbar slot="footer">
+
+
+    @if (canActOnSrApprovalStep) {
+      <ui5-toolbar-button design="Positive" [disabled]="approvingSrStep" (click)="approveAsCurrentUser()"
+        text="Approve" i18n-text></ui5-toolbar-button>
+      <ui5-toolbar-button design="Negative" [disabled]="approvingSrStep" (click)="rejectAsCurrentUser()"
+        text="Reject" i18n-text></ui5-toolbar-button>
+    }
+
+    @if (canShowPrimaryAction) { <ui5-toolbar-button design="Emphasized" (click)="onSaveType()" [disabled]="loading"
+      [attr.text]="primaryActionText"></ui5-toolbar-button> }
+
+    @if (canShowRejectAction) { <ui5-toolbar-button design="Negative" (click)="onSaveType(statusEnum.REJECTED)"
+      [disabled]="loading" text="Reject" i18n-text></ui5-toolbar-button> }
+
+    <ui5-toolbar-button design="Transparent" [disabled]="loading" (click)="CloseDialog()"
+      text="{{ localization.Cancel }}"></ui5-toolbar-button>
+  </ui5-toolbar>
+</ui5-dialog>
+<app-assosiate #itemAssosiate [apiUrl]="
+    'Products?$expand=suppliers,productTypes,category,clients,plants,variants,uom&$filter=is_active eq true &$orderby=created_at desc '
+  " [model]="product" [tableColumn]="associateTableColum()" [orderByColumn]="'custom_id'"
+  (selectedData)="getDataFromAssosiate($event)"></app-assosiate>
+
+
+<ui5-dialog [open]="isWarning" state="Critical" [attr.header-text]="[localization.Warning]">
+  <ui5-busy-indicator class="w-full bg-none h-full" [delay]="0" size="M">
+    <p class="w-100 text-center">
+      <span i18n>{{this.warningMessage}}</span>
+    </p>
+  </ui5-busy-indicator>
+  <div slot="footer" class="d-flex justify-content-end align-items-center w-100">
+
+    <ui5-button (click)="isWarning = false">{{localization.Cancel}}</ui5-button>
+  </div>
+</ui5-dialog>

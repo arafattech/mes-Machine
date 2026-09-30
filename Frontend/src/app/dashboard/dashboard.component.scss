@@ -1,0 +1,36 @@
+@import "styles.sass";
+
+ui5-card {
+  width: $card-sm;
+  height: $card-sm;
+}
+
+ui5-icon {
+  width: $icon-sm;
+  height: $icon-sm;
+  color: $blue-icon;
+}
+
+// .dashboard {
+//   width: 100%;
+//   display: grid;
+//   grid-template-columns: repeat(9, 1fr);
+//   gap: $gap-sm;
+// }
+ui5-card:hover {
+  border-radius: 13px;
+  border: 1px solid rgba(0, 0, 0, 0.308);
+  transition: box-shadow 0.1s ease-in-out;
+  transform: translateY(-2px);
+  cursor: pointer;
+  box-shadow: rgba(0, 0, 0, 0.205) 0px 14px 28px, rgba(0, 0, 0, 0.178) 0px 10px 10px;
+}
+
+.footer {
+  position: fixed;
+  bottom: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  text-align: center;
+  width: 100%;
+}

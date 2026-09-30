@@ -1,0 +1,64 @@
+<div class="grid grid-cols-2 gap-2">
+  <div class="h-[calc(100vh-55px)] overflow-hidden">
+    <app-ag-grid-table
+      #typeTableRef
+      [dataSource]="typeDataSource"
+      [toolbarConfig]="typeToolbarConfig"
+      [displayConfig]="typeDisplayConfig"
+      [columns]="typeColumns"
+      [showAction]="true"
+      [showEditButton]="rolePermissionService.hasPermission(permissionEnum.BASE_DATA_APPROVER_EDIT)"
+      [showDeleteButton]="rolePermissionService.hasPermission(permissionEnum.BASE_DATA_APPROVER_DELETE)"
+      [editDisabledFn]="isSeededApprovalType"
+      [deleteDisabledFn]="isSeededApprovalType"
+      [isBase]="true"
+      selectionMode="Single"
+      gridId="base-approval-type-list"
+      (newButtonClick)="newApprovalType()"
+      (editClick)="editApprovalType($event)"
+      (deleteClick)="deleteApprovalType($event)"
+      (rowClick)="selectedRowData($event)"
+      (processData)="processData($event)"
+    >
+    </app-ag-grid-table>
+  </div>
+
+  <div class="h-[calc(100vh-55px)] overflow-hidden">
+    <app-ag-grid-table
+      [dataSource]="approverDataSource"
+      [toolbarConfig]="approverToolbarConfig"
+      [displayConfig]="approverDisplayConfig"
+      [columns]="approverColumns"
+      [showAction]="true"
+      [showEditButton]="false"
+      [showDeleteButton]="rolePermissionService.hasPermission(permissionEnum.BASE_DATA_APPROVER_ASSIGN)"
+      [isBase]="false"
+      selectionMode="None"
+      gridId="base-approval-type-approvers"
+      (newButtonClick)="openAssignDialog()"
+      (deleteClick)="removeApprover($event)"
+      (cellEdited)="onApproverCellEdited($event)"
+    >
+    </app-ag-grid-table>
+  </div>
+</div>
+
+<app-delete-entity
+  (isSuccess)="refreshTypeTable()"
+  [IsDelete]="IsDelete"
+></app-delete-entity>
+
+<app-approver-type-form
+  [(open)]="open"
+  [saveMode]="saveMode"
+  [approvalType]="approvalType"
+  (refreshTable)="refreshTypeTable()"
+></app-approver-type-form>
+
+<app-approver-assign-form
+  [(open)]="isAssignOpen"
+  [approvalTypeId]="selectedApprovalTypeId"
+  [excludeEmployeeIds]="assignedEmployeeIds"
+  [existingRows]="approverRows"
+  (saved)="onAssignSaved()"
+></app-approver-assign-form>

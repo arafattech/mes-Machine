@@ -1,0 +1,279 @@
+<ui5-dialog
+  class="w-[90vw] max-w-7xl h-[88vh]"
+  [open]="open"
+  [attr.header-text]="mode === 'create' ? localization.New : ('Batch ' + (batch.custom_id ?? ''))"
+  (before-close)="closeDialog()"
+>
+  <ui5-busy-indicator class="w-full h-[calc(88vh-130px)] block" [delay]="0" [active]="loading || saving" size="M">
+    <ui5-tabcontainer class="w-full h-full" header-background-design="Solid" content-background-design="Transparent" (tab-select)="onTabSelect($event)">
+      <ui5-tab text="Details" class="h-full overflow-y-auto" i18n-text [selected]="selectedTab === 'details'" id="details">
+        <section class="w-full p-2">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <ui5-label show-colon i18n>Lot No</ui5-label>
+              <ui5-input
+                class="w-100"
+                [ngModel]="batch.lot_no ?? ''"
+                (ngModelChange)="batch.lot_no = $event"
+                type="Number"
+                placeholder="Mill's physical lot number, e.g. 63"
+                i18n-placeholder
+                [disabled]="!isHeaderEditable"
+              ></ui5-input>
+            </div>
+
+            <div>
+              <ui5-label show-colon i18n>Production Order</ui5-label>
+              <ui5-combobox
+                class="w-100"
+                placeholder="Select Production Order (optional)"
+                i18n-placeholder
+                [disabled]="!isHeaderEditable"
+                [value]="selectedWorkOrderText"
+                (selectionChange)="onWorkOrderChange($event)"
+              >
+                @for (wo of workOrders; track wo.id) {
+                  <ui5-cb-item
+                    [text]="wo.text + (wo.productName ? ' · ' + wo.productName : '')"
+                    [id]="wo.id"
+                    [value]="wo.id"
+                    [selected]="batch.work_order_id === wo.id"
+                  ></ui5-cb-item>
+                }
+              </ui5-combobox>
+            </div>
+
+            <div>
+              <ui5-label show-colon required i18n>Machine (Autoconer)</ui5-label>
+              <ui5-combobox
+                class="w-100"
+                placeholder="Select Machine"
+                i18n-placeholder
+                [disabled]="!isHeaderEditable"
+                [value]="selectedMachineText"
+                [attr.value-state]="valueStateOptions.machine"
+                (selectionChange)="onMachineChange($event)"
+              >
+                @for (m of machines; track m.id) {
+                  <ui5-cb-item [text]="m.text" [id]="m.id" [value]="m.id" [selected]="batch.machine_id === m.id"></ui5-cb-item>
+                }
+                <div slot="valueStateMessage">{{ localization.requiredField }}</div>
+              </ui5-combobox>
+            </div>
+
+            <div>
+              <ui5-label show-colon i18n>Shift</ui5-label>
+              <ui5-combobox class="w-100" placeholder="Select Shift" i18n-placeholder [disabled]="!isHeaderEditable" [value]="selectedShiftText" (selectionChange)="onShiftChange($event)">
+                @for (s of shifts; track s.id) {
+                  <ui5-cb-item [text]="s.name" [id]="s.id" [value]="s.id" [selected]="batch.shift_id === s.id"></ui5-cb-item>
+                }
+              </ui5-combobox>
+            </div>
+
+            <div>
+              <ui5-label show-colon required i18n>Lot Date</ui5-label>
+              <ui5-date-picker
+                class="w-100"
+                [(ngModel)]="batch.lot_date"
+                (change)="onLotDateChange()"
+                format-pattern="dd-MM-yyyy"
+                [disabled]="!isHeaderEditable"
+                [attr.value-state]="valueStateOptions.lotDate"
+              ></ui5-date-picker>
+            </div>
+          </div>
+
+          @if (mode === 'manage') {
+            <div class="flex items-center gap-3 mt-3 text-sm">
+              <span>{{ batch.counts.length }} {{ 'counts' }}</span>
+            </div>
+          }
+        </section>
+      </ui5-tab>
+
+      <ui5-tab text="Counts" class="h-full overflow-y-auto" i18n-text [selected]="selectedTab === 'counts'" id="counts" [disabled]="mode === 'create'">
+        <section class="w-full p-2 space-y-3">
+          @if (mode === 'create') {
+            @for (draft of draftCounts; track $index) {
+              <div class="border rounded p-3 flex flex-col md:flex-row gap-3 md:items-end">
+                <div class="flex-1">
+                  <ui5-label show-colon i18n>Count Type</ui5-label>
+                  <ui5-combobox class="w-100" [value]="countTypeText(draft.count_type_id)" (selectionChange)="onDraftCountTypeChange(draft, $event)">
+                    @for (countType of countTypes; track countType.id) {
+                      <ui5-cb-item [text]="countType.text" [id]="countType.id" [value]="countType.id" [selected]="draft.count_type_id === countType.id"></ui5-cb-item>
+                    }
+                  </ui5-combobox>
+                </div>
+                <div class="flex-1">
+                  <ui5-label show-colon i18n>Product</ui5-label>
+                  <ui5-combobox class="w-100" [value]="productText(draft.product_id)" (selectionChange)="onDraftProductChange(draft, $event)">
+                    @for (p of products; track p.id) {
+                      <ui5-cb-item [text]="p.text" [id]="p.id" [value]="p.id" [selected]="draft.product_id === p.id"></ui5-cb-item>
+                    }
+                  </ui5-combobox>
+                </div>
+                @if (draftCounts.length > 1) {
+                  <ui5-button design="Transparent" icon="delete" (click)="removeDraftCount($index)" i18n>Remove</ui5-button>
+                }
+              </div>
+            }
+            <ui5-button design="Transparent" icon="add" (click)="addDraftCount()" i18n>Add Count</ui5-button>
+          } @else {
+            @for (count of batch.counts; track count.id) {
+              <ui5-panel [attr.header-text]="(countTypeText(count.count_type_id) || 'Count') + ' — ' + count.custom_id" collapsed>
+                <div class="flex flex-col w-full">
+                  <div class="flex items-center px-2 pt-1 pb-3">
+                    @for (step of lotSteps; track step.key; let i = $index; let last = $last) {
+                      <div class="flex items-center" [class.flex-1]="!last">
+                        <div class="flex flex-col items-center gap-1">
+                          <div
+                            class="w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold shrink-0"
+                            [class.bg-emerald-500]="stepState(count, i) === 'done'"
+                            [class.bg-blue-500]="stepState(count, i) === 'current'"
+                            [class.bg-red-500]="stepState(count, i) === 'failed'"
+                            [class.bg-gray-200]="stepState(count, i) === 'pending'"
+                            [class.text-white]="stepState(count, i) !== 'pending'"
+                            [class.text-gray-500]="stepState(count, i) === 'pending'"
+                          >
+                            @if (stepState(count, i) === 'done') {
+                              <ui5-icon name="accept" style="width:12px;height:12px;"></ui5-icon>
+                            } @else if (stepState(count, i) === 'failed') {
+                              <ui5-icon name="decline" style="width:12px;height:12px;"></ui5-icon>
+                            } @else {
+                              {{ i + 1 }}
+                            }
+                          </div>
+                          <span class="text-[10px] text-center whitespace-nowrap">{{ step.label }}</span>
+                        </div>
+                        @if (!last) {
+                          <div class="h-0.5 flex-1 mx-1" [class.bg-emerald-500]="stepState(count, i) === 'done'" [class.bg-gray-200]="stepState(count, i) !== 'done'"></div>
+                        }
+                      </div>
+                    }
+                  </div>
+
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-4 px-2">
+                    <div>
+                      <ui5-label show-colon i18n>Count Type</ui5-label>
+                      <ui5-combobox
+                        class="w-100"
+                        [disabled]="!isCountEditable(count)"
+                        [value]="countTypeText(count.count_type_id)"
+                        (selectionChange)="onCountTypeChange(count, $event)"
+                      >
+                        @for (countType of countTypes; track countType.id) {
+                          <ui5-cb-item [text]="countType.text" [id]="countType.id" [value]="countType.id" [selected]="count.count_type_id === countType.id"></ui5-cb-item>
+                        }
+                      </ui5-combobox>
+                    </div>
+                    <div>
+                      <ui5-label show-colon i18n>Product</ui5-label>
+                      <ui5-combobox
+                        class="w-100"
+                        [disabled]="!isCountEditable(count)"
+                        [value]="productText(count.product_id)"
+                        (selectionChange)="onProductChange(count, $event)"
+                      >
+                        @for (p of products; track p.id) {
+                          <ui5-cb-item [text]="p.text" [id]="p.id" [value]="p.id" [selected]="count.product_id === p.id"></ui5-cb-item>
+                        }
+                      </ui5-combobox>
+                    </div>
+                  </div>
+
+                  <div class="flex items-center gap-3 mt-3 px-2 text-sm">
+                    <span>{{ count.total_bags ?? 0 }} {{ 'bags' }}</span>
+                    <span>{{ count.total_cones ?? 0 }} {{ 'cones' }}</span>
+                    <span>{{ count.net_weight_kg ?? 0 }} kg net</span>
+                  </div>
+
+                  @if (count.qc_status) {
+                    <ui5-message-strip class="mt-3 mx-2" design="Information" hide-close-button>
+                      {{ count.qc_status === 'PASSED' ? 'QC Passed' : 'QC Failed' }}
+                    </ui5-message-strip>
+                  }
+
+                  @if (count.status === lotStatus.DOFFED) {
+                    <div class="px-2 mt-3">
+                      <ui5-label show-colon i18n>Final QC Remark</ui5-label>
+                      <ui5-textarea class="w-100" [rows]="2" [(ngModel)]="countUiState(count).qcRemark" [disabled]="isReadOnly"></ui5-textarea>
+                      @if (!isReadOnly) {
+                        <div class="flex gap-2 mt-2">
+                          <ui5-button design="Positive" icon="accept" (click)="recordQc(count, 'PASSED')" i18n>Pass QC</ui5-button>
+                          <ui5-button design="Negative" icon="decline" (click)="recordQc(count, 'FAILED')" i18n>Fail QC</ui5-button>
+                        </div>
+                      }
+                    </div>
+                  }
+
+                  <div class="px-2 mt-4">
+                    <div class="flex justify-between items-center mb-2">
+                      @if (isCountEditable(count) && !countUiState(count).bagDraftOpen) {
+                        <ui5-button design="Transparent" icon="add" (click)="addBagDraft(count)" i18n>Add Bag</ui5-button>
+                      } @else if (isCountEditable(count)) {
+                        <span class="text-sm opacity-70" i18n>Fill in the highlighted row below to add a bag.</span>
+                      } @else {
+                        <span></span>
+                      }
+                      @if (!isReadOnly && count.qc_status === 'PASSED' && count.status === lotStatus.DOFFED) {
+                        <ui5-button design="Emphasized" (click)="pack(count)" i18n>Pack Count</ui5-button>
+                      }
+                    </div>
+                    <app-ag-grid-table
+                      [columns]="countUiState(count).bagColumns"
+                      [toolbarConfig]="bagToolbarConfig"
+                      [dataSource]="countUiState(count).bagDataSource"
+                      [gridId]="'production-lot-bags-' + count.id"
+                      selectionMode="Single"
+                      [isBase]="true"
+                      [showAction]="isCountEditable(count)"
+                      [showEditButton]="false"
+                      [showDeleteButton]="isCountEditable(count)"
+                      [enableRowClick]="false"
+                      [displayConfig]="displayConfig"
+                      (deleteClick)="deleteBag(count, $event)"
+                      [showIllustratedMessage]="false"
+                      IllustratedName="NoData"
+                      noRowsMessage="No bags packed yet"
+                      i18n-noRowsMessage
+                    ></app-ag-grid-table>
+                  </div>
+
+                  @if (canCancelCount(count)) {
+                    <div class="px-2 mt-3">
+                      <ui5-button design="Negative" (click)="openCancelConfirm(count)" i18n>Cancel Count</ui5-button>
+                    </div>
+                  }
+                </div>
+              </ui5-panel>
+            }
+            @if (!isReadOnly) {
+              <ui5-button design="Emphasized" icon="add" (click)="addCount()" i18n>Add Count</ui5-button>
+            }
+          }
+        </section>
+      </ui5-tab>
+    </ui5-tabcontainer>
+  </ui5-busy-indicator>
+
+  <ui5-toolbar slot="footer">
+    @if (!isReadOnly) {
+      <ui5-toolbar-button design="Emphasized" [disabled]="saving" (click)="onSubmit()" [text]="localization.Submit"></ui5-toolbar-button>
+    }
+    <ui5-toolbar-button design="Transparent" [disabled]="saving" (click)="closeDialog()" [text]="localization.Cancel"></ui5-toolbar-button>
+  </ui5-toolbar>
+</ui5-dialog>
+
+<ui5-dialog [open]="cancelConfirmOpen" header-text="Cancel Count" i18n-header-text (before-close)="closeCancelConfirm()">
+  <section class="p-2 space-y-3">
+    <p i18n>Cancel this count? This cannot be undone.</p>
+    <div>
+      <ui5-label show-colon i18n>Reason</ui5-label>
+      <ui5-input class="w-100" [(ngModel)]="cancelReason" placeholder="Optional" i18n-placeholder></ui5-input>
+    </div>
+  </section>
+  <ui5-toolbar slot="footer">
+    <ui5-toolbar-button design="Negative" (click)="confirmCancelCount()" text="Cancel Count" i18n-text></ui5-toolbar-button>
+    <ui5-toolbar-button design="Transparent" (click)="closeCancelConfirm()" text="Back" i18n-text></ui5-toolbar-button>
+  </ui5-toolbar>
+</ui5-dialog>

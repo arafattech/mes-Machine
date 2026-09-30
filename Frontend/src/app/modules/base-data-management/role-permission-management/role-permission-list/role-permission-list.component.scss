@@ -1,0 +1,15 @@
+@import "styles.sass";
+
+.role-permission {
+  width: $w-100;
+  display: flex;
+  justify-content: space-between;
+  .role {
+    width: $w-50;
+    height: 90vh;
+  }
+  .permission {
+    width: $w-50;
+    height: 90vh;
+  }
+}

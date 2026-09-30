@@ -1,0 +1,34 @@
+<div class="h-[calc(100vh-55px)]">
+  <app-ag-grid-table
+    #agGridRef
+    [columns]="columns"
+    [dataSource]="dataSource"
+    [toolbarConfig]="toolbarConfig"
+    selectionMode="Single"
+    [isBase]="true"
+    [gridId]="gridId"
+    [showAction]="true"
+    [showEditButton]="rolePermissionService.hasPermission(permissions.BASE_DATA_MACHINE_PRODUCTION_TARGET_EDIT)"
+    [showDeleteButton]="rolePermissionService.hasPermission(permissions.BASE_DATA_MACHINE_PRODUCTION_TARGET_DELETE)"
+    (newButtonClick)="newProductionTarget()"
+    (editClick)="editProductionTarget($event)"
+    (deleteClick)="deleteClick($event.id)"
+    (rowClick)="editProductionTarget($event)"
+    [showIllustratedMessage]="true"
+    IllustratedName="NoData"
+    IllustratedTitle="No Production Targets Found"
+    IllustratedSubtitle="Try adjusting your search or active status."
+  ></app-ag-grid-table>
+</div>
+
+<app-machine-production-target-form
+  #machineProductionTargetForm
+  [saveMode]="saveMode"
+  [machineProductionTarget]="machineProductionTarget"
+  (RefreshTable)="processData($event)"
+></app-machine-production-target-form>
+
+<app-delete-entity
+  (isSuccess)="processData($event)"
+  [IsDelete]="IsDelete"
+></app-delete-entity>

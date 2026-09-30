@@ -1,0 +1,121 @@
+<ui5-dialog
+  class="w-[90vw] max-w-xl"
+  [open]="displayDialog"
+  [attr.header-text]="
+    saveMode === 'POST' ? localization.New : localization.Edit
+  "
+  (before-close)="closeDialog()"
+>
+  <ui5-busy-indicator [delay]="0" [active]="saving" size="M" class="w-full">
+    <section class="w-full p-2 space-y-4">
+      <div class="flex items-center gap-6">
+        <div>
+          <ui5-label>Active</ui5-label>
+          <div>
+            <ui5-switch
+              [checked]="formData.is_active"
+              (change)="onActiveChange($event)"
+            ></ui5-switch>
+          </div>
+        </div>
+        <div>
+          <ui5-label>Verification Buffer</ui5-label>
+          <div>
+            <ui5-switch
+              [checked]="formData.buffer_enabled"
+              (change)="onBufferEnabledChange($event)"
+            ></ui5-switch>
+          </div>
+        </div>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <ui5-label show-colon required i18n>Machine</ui5-label>
+          <ui5-select
+            class="w-100"
+            (change)="onMachineChange($event)"
+            [attr.value-state]="valueStateOptions.machine"
+          >
+            <ui5-option value="null" [selected]="!formData.machine_id" disabled i18n>Select Machine</ui5-option>
+            <ui5-option
+              *ngFor="let m of machines"
+              [attr.value]="m.id"
+              [selected]="formData.machine_id === m.id"
+              >{{ m.text }}</ui5-option
+            >
+            <div slot="valueStateMessage">
+              {{ localization.requiredField }}
+            </div>
+          </ui5-select>
+        </div>
+
+        <div>
+          <ui5-label show-colon required i18n>Start Date</ui5-label>
+          <ui5-date-picker
+            class="w-100"
+            format-pattern="yyyy-MM-dd"
+            [value]="formData.start_date"
+            (change)="onDateChange($event)"
+            placeholder="Select date"
+            i18n-placeholder
+            [attr.value-state]="valueStateOptions.start_date"
+          >
+            <div slot="valueStateMessage">
+              {{ localization.requiredField }}
+            </div>
+          </ui5-date-picker>
+        </div>
+
+        <div>
+          <ui5-label show-colon required i18n>Scheduled Time</ui5-label>
+          <ui5-time-picker
+            class="w-100"
+            format-pattern="hh:mm a"
+            [value]="formData.scheduled_time"
+            (change)="onTimeChange($event)"
+            placeholder="Select time"
+            i18n-placeholder
+            [attr.value-state]="valueStateOptions.scheduled_time"
+          >
+            <div slot="valueStateMessage">
+              {{ localization.requiredField }}
+            </div>
+          </ui5-time-picker>
+        </div>
+
+        <div>
+          <ui5-label show-colon required i18n>Frequency</ui5-label>
+          <ui5-select
+            class="w-100"
+            (change)="onFrequencyChange($event)"
+            [attr.value-state]="valueStateOptions.frequency"
+          >
+            <ui5-option
+              *ngFor="let f of frequencies"
+              [attr.value]="f.value"
+              [selected]="formData.frequency === f.value"
+              >{{ f.label }}</ui5-option
+            >
+            <div slot="valueStateMessage">
+              {{ localization.requiredField }}
+            </div>
+          </ui5-select>
+        </div>
+      </div>
+    </section>
+  </ui5-busy-indicator>
+  <ui5-toolbar slot="footer">
+    <ui5-toolbar-button
+      design="Emphasized"
+      (click)="save()"
+      [disabled]="saving"
+      text="{{ localization.Submit }}"
+    ></ui5-toolbar-button>
+    <ui5-toolbar-button
+      design="Transparent"
+      [disabled]="saving"
+      (click)="closeDialog()"
+      text="{{ localization.Cancel }}"
+    ></ui5-toolbar-button>
+  </ui5-toolbar>
+</ui5-dialog>
