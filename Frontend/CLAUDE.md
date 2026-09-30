@@ -24,9 +24,6 @@ Never use relative imports (`../`, `../../`, `../../../`, etc.).
 | `@assets/*`            | `src/assets/*`                            |
 | `@base-data-module/*`  | `src/app/modules/base-data-management/*`  |
 | `@production-module/*` | `src/app/modules/production-management/*` |
-| `@store-module/*`      | `src/app/modules/store-management/*`      |
-| `@sales-module/*`      | `src/app/modules/sales-management/*`      |
-| `@purchese-module/*`   | `src/app/modules/purchese-management/*`   |
 
 ### Examples
 

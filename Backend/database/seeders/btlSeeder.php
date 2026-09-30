@@ -6,7 +6,6 @@ namespace Database\Seeders;
 use Database\Seeders\IdGeneratorSettingsSeeder;
 use Database\Seeders\RoleSeeder;
 use Database\Seeders\UserSeeder;
-use Database\Seeders\BonusTypeSeeder;
 use Illuminate\Database\Seeder;
 
 
@@ -18,7 +17,5 @@ class BtlSeeder extends Seeder
         $this->call(BtlPermissionSeeder::class);
         $this->call(RoleSeeder::class);
         $this->call(UserSeeder::class);
-        $this->call(HolidayTypesSeeder::class);
-        $this->call(BonusTypeSeeder::class);
     }
 }

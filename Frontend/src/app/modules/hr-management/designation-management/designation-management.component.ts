@@ -1,4 +1,6 @@
-import { Component, EventEmitter, OnInit, Output, ViewChild } from "@angular/core";
+import { Component, CUSTOM_ELEMENTS_SCHEMA, EventEmitter, OnInit, Output, ViewChild } from "@angular/core";
+import { CommonModule } from "@angular/common";
+import { SharedModule } from "@app/shared/shared.module";
 import { RolePermissionService } from "@app/services/role-permission-service/role-permission.service";
 import { Designation } from "@app/modules/hr-management/shared/models/designation";
 import { Localization } from "@app/shared/utilities/localization";
@@ -13,6 +15,9 @@ import { AgGridBooleanCellRendererComponent } from "@app/shared/components/ag-gr
 import { DateFormatterService } from "@app/shared/utilities/date-format";
 @Component({
   selector: "app-designation-management",
+  standalone: true,
+  imports: [CommonModule, SharedModule],
+  schemas: [CUSTOM_ELEMENTS_SCHEMA],
   templateUrl: "./designation-management.component.html",
   styleUrl: "./designation-management.component.scss",
 })

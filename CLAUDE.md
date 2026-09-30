@@ -15,7 +15,7 @@ Frontend deep rules also live in @Frontend/CLAUDE.md.
 ```
 Backend/        Laravel 11 + PHP 8.x  — REST + OData APIs (MySQL)
 Frontend/       Angular 17+ standalone — UI5 Web Components, AG Grid, RxJS, Signals, SCSS
-node-server/    node-backend/    python-server/    auxiliary services
+node-server/    NestJS + Prisma — machine runtime, calculations, employee import, realtime (Socket.IO)
 scripts/        ops scripts
 ```
 

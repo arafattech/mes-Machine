@@ -81,13 +81,13 @@ export class DashboardComponent implements OnInit {
     },
     {
       title: this.localization.purchase,
-      url: "/purchase-management",
+      url: "/coming-soon",
       icon: "cart-5",
       permissionGroup: "PURCHESE",
     },
     {
       title: this.localization.StoreManagement,
-      url: "/store-management",
+      url: "/coming-soon",
       icon: "inventory",
       permissionGroup: "STORE",
     },
@@ -99,13 +99,13 @@ export class DashboardComponent implements OnInit {
     },
     {
       title: this.localization.HrManagement,
-      url: "/hr-management",
+      url: "/coming-soon",
       icon: "family-protection",
       permissionGroup: "HR",
     },
     {
       title: this.localization.SalesManagement,
-      url: "/sales-management",
+      url: "/coming-soon",
       icon: "my-sales-order",
       permissionGroup: "SALES_AND_MARKETING",
     },

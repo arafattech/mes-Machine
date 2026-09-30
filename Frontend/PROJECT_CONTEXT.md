@@ -36,12 +36,8 @@ Frontend/src/app/
 ├── directives/             ThrottleDirective
 ├── modules/                Feature modules (lazy-loaded)
 │   ├── base-data-management/
-│   ├── hr-management/
-│   ├── production-management/
-│   ├── purchese-management/
-│   ├── sales-management/
-│   ├── store-management/
-│   └── task-management/
+│   ├── hr-management/          Models/services shared with base-data + 2 standalone components only
+│   └── production-management/
 └── shared/
     ├── components/         Reusable UI components (see below)
     ├── enums/              App-wide enums
@@ -51,7 +47,7 @@ Frontend/src/app/
     └── utilities/          Date, localization, permissions helpers
 ```
 
-702 source files total (as of 2026-06-03).
+Only `base-data-management` and `production-management` are active feature modules. HR, Purchase, Store, Sales and Task routes render the Coming Soon page.
 
 ---
 
@@ -60,12 +56,8 @@ Frontend/src/app/
 | Route | Module | Domain |
 |---|---|---|
 | `/base-data` | `BaseDataManagementModule` | Master data: employees, machines, plants, halls, clients, assets, capacity, operations |
-| `/hr-management` | `HrDataManagementModule` | HR: attendance, payroll, leave, biometrics, face recognition, roster, shift |
 | `/production` | `ProductionModule` | Machine monitoring, production dashboard, machine board |
-| `/purchase-management` | `PurcheseManagementModule` | SPR, quotation, comparative study, purchase orders |
-| `/sales-management` | `SalesManagementModule` | Sales orders, pricing plans, promotions |
-| `/store-management` | `StoreManagementModule` | Inventory, MRR (local + imported), store requisition |
-| `/task-management` | `TaskManagementModule` | Task data management |
+| `/hr-management`, `/purchase-management`, `/sales-management`, `/store-management`, `/task-management` | — | Coming Soon page (`/coming-soon`) |
 
 ---
 

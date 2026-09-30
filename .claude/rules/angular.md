@@ -11,9 +11,6 @@
 | `@assets/*` | `assets/` |
 | `@base-data-module/*` | `app/modules/base-data-management/*` |
 | `@production-module/*` | `app/modules/production-management/*` |
-| `@store-module/*` | `app/modules/store-management/*` |
-| `@sales-module/*` | `app/modules/sales-management/*` |
-| `@purchese-module/*` | `app/modules/purchese-management/*` |
 
 ```ts
 // WRONG

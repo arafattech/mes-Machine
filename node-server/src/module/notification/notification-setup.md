@@ -28,29 +28,13 @@
 
 ## Currently implemented
 
+Only the base-data department events are active. The store, HR and sales events were removed together with their modules.
+
 | Socket event | Permission string | Laravel map key |
 |---|---|---|
-| `store-localrrm:created` | `STORE_LOCAL_MRR_CREATE_NOTIFICATION` | `MaterialReceipt:LOCAL:created` |
-| `store-importedmrr:created` | `STORE_IMPORTED_MRR_CREATE_NOTIFICATION` | `MaterialReceipt:IMPORTED:created` |
-| `store-requisition:created` | `STORE_STORE_REQUISITION_CREATE_NOTIFICATION` | `PurchaseRequisition:SR:created` |
-| `store-requisition:approved` | `STORE_STORE_REQUISITION_APPROVE_NOTIFICATION` | `PurchaseRequisition:SR:approved` |
-| `store-requisition:rejected` | `STORE_STORE_REQUISITION_REJECT_NOTIFICATION` | `PurchaseRequisition:SR:rejected` |
-| `store-spr:created` | `STORE_PURCHASE_REQUISITION_CREATE_NOTIFICATION` | `PurchaseRequisition:SPR:created` |
-| `store-spr:approved` | `STORE_PURCHASE_REQUISITION_APPROVE_NOTIFICATION` | `PurchaseRequisition:SPR:approved` |
-| `store-spr:rejected` | `STORE_PURCHASE_REQUISITION_REJECT_NOTIFICATION` | `PurchaseRequisition:SPR:rejected` |
 | `base-data-department:created` | `BASE_DATA_DEPARTMENT_CREATE_NOTIFICATION` | `Department::created` |
 | `base-data-department:updated` | `BASE_DATA_DEPARTMENT_UPDATE_NOTIFICATION` | `Department::updated` |
 | `base-data-department:deleted` | `BASE_DATA_DEPARTMENT_DELETE_NOTIFICATION` | `Department::deleted` |
-| `hrm-leave:applied` | `HRM_LEAVE_APPLIED_NOTIFICATION` | observer `created` (custom REST) |
-| `hrm-leave:supervisor-approved` | `HRM_LEAVE_STATUS_NOTIFICATION` | observer `saved` (Lodata) |
-| `hrm-leave:supervisor-rejected` | `HRM_LEAVE_STATUS_NOTIFICATION` | observer `saved` (Lodata) |
-| `hrm-leave:hr-approved` | `HRM_LEAVE_STATUS_NOTIFICATION` | observer `saved` (Lodata) |
-| `hrm-leave:hr-rejected` | `HRM_LEAVE_STATUS_NOTIFICATION` | observer `saved` (Lodata) |
-| `hrm-notice:created` | `HR_NOTICE_CREATE_NOTIFICATION` | controller `store()` (custom REST) |
-| `sales-order:created` | `SALES_SALES_ORDER_CREATE` | observer `saved` (Lodata) |
-| `sales-order:sent` | `SALES_SALES_REQUEST_APPROVE` | observer `saved` (Lodata) |
-| `sales-order:approved` | `SALES_SALES_REQUEST_APPROVE` | observer `saved` (Lodata) |
-| `sales-order:rejected` | `SALES_SALES_REQUEST_REJECT` | observer `saved` (Lodata) |
 
 ---
 

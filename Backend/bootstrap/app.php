@@ -14,7 +14,6 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware) {
         $middleware->alias([
             'spatie-odata' => \App\Http\Middleware\LodataSpatieMiddleware::class,
-            'internal.token' => \App\Http\Middleware\VerifyInternalServiceToken::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

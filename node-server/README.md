@@ -1,5 +1,5 @@
-📦 Node.js OData API
-A RESTful API built using Node.js, OData for flexible data querying, and Prisma ORM for clean, type-safe database access.
+📦 MES Node Server
+NestJS service for the machine runtime (MQTT / API / Modbus channel acquisition), machine and work-order calculation endpoints, employee excel import (BullMQ) and realtime events (Socket.IO), backed by Prisma.
 
 🏢 Project Info
 Company: Hybritech Innovation LTD
@@ -12,36 +12,11 @@ Maintained by: Hybritech Innovation LTD
 
 🛠️ Tech Stack
 Layer	Technology
-Backend	Node.js
-API Protocol	OData v4
+Backend	NestJS (Node.js)
 ORM	Prisma
-Database	PostgreSQL / MySQL (please specify if needed)
-Auth Mechanism	JWT or OAuth
-
-
-<!-- Odata querys -->
-
-$orderby=id desc
-$orderby=id desc name asc
-
-edit :
-     Products(3)
-
-delete : 
-     Products(2)     
-
-
-expand relation
-        odata/Products?$expand=orders
-
-
-only count : 
-        odata/Products/$count 
-        
-
-
-
-http://localhost:3000/odata/v8/payrolls?$sum=basic_salary&$filter=employee_id eq 598
+Database	MySQL
+Realtime	Socket.IO, MQTT, Modbus
+Queues	BullMQ (Redis)
 
 
 if there any issue during migration like need to reset all data:

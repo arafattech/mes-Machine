@@ -11,9 +11,6 @@ Relative imports (`../`) forbidden.
 | `@assets/*` | `assets/` |
 | `@base-data-module/*` | `app/modules/base-data-management/*` |
 | `@production-module/*` | `app/modules/production-management/*` |
-| `@store-module/*` | `app/modules/store-management/*` |
-| `@sales-module/*` | `app/modules/sales-management/*` |
-| `@purchese-module/*` | `app/modules/purchese-management/*` |
 
 ## Components
 Standalone · `OnPush` · `inject()` · Signals where appropriate · no template logic · no `any` (strict + strictTemplates on) · small components · reusable logic in services.

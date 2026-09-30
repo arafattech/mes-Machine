@@ -1,0 +1,142 @@
+image: node:18
+
+pipelines:
+  custom:
+    deploy-dev:
+      - step:
+          name: Deploy Backend Dev-Mes
+          deployment: DevBackend
+          size: 2x
+          runs-on: [self.hosted, linux]
+          script:
+            - ssh -o StrictHostKeyChecking=no "$SERVER_USER@$SERVER_IP" \
+              'cd /var/www/html/dev-mes && ./scripts/deploy-backend.sh'
+            - echo "===> Laravel Backend Deployed Successfully ✅"
+            - chmod +x ./scripts/deploy-node.sh
+            - apt-get update && apt-get install -y rsync openssh-client
+            - export REMOTE_NODE_DEPLOY_DIR="$REMOTE_NODE_DEPLOY_DIR"
+            - bash ./scripts/deploy-node.sh
+            - echo "===> Node Deployed Successfully ✅"
+
+      - step:
+          name: Build and Deploy Frontend Dev-Mes
+          deployment: DevFrontend
+          size: 2x
+          caches:
+            - node
+          runs-on: [self.hosted, linux]
+          script:
+            - chmod +x deploy-frontend.sh
+            - apt-get update && apt-get install -y rsync openssh-client
+            - export REMOTE_DEPLOY_DIR="$REMOTE_DEPLOY_DIR"
+            - export REMOTE_VERSION_FILE="$REMOTE_VERSION_FILE"
+            - export BETA="$BETA"
+            - export API_URL="$API_URL"
+            - export v8Url="$v8Url"
+            - export APP_LOGO="$APP_LOGO"
+            - export SOCKET_SERVER_URL="$SOCKET_SERVER_URL"
+            - bash deploy-frontend.sh
+            - echo "===> Frontend Deployed Successfully ✅"
+
+    deploy-erp:
+      - step:
+          name: Deploy Backend ERP
+          deployment: ErpBackend
+          size: 2x
+          runs-on: [self.hosted, linux]
+          script:
+            - ssh -o StrictHostKeyChecking=no  "$SERVER_USER@$SERVER_IP" \
+              'cd /var/www/html/erp-mes &&  ./scripts/deploy-backend.sh'
+            - echo "===> Laravel Backend Deployed Successfully ✅"
+            - chmod +x ./scripts/deploy-node.sh
+            - apt-get update && apt-get install -y rsync openssh-client
+            - bash ./scripts/deploy-node.sh
+            - echo "===> Node Deployed Successfully ✅"
+
+      - step:
+          name: Build and Deploy Frontend ERP
+          deployment: ErpFrontend
+          size: 2x
+          caches:
+            - node
+          runs-on: [self.hosted, linux]
+          script:
+            - chmod +x deploy-frontend.sh
+            - apt-get update && apt-get install -y rsync openssh-client
+            - export REMOTE_DEPLOY_DIR="$REMOTE_DEPLOY_DIR"
+            - export REMOTE_VERSION_FILE="$REMOTE_VERSION_FILE"
+            - export BETA="$BETA"
+            - export API_URL="$API_URL"
+            - export v8Url="$v8Url"
+            - export APP_LOGO="$APP_LOGO"
+            - export SOCKET_SERVER_URL="$SOCKET_SERVER_URL"
+            - bash deploy-frontend.sh
+            - echo "===> Frontend Deployed Successfully ✅"
+
+    deploy-btl:
+      - step:
+          name: Deploy Backend BTL
+          deployment: BtlBackend
+          size: 2x
+          runs-on: [self.hosted, linux]
+          script:
+            - ssh -o  StrictHostKeyChecking=no  "$SERVER_USER@$SERVER_IP" \
+              'cd /var/www/html/btl-mes && ./scripts/deploy-backend.sh'
+            - echo "===> Laravel Backend Deployed Successfully ✅"
+            - chmod +x ./scripts/deploy-node.sh
+            - apt-get update && apt-get install -y rsync openssh-client
+            - export REMOTE_NODE_DEPLOY_DIR="$REMOTE_NODE_DEPLOY_DIR"
+            - bash ./scripts/deploy-node.sh
+            - echo "===> Node Deployed Successfully ✅"
+
+      - step:
+          name: Build and Deploy Frontend BTL
+          deployment: BtlFrontend
+          size: 2x
+          caches:
+            - node
+          runs-on: [self.hosted, linux]
+          script:
+            - chmod +x deploy-frontend.sh
+            - apt-get update && apt-get install -y rsync openssh-client
+            - export REMOTE_DEPLOY_DIR="$REMOTE_DEPLOY_DIR"
+            - export REMOTE_VERSION_FILE="$REMOTE_VERSION_FILE"
+            - export BETA="$BETA"
+            - export API_URL="$API_URL"
+            - export v8Url="$v8Url"
+            - export APP_LOGO="$APP_LOGO"
+            - export SOCKET_SERVER_URL="$SOCKET_SERVER_URL"
+            - bash deploy-frontend.sh
+            - echo "===> Frontend Deployed Successfully ✅"
+    deploy-sct:
+      - step:
+          name: Deploy Backend SCT
+          deployment: SctBackend
+          size: 2x
+          runs-on: [self.hosted, linux]
+          script:
+            - echo "$SSH_PRIVATE_KEY_B64" | base64 -d > /tmp/deploy_key
+            - chmod 600 /tmp/deploy_key
+            - ssh -o  StrictHostKeyChecking=no  "$SERVER_USER@$SERVER_IP" \
+              'cd /var/www/html/sct-mes && ./deploy-backend.sh'
+            - ssh -o StrictHostKeyChecking=no  "$SERVER_USER@$SERVER_IP" \
+              'cd /var/www/html/sct-mes/Backend && php artisan db:seed btlSeeder'
+            - echo "===> Backend Deployed Successfully ✅"
+
+      - step:
+          name: Build and Deploy Frontend SCT
+          deployment: SctFrontend
+          size: 2x
+          caches:
+            - node
+          runs-on: [self.hosted, linux]
+          script:
+            - chmod +x deploy-frontend.sh
+            - apt-get update && apt-get install -y rsync openssh-client
+            - export REMOTE_DEPLOY_DIR="$REMOTE_DEPLOY_DIR"
+            - export REMOTE_VERSION_FILE="$REMOTE_VERSION_FILE"
+            - export BETA="$BETA"
+            - export API_URL="$API_URL"
+            - export v8Url="$v8Url"
+            - bash deploy-frontend.sh
+            - echo "===> Frontend Deployed Successfully ✅"

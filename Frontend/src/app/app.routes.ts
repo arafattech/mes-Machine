@@ -18,10 +18,7 @@ export const routes: Routes = [
   {
     path: 'task-management',
     title: 'Task Management',
-    loadChildren: () =>
-      import('@app/modules/task-management/task-management.module').then(
-        (m) => m.TaskManagementModule
-      ),
+    children: [{ path: '**', component: ComingSoonComponent }],
   },
   {
     path: 'production',
@@ -42,35 +39,23 @@ export const routes: Routes = [
   {
     path: 'hr-management',
     title: 'HR Management',
-    loadChildren: () =>
-      import('@app/modules/hr-management/hr-management.module').then(
-        (m) => m.HrDataManagementModule
-      ),
+    children: [{ path: '**', component: ComingSoonComponent }],
   },
   {
     path: 'store-management',
     title: 'Store Management',
-    loadChildren: () =>
-      import('@app/modules/store-management/store-management.module').then(
-        (m) => m.StoreManagementModule
-      ),
+    children: [{ path: '**', component: ComingSoonComponent }],
   },
   {
     path: 'purchase-management',
     title: 'Purchase Management',
-    loadChildren: () =>
-      import(
-        '@app/modules/purchese-management/purchese-management.module'
-      ).then((m) => m.PurcheseManagementModule),
+    children: [{ path: '**', component: ComingSoonComponent }],
   },
 
   {
     path: 'sales-management',
     title: 'Sales Management',
-    loadChildren: () =>
-      import('@app/modules/sales-management/sales.module').then(
-        (m) => m.SalesManagementModule
-      ),
+    children: [{ path: '**', component: ComingSoonComponent }],
   },
 
   {

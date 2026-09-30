@@ -1,4 +1,6 @@
-import { Component, EventEmitter, OnInit, Output, ViewChild } from "@angular/core";
+import { Component, CUSTOM_ELEMENTS_SCHEMA, EventEmitter, OnInit, Output, ViewChild } from "@angular/core";
+import { CommonModule } from "@angular/common";
+import { SharedModule } from "@app/shared/shared.module";
 import { RolePermissionService } from "@app/services/role-permission-service/role-permission.service";
 import { Localization } from "@app/shared/utilities/localization";
 import { saveMode } from "@app/shared/enums/saveMode";
@@ -19,6 +21,9 @@ import { DateFormatterService } from "@app/shared/utilities/date-format";
 
 @Component({
   selector: "app-employee-type-management",
+  standalone: true,
+  imports: [CommonModule, SharedModule],
+  schemas: [CUSTOM_ELEMENTS_SCHEMA],
   templateUrl: "./employee-type-management.component.html",
   styleUrl: "./employee-type-management.component.scss",
 })

@@ -1,6 +1,0 @@
-export enum OffDayType {
-  WEEKEND         = 'WEEKEND',
-  PUBLIC_HOLIDAY  = 'PUBLIC_HOLIDAY',
-  GOVT_HOLIDAY    = 'GOVT_HOLIDAY',
-  SPECIAL_EVENT   = 'SPECIAL_EVENT',
-}

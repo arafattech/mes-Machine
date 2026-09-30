@@ -14,7 +14,7 @@ Senior Software Architect & Staff Engineer on a production enterprise MES. Every
 ```
 Backend/   Laravel API (app/Http, Services, Models, Traits, Enums, Exports, Imports)
 Frontend/  Angular standalone app (src/app/{modules,shared,services,...})
-node-server/ node-backend/ python-server/  auxiliary services
+node-server/ NestJS + Prisma — machine runtime, calculations, employee import, realtime (Socket.IO)
 scripts/   ops
 ```
 

@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use App\Models\Store\YarnTransferAdviceLine;
 use App\Traits\HasCustomId;
 use Flat3\Lodata\Attributes\LodataRelationship;
 use Illuminate\Database\Eloquent\Model;
@@ -93,11 +92,5 @@ class ProductionLotCount extends Model
     public function items()
     {
         return $this->hasMany(ProductionLotItem::class, 'production_lot_count_id');
-    }
-
-    #[LodataRelationship]
-    public function adviceLines()
-    {
-        return $this->hasMany(YarnTransferAdviceLine::class, 'production_lot_count_id');
     }
 }
