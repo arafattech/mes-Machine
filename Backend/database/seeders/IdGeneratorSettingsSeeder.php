@@ -479,19 +479,6 @@ class IdGeneratorSettingsSeeder extends Seeder
         );
 
         DB::table('id_generator_settings')->updateOrInsert(
-            ['entity' => 'Policy', 'table' => 'policies'],
-            [
-                'prefix' => 'POL-',
-                'field' => 'custom_id',
-                'length' => 10,
-                'reset_on_prefix_change' => 1,
-                'is_date_prefix' => 0,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]
-        );
-
-        DB::table('id_generator_settings')->updateOrInsert(
             ['entity' => 'AttendanceLog', 'table' => 'attendance_logs'],
             [
                 'prefix' => 'ATD-',
@@ -508,19 +495,6 @@ class IdGeneratorSettingsSeeder extends Seeder
             ['entity' => 'EmployeeShift', 'table' => 'employee_shifts'],
             [
                 'prefix' => 'ESH-',
-                'field' => 'custom_id',
-                'length' => 10,
-                'reset_on_prefix_change' => 1,
-                'is_date_prefix' => 0,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]
-        );
-
-        DB::table('id_generator_settings')->updateOrInsert(
-            ['entity' => 'EmployeeBlacklist', 'table' => 'employee_blacklists'],
-            [
-                'prefix' => 'EBL-',
                 'field' => 'custom_id',
                 'length' => 10,
                 'reset_on_prefix_change' => 1,
@@ -583,19 +557,6 @@ class IdGeneratorSettingsSeeder extends Seeder
         );
 
         DB::table('id_generator_settings')->updateOrInsert(
-            ['entity' => 'SideBill', 'table' => 'side_bills'],
-            [
-                'prefix' => 'SBL-',
-                'field' => 'custom_id',
-                'length' => 10,
-                'reset_on_prefix_change' => 1,
-                'is_date_prefix' => 0,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]
-        );
-
-        DB::table('id_generator_settings')->updateOrInsert(
             ['entity' => 'BonusConfig', 'table' => 'bonus_configs'],
             [
                 'prefix' => 'BC-',
@@ -633,7 +594,7 @@ class IdGeneratorSettingsSeeder extends Seeder
             ]
         );
 
-        // ========== store module ==============
+        // ========== production lots ==============
         DB::table('id_generator_settings')->updateOrInsert(
             ['entity' => 'ProductionLot', 'table' => 'production_lots'],
             [
@@ -651,70 +612,6 @@ class IdGeneratorSettingsSeeder extends Seeder
             ['entity' => 'ProductionLotCount', 'table' => 'production_lot_counts'],
             [
                 'prefix' => 'LOTC-',
-                'field' => 'custom_id',
-                'length' => 10,
-                'reset_on_prefix_change' => 1,
-                'is_date_prefix' => 0,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]
-        );
-
-        DB::table('id_generator_settings')->updateOrInsert(
-            ['entity' => 'YarnTransferAdvice', 'table' => 'yarn_transfer_advices'],
-            [
-                'prefix' => 'GTN-',
-                'field' => 'custom_id',
-                'length' => 10,
-                'reset_on_prefix_change' => 1,
-                'is_date_prefix' => 0,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]
-        );
-
-        DB::table('id_generator_settings')->updateOrInsert(
-            ['entity' => 'PurchaseRequisition', 'table' => 'purchase_requisitions'],
-            [
-                'prefix' => 'SPR-',
-                'field' => 'custom_id',
-                'length' => 10,
-                'reset_on_prefix_change' => 1,
-                'is_date_prefix' => 0,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]
-        );
-        // ========== sales module ==============
-        DB::table('id_generator_settings')->updateOrInsert(
-            ['entity' => 'SalesOrder', 'table' => 'sales_orders'],
-            [
-                'prefix' => 'PI-',
-                'field' => 'custom_id',
-                'length' => 10,
-                'reset_on_prefix_change' => 1,
-                'is_date_prefix' => 0,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]
-        );
-         // ========== Promotion ==============
-        DB::table('id_generator_settings')->updateOrInsert(
-            ['entity' => 'Promotion', 'table' => 'promotions'],
-            [
-                'prefix' => 'PMT-',
-                'field' => 'custom_id',
-                'length' => 10,
-                'reset_on_prefix_change' => 1,
-                'is_date_prefix' => 0,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]
-        );
-        DB::table('id_generator_settings')->updateOrInsert(
-            ['entity' => 'PromotionConfiguration', 'table' => 'promotion_configurations'],
-            [
-                'prefix' => 'PMC-',
                 'field' => 'custom_id',
                 'length' => 10,
                 'reset_on_prefix_change' => 1,

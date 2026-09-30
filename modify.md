@@ -311,3 +311,98 @@ Delete `python-server/`, `scripts/sync-attendance-overtime.js`. Update `CLAUDE.m
 | I cannot run node-server (repo rule) → runtime regressions in machine runtime / import queue | Build + type-check + import-graph; you run the Phase 0 smoke list after Phase 5 |
 | Role-permission screen still lists permissions of removed features | Expected — permission seeders untouched (your instruction) |
 | Untracked `bitbucket-pipelines.yml`, `deploy-frontend.sh` | Not modified; decide separately whether to commit them |
+
+## 11. Migration cleanup — **DONE**
+
+You asked to remove the migrations that are no longer needed. I analysed all 293 files in `Backend/database/migrations` and prepared the exact list, but the deletion of the 70 files was **denied by the permission classifier** (irreversible local deletion), and I did not work around it. After you told me to go ahead, **the 70 files were deleted (293 → 223 migrations).** Every file is committed in `2f6addc` / `3e655ec`, so it stays recoverable from git.
+
+**Why it is now blocking a fresh `migrate`:** 20 of these 70 migrations reference classes I deleted (e.g. `2025_11_03_062309_create_purchase_requisitions_table` uses `App\Enums\Store\SprStatus`), so a fresh `migrate` / `migrate:fresh` crashes at that file. I checked all 293 files: **only these removal-list migrations reference deleted classes; none of the 223 kept migrations do.** Deleting the 70 files fixes it.
+
+**Method:** a table is removable only if (1) its model was deleted in this cleanup, (2) no kept PHP / node-server code references it, and (3) no migration of a kept table has a foreign key to it. A migration file is removed only if **every** table it creates, alters or drops is in that removed set. Result: **70 files → 34 tables; 0 migrations touch both a removed and a kept table; 0 renames; no other migration mentions these tables.**
+
+**Kept on purpose:** `salary_types` (FK from `employee_salary_details`), `notices_employees` (pivot used by the kept `Notice`/`Employee` relations), and every table whose model was kept (hr tables such as `payrolls`, `attendance_logs`, `leave_requests`, `rosters`, `notices`, `holidays`, `bonus_*` — the `Employee` model still relates to them).
+
+**Tables that will no longer be created on a fresh install (34):**
+`biometrics_device_configs`, `item_price_plannings`, `leave_approvals`, `market_prices`, `purchase_orders`, `purchase_order_items`, `purchase_quotes`, `purchase_quote_items`, `reminders`, `requisition_approvals`, `sale_order_items`, `idle_inventory_items`, `item_returns`, `item_return_items`, `lots`, `material_inspections`, `material_receipts`, `material_receipt_items`, `material_receipt_logs`, `mrr_returns`, `mrr_return_items`, `purchase_requisition_items`, `stock_adjustments`, `yarn_transfer_advice_lines`, `employee_blacklists`, `policies`, `promotions`, `promotion_configurations`, `sales_orders`, `side_bills`, `purchase_requisitions`, `yarn_transfer_advices`, `face_ids`, `sales_forecasts`
+
+**What this does and does not do:**
+- Existing databases are **not changed** — the tables stay in the DB; only the migration files go. `migrate` ignores a migration row whose file is missing. I never run `migrate`, `migrate:rollback` or drop tables (repo rule).
+- A fresh database will not get those 34 tables. Kept code does not use them.
+- `IdGeneratorSettingsSeeder`: 8 entries for removed entities (Policy, EmployeeBlacklist, SideBill, YarnTransferAdvice, PurchaseRequisition, SalesOrder, Promotion, PromotionConfiguration) are already removed (**DONE**).
+
+**Migration files to delete (70):**
+
+```
+2025_08_25_094807_create_policies_table.php
+2025_08_27_124537_create_employee_blacklists_table.php
+2025_11_03_062309_create_purchase_requisitions_table.php
+2025_11_03_062637_create_purchase_requisition_items_table.php
+2025_11_03_062806_create_purchase_orders_table.php
+2025_11_03_062833_create_purchase_order_items_table.php
+2025_11_03_062933_create_material_receipts_table.php
+2025_11_03_062952_create_material_receipt_items_table.php
+2025_11_03_063057_create_material_inspections_table.php
+2025_11_03_063144_create_idle_inventory_items_table.php
+2025_11_03_084831_create_stock_adjustments_table.php
+2025_11_05_093517_add_type_requisition_to_purchase_requisitions_table.php
+2025_11_10_121343_add_unit_price_to_purchase_requisition_items_table.php
+2025_11_12_065507_add_previous_stock_to_purchase_requisition_items_table.php
+2025_11_12_123335_add_approval_and_acknowledge_fields_to_purchase_requisitions_table.php
+2025_12_07_093059_create_item_price_plannings_table.php
+2025_12_07_101445_create_sales_orders_table.php
+2025_12_09_061203_create_sale_order_items_table.php
+2025_12_09_062101_update_expected_delivery_column_in_sales_orders_table.php
+2025_12_11_082619_add_reject_note_to_sales_orders_table.php
+2025_12_11_084747_add_custom_id_to_sales_orders_table.php
+2025_12_17_110204_add_created_by_to_sales_orders_table.php
+2025_12_18_054403_add_discount_to_sale_order_items_table.php
+2025_12_18_095858_add_discount_columns_to_sales_orders_table.php
+2025_12_19_000000_add_sales_order_id_to_stock_adjustments_table.php
+2025_12_21_092545_create_market_prices_table.php
+2026_02_01_052752_face_ids.php
+2026_03_15_120000_add_urgency_to_purchase_requisitions_and_approved_qty_to_items.php
+2026_04_02_120000_upgrade_material_receipts_for_store_flow.php
+2026_04_02_120100_make_po_item_id_nullable_on_material_receipt_items_table.php
+2026_04_21_000001_create_purchase_quotes_table.php
+2026_04_21_000002_create_purchase_quote_items_table.php
+2026_04_21_000003_add_purchase_quote_id_to_purchase_orders_table.php
+2026_04_23_090000_add_invoice_no_and_lc_no_to_material_receipts_table.php
+2026_04_28_105531_create_promotions_table.php
+2026_04_28_120000_create_side_bills_table.php
+2026_04_30_000000_add_workflow_fields_to_promotions_table.php
+2026_04_30_010000_create_promotion_configurations_table.php
+2026_04_30_010100_add_promotion_configuration_id_to_promotions_table.php
+2026_05_03_101309_create_biometrics_device_configs_table.php
+2026_05_17_095618_add_column_to_blacklist_table.php
+2026_06_03_000001_add_calculation_fields_to_promotions_table.php
+2026_06_04_000001_add_status_to_side_bills_table.php
+2026_06_14_130000_add_fields_to_side_bills_table.php
+2026_06_15_121543_create_material_receipt_logs_table.php
+2026_06_16_000002_add_is_complete_to_purchase_requisitions_table.php
+2026_06_17_000000_add_two_level_approval_fields_to_purchase_requisitions_table.php
+2026_06_17_000100_add_vehicle_no_to_material_receipts_table.php
+2026_06_17_125220_add_is_complete_to_purchase_orders_table.php
+2026_06_30_000001_add_approval_fields_to_purchase_orders_table.php
+2026_07_01_000001_add_is_mrr_created_to_purchase_orders_table.php
+2026_07_05_090000_create_reminders_table.php
+2026_07_05_162250_create_item_returns_table.php
+2026_07_05_162251_create_item_return_items_table.php
+2026_07_05_183046_add_return_quantity_to_purchase_requisition_items_table.php
+2026_07_22_000001_add_is_imported_to_purchase_requisitions_table.php
+2026_07_22_000002_add_is_imported_to_purchase_orders_table.php
+2026_08_03_150002_create_store_transfers_table.php
+2026_08_03_150003_create_store_transfer_items_table.php
+2026_08_24_121300_add_rejected_quantity_to_material_receipt_items_table.php
+2026_08_24_132253_add_return_fields_to_material_receipts_table.php
+2026_08_24_133334_create_mrr_returns_table.php
+2026_08_24_133340_create_mrr_return_items_table.php
+2026_08_24_150000_add_return_type_and_reason_to_mrr_returns_table.php
+2026_08_24_160000_add_remark_to_mrr_return_items_table.php
+2026_08_25_090000_create_lots_table.php
+2026_08_31_120000_create_sales_forecasts_table.php
+2026_09_06_112542_create_requisition_approvals_table.php
+2026_09_07_060355_add_snapshot_fields_to_requisition_approvals_table.php
+2026_09_14_000001_create_leave_approvals_table.php
+```
+
+**Verified after deletion:** 0 remaining migrations have a foreign key, alter or drop targeting a removed table; 0 remaining migrations reference a deleted `App\` class; all remaining PHP under `database/` lints clean. Not run by me: `migrate` / `migrate:fresh` (repo rule) — please run your fresh migrate again to confirm.
