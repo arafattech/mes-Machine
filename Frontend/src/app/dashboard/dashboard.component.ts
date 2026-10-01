@@ -79,36 +79,12 @@ export class DashboardComponent implements OnInit {
       icon: "vertical-bar-chart",
       permissionGroup: "PRODUCTION",
     },
-    {
-      title: this.localization.purchase,
-      url: "/coming-soon",
-      icon: "cart-5",
-      permissionGroup: "PURCHESE",
-    },
-    {
-      title: this.localization.StoreManagement,
-      url: "/coming-soon",
-      icon: "inventory",
-      permissionGroup: "STORE",
-    },
-    {
-      title: this.localization.QAQC,
-      url: "/coming-soon",
-      icon: "customer-view",
-      permissionGroup: "QUALITY",
-    },
-    {
-      title: this.localization.HrManagement,
-      url: "/coming-soon",
-      icon: "family-protection",
-      permissionGroup: "HR",
-    },
-    {
-      title: this.localization.SalesManagement,
-      url: "/coming-soon",
-      icon: "my-sales-order",
-      permissionGroup: "SALES_AND_MARKETING",
-    },
+    // {
+    //   title: this.localization.HrManagement,
+    //   url: "/coming-soon",
+    //   icon: "family-protection",
+    //   permissionGroup: "HR",
+    // },
   ];
 
   getModules(): void {

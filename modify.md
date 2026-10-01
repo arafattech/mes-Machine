@@ -406,3 +406,36 @@ You asked to remove the migrations that are no longer needed. I analysed all 293
 ```
 
 **Verified after deletion:** 0 remaining migrations have a foreign key, alter or drop targeting a removed table; 0 remaining migrations reference a deleted `App\` class; all remaining PHP under `database/` lints clean. Not run by me: `migrate` / `migrate:fresh` (repo rule) — please run your fresh migrate again to confirm.
+
+## 12. Review after removal — result
+
+| Check | Result |
+|---|---|
+| `production-management/**`, `base-data-management/**` changed? | **No** (0 files) |
+| Frontend dev build (`ng build --configuration development`) | **Pass** |
+| Frontend production build | **Pass** (only warnings: initial bundle 3.41 MB vs 2.5 MB budget, amCharts/core-js ESM warnings — I did not measure a production baseline before the removal, so I cannot say whether the budget warning is new) |
+| Every non-OData REST call in the kept Frontend (45 found) has a matching Laravel route | **Yes** — the only 2 without one (`machine/:id/current-work-order`, `work-orders/:id/detail`) are served by node-server, as designed |
+| Removed Lodata entity / relation names still used by kept Frontend | **None** (2 text hits are a model field and a code comment, no `$expand`) |
+| Kept Frontend links/navigation to removed module routes | **None** |
+| Laravel: all PHP under `app routes bootstrap config database` lint | **Clean** |
+| Laravel: `route:list` | 208 → 91 routes, 0 routes added |
+| Laravel: full Lodata discovery at HTTP boot (non-console, real DB) | **Pass** — the request reaches auth and returns 401, so every remaining `Lodata::discover` / relationship resolves against the current schema |
+| Laravel: references to deleted `App\` classes (incl. migrations) | **None** (only `bootstrap/providers.php` → `IdGeneratorServiceProvider`, which did not exist before my changes either) |
+| Migrations | 293 → 223; 0 remaining migration has a foreign key / alter / drop on a removed table; 0 reference a deleted class |
+| node-server: `tsc --noEmit -p tsconfig.build.json` | **Pass** |
+| node-server: kept code queries a table whose migration was removed | **No** |
+| node-server: import graph from `main.ts` | 36 of 37 files reachable; the 1 unreachable is `machine.worker.ts`, loaded dynamically — correct |
+| `npm ci --dry-run` (node-server) | **Pass** — `package.json` and lockfile in sync |
+
+### Not verified (I cannot or must not do this)
+
+- **Runtime behaviour.** I never started Laravel, node-server or `ng serve` (repo rule). Please click through: login, dashboard tiles, `/production` board + `/mco`, `/base-data` CRUD, employee excel import + progress toasts, department create → notification, roles-permissions, user management, employee-log PDF export.
+- **`migrate` / `migrate:fresh`** — run by you (repo rule). The earlier failure came from running the old `/var/www/html/mes` code against the new DB, not from these migrations.
+- **`run.sh`** now starts everything from its own folder (`mes-Machine`). The old `/var/www/html/mes` repo shares the same database and is now **out of sync with the schema** — do not run it against this DB.
+
+### Known leftovers and notes
+
+- node-server ESLint reports ~1,490 issues (1,455 errors), almost all Prettier quote/format rules that the existing code already violates; the files I edited follow the same existing style. I did not run `--fix` (it would reformat the whole project).
+- Backend keeps the hr models that `Employee` still relates to (see "Still in the code on purpose" above); they are no longer exposed through Lodata.
+- Permission seeders / `Permissions` enum still contain the removed features' permissions — by design, role permissions were not to change.
+- Frontend docs: `Frontend/docs/shared-components/` was not reviewed for mentions of removed modules.
