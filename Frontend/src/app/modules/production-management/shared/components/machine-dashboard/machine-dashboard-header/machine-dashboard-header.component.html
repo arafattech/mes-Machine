@@ -1,0 +1,91 @@
+<header
+  class="shrink-0 rounded-b-xl px-4 py-2 flex items-center gap-4 bg-[color:var(--sapTile\_Background,#fff)] border border-t-0 border-[color:var(--sapTile\_BorderColor,#d9d9d9)]"
+>
+  <!-- Identity + live state -->
+  <div class="flex items-center gap-3 min-w-0 shrink-0">
+    <ui5-avatar
+      class="shrink-0"
+      icon="navigation-left-arrow"
+      interactive
+      size="XS"
+      color-scheme="Placeholder"
+      accessible-name="Back to machine board"
+      i18n-accessible-name
+      routerLink="/production"
+    ></ui5-avatar>
+    <div class="min-w-0">
+      <div class="flex items-center gap-2">
+        <h1 class="text-lg font-bold leading-tight truncate text-[var(--sapTextColor,#1d2d3e)]">
+          {{ store.machine()?.name || 'N/A' }}
+        </h1>
+        <span
+          class="flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold shrink-0"
+          [style.background]="store.status().tint"
+          [style.color]="store.status().color"
+        >
+          <ui5-icon class="w-3.5 h-3.5" [name]="store.status().icon"></ui5-icon>
+          {{ store.status().label }}
+        </span>
+      </div>
+      <div class="flex items-center gap-3 text-xs leading-tight text-[color:var(--sapContent\_LabelColor,#556b82)]">
+        <span>{{ store.machine()?.customId || 'N/A' }}</span>
+        <span class="flex items-center gap-1" [style.color]="connectivity().color">
+          <ui5-icon class="w-3 h-3" [name]="connectivity().icon"></ui5-icon>
+          {{ connectivity().label }}
+        </span>
+        @if (store.durations().lastSeenAt; as lastSeenAt) {
+          <span i18n>Last seen {{ lastSeenAt | timeAgo }}</span>
+        }
+      </div>
+    </div>
+  </div>
+
+  @if (showProduction) {
+    <!-- What the machine is working on — Fiori key attributes, label over value -->
+    <dl class="flex-1 min-w-0 flex items-center gap-6 pl-4 border-l border-[color:var(--sapList\_BorderColor,#e5e5e5)] overflow-hidden">
+      @if (store.currentWorkOrder()?.workOrder; as workOrder) {
+        <div class="min-w-0">
+          <dt class="text-xs text-[color:var(--sapContent\_LabelColor,#556b82)]" i18n>Production order</dt>
+          <dd class="flex items-center gap-2 text-sm font-semibold text-[var(--sapTextColor,#1d2d3e)]">
+            <span class="truncate">{{ workOrder.customId || '#' + workOrder.id }}</span>
+            @if (workOrderStatus(); as status) {
+              <span class="rounded-full px-2 text-[11px] font-semibold shrink-0" [style.background]="status.tint" [style.color]="status.color">
+                {{ status.label }}
+              </span>
+            }
+          </dd>
+        </div>
+        <div class="min-w-0">
+          <dt class="text-xs text-[color:var(--sapContent\_LabelColor,#556b82)]" i18n>Product</dt>
+          <dd class="text-sm font-semibold truncate text-[var(--sapTextColor,#1d2d3e)]">{{ workOrder.productName || '—' }}</dd>
+        </div>
+        <div class="min-w-0 hidden lg:block">
+          <dt class="text-xs text-[color:var(--sapContent\_LabelColor,#556b82)]" i18n>Planned</dt>
+          <dd class="text-sm font-semibold tabular-nums text-[var(--sapTextColor,#1d2d3e)]">{{ workOrder.quantity | number }}</dd>
+        </div>
+      } @else {
+        <p class="text-sm text-[color:var(--sapContent\_LabelColor,#556b82)]" i18n>No production order running</p>
+      }
+      @if (store.currentWorkOrder()?.shift; as shift) {
+        <div class="min-w-0 hidden md:block">
+          <dt class="text-xs text-[color:var(--sapContent\_LabelColor,#556b82)]" i18n>Shift</dt>
+          <dd class="text-sm whitespace-nowrap text-[var(--sapTextColor,#1d2d3e)]">
+            <span class="font-semibold">{{ shift.name }}</span>
+            <span class="ml-1 tabular-nums text-[color:var(--sapContent\_LabelColor,#556b82)]">{{ store.shiftWindow() }}</span>
+          </dd>
+        </div>
+      }
+    </dl>
+
+    <div class="flex items-center gap-1 shrink-0">
+      <ui5-button design="Emphasized" icon="add" (click)="logProduction.emit()" i18n>Log production</ui5-button>
+      <ui5-button design="Transparent" routerLink="/production/work-orders" i18n>Production orders</ui5-button>
+    </div>
+  } @else {
+    <!-- State-only screens are often wall displays: show factory time instead of production context -->
+    <div class="ml-auto text-right leading-tight" aria-label="Factory time" i18n-aria-label>
+      <p class="text-2xl font-semibold tabular-nums text-[var(--sapTextColor,#1d2d3e)]">{{ clock().time }}</p>
+      <p class="text-xs tabular-nums text-[color:var(--sapContent\_LabelColor,#556b82)]">{{ clock().date }}</p>
+    </div>
+  }
+</header>

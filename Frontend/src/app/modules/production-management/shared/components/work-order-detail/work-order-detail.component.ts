@@ -1,9 +1,12 @@
 import { Component, DestroyRef, Input, OnChanges, SimpleChanges } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { EMPTY, Subject, distinctUntilChanged, finalize, switchMap } from 'rxjs';
 import moment from 'moment';
+import { formatFactoryDate, formatFactoryDateTime } from '@shared/utilities/date-format';
 import { ValueFormatterParams } from 'ag-grid-community';
 import { MachineOverviewDataService } from '@production-module/shared/services/machine-overview-data.service';
 import { ProductionService } from '@production-module/shared/services/production.service';
+import { ProductionRealtimeService } from '@production-module/shared/services/production-realtime.service';
 import { MachineStatesService } from '@app/modules/production-management/shared/services/machine-states.service';
 import { SocketService } from '@app/services/socket.service';
 import { Machine } from '@shared/model/machine';
@@ -84,10 +87,16 @@ export class WorkOrderDetailComponent implements OnChanges {
   };
 
   readonly displayConfig: AgGridTableDisplayConfig = {
-    gridHeight: '350px',
+    gridHeight: '55vh',
+    fillEmptyRows: false,
   };
 
   wastageLoading = false;
+  private readonly workOrderId$ = new Subject<number | null>();
+  /** Latest-wins request streams (`switchMap`) — emit `showLoading`; a slower earlier response
+   * (e.g. a superseded realtime refetch) can never overwrite a newer one. */
+  private readonly detailLoad$ = new Subject<boolean>();
+  private readonly wastageLoad$ = new Subject<boolean>();
   wastageDetail: WorkOrderWastageDetail | null = null;
   wastageShiftOptions: ShiftOption[] = [];
   wastageFilterShiftId: number | null = null;
@@ -155,7 +164,7 @@ export class WorkOrderDetailComponent implements OnChanges {
 
   readonly breakdownColumns: AgGridTableColumn<WorkOrderMachineBreakdownRow>[] =
     [
-      { field: 'machineName', headerName: $localize`Machine` },
+      { field: 'machineName', headerName: $localize`Machine`, minWidth: 140 },
       {
         field: 'shiftName',
         headerName: $localize`Shift`,
@@ -169,16 +178,14 @@ export class WorkOrderDetailComponent implements OnChanges {
       {
         field: 'startedAt',
         headerName: $localize`First Logged`,
-        valueFormatter: (
-          p: ValueFormatterParams<WorkOrderMachineBreakdownRow, string | null>,
-        ) => (p.value ? new Date(p.value).toLocaleString() : ''),
+        minWidth: 180,
+        valueFormatter: (p: ValueFormatterParams<WorkOrderMachineBreakdownRow, string | null>) => formatFactoryDateTime(p.value),
       },
       {
         field: 'endedAt',
         headerName: $localize`Last Logged`,
-        valueFormatter: (
-          p: ValueFormatterParams<WorkOrderMachineBreakdownRow, string | null>,
-        ) => (p.value ? new Date(p.value).toLocaleString() : ''),
+        minWidth: 180,
+        valueFormatter: (p: ValueFormatterParams<WorkOrderMachineBreakdownRow, string | null>) => formatFactoryDateTime(p.value),
       },
     ];
 
@@ -188,7 +195,56 @@ export class WorkOrderDetailComponent implements OnChanges {
     private readonly socketService: SocketService,
     private readonly machineStates: MachineStatesService,
     private readonly destroyRef: DestroyRef,
+    private readonly productionRealtime: ProductionRealtimeService,
   ) {
+    // Push-driven: production / wastage logged against this work order (or a reconnect resync)
+    // refetches its detail + wastage silently — no polling.
+    this.workOrderId$
+      .pipe(
+        distinctUntilChanged(),
+        switchMap((id) => (id ? this.productionRealtime.workOrderChanges$(id) : EMPTY)),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe(() => {
+        this.loadDetail(false);
+        this.fetchWastageDetail(false);
+      });
+
+    this.detailLoad$
+      .pipe(
+        switchMap((showLoading) => {
+          if (!this.workOrderId) return EMPTY;
+          if (showLoading) this.loading = true;
+          return this.overviewDataService
+            .getWorkOrderDetail(this.workOrderId)
+            .pipe(finalize(() => (this.loading = false)));
+        }),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe((detail) => {
+        this.detail = detail;
+        this.breakdownDataSource = {
+          ...this.breakdownDataSource,
+          data: detail.machines,
+        };
+      });
+
+    this.wastageLoad$
+      .pipe(
+        switchMap((showLoading) => {
+          if (!this.workOrderId) return EMPTY;
+          if (showLoading) this.wastageLoading = true;
+          return this.overviewDataService
+            .getWorkOrderWastageDetail(this.workOrderId, {
+              shiftId: this.wastageFilterShiftId,
+              date: this.wastageFilterDate,
+            })
+            .pipe(finalize(() => (this.wastageLoading = false)));
+        }),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe((wastage) => this.applyWastageDetail(wastage));
+
     this.overviewDataService.getActiveShifts().subscribe((shifts) => {
       this.wastageShiftOptions = shifts;
     });
@@ -214,10 +270,14 @@ export class WorkOrderDetailComponent implements OnChanges {
 
   ngOnChanges(changes: SimpleChanges): void {
     if (!changes['workOrderId']) return;
+    this.workOrderId$.next(this.workOrderId);
 
     this.selectedTab = 'overview';
 
     if (!this.workOrderId) {
+      // Cancel in-flight requests (switchMap → EMPTY) so a late response can't refill the panel.
+      this.detailLoad$.next(false);
+      this.wastageLoad$.next(false);
       this.detail = null;
       this.breakdownDataSource = { ...this.breakdownDataSource, data: [] };
       this.wastageDetail = null;
@@ -226,17 +286,7 @@ export class WorkOrderDetailComponent implements OnChanges {
       return;
     }
 
-    this.loading = true;
-    this.overviewDataService
-      .getWorkOrderDetail(this.workOrderId)
-      .subscribe((detail) => {
-        this.detail = detail;
-        this.breakdownDataSource = {
-          ...this.breakdownDataSource,
-          data: detail.machines,
-        };
-        this.loading = false;
-      });
+    this.loadDetail();
 
     this.wastageFilterShiftId = null;
     this.wastageFilterDate = '';
@@ -259,38 +309,37 @@ export class WorkOrderDetailComponent implements OnChanges {
     this.fetchWastageDetail();
   }
 
+  private loadDetail(showLoading = true): void {
+    this.detailLoad$.next(showLoading);
+  }
+
   /** Re-fetches the wastage breakdown scoped by the current shift/date filter (both optional,
    * both cleared = whole-work-order total) — the "per shift per WO" / "per day per WO" /
    * "per WO" reporting scopes, all served by the same endpoint. */
-  private fetchWastageDetail(): void {
-    if (!this.workOrderId) return;
 
-    this.wastageLoading = true;
-    this.overviewDataService
-      .getWorkOrderWastageDetail(this.workOrderId, {
-        shiftId: this.wastageFilterShiftId,
-        date: this.wastageFilterDate,
-      })
-      .subscribe((wastage) => {
-        this.wastageDetail = wastage;
-        this.wastageDataSource = {
-          ...this.wastageDataSource,
-          data: wastage.byType,
-        };
-        this.wastageChartDatasets = [
-          {
-            label: $localize`Wastage (kg)`,
-            data: wastage.byType.map((t) => ({
-              x: t.wastageTypeName ?? $localize`Unknown`,
-              y: t.totalQtyKg,
-            })),
-            backgroundColor: 'rgba(220, 38, 38, 0.6)',
-            borderColor: 'rgba(220, 38, 38, 1)',
-          },
-        ];
-        this.wastageLoading = false;
-      });
+  private fetchWastageDetail(showLoading = true): void {
+    this.wastageLoad$.next(showLoading);
   }
+
+  private applyWastageDetail(wastage: WorkOrderWastageDetail): void {
+    this.wastageDetail = wastage;
+    this.wastageDataSource = {
+      ...this.wastageDataSource,
+      data: wastage.byType,
+    };
+    this.wastageChartDatasets = [
+      {
+        label: $localize`Wastage (kg)`,
+        data: wastage.byType.map((t) => ({
+          x: t.wastageTypeName ?? $localize`Unknown`,
+          y: t.totalQtyKg,
+        })),
+        backgroundColor: 'rgba(220, 38, 38, 0.6)',
+        borderColor: 'rgba(220, 38, 38, 1)',
+      },
+    ];
+  }
+
 
   /** Per-machine drill-down behind a wastage-type row's info action. */
   viewMachineAllocations(row: WastageTypeBreakdown): void {
@@ -317,7 +366,7 @@ export class WorkOrderDetailComponent implements OnChanges {
   }
 
   formatDate(value: string | null): string {
-    return value ? moment(value).format('MMM D, YYYY') : $localize`—`;
+    return formatFactoryDate(value) || $localize`—`;
   }
 
   trackByMetricLabel = (_: number, metric: Metric): string => metric.label;

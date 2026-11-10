@@ -12,6 +12,7 @@ import {
 import * as am4core from '@amcharts/amcharts4/core';
 import * as am4charts from '@amcharts/amcharts4/charts';
 import am4themes_animated from '@amcharts/amcharts4/themes/animated';
+import { onChartThemeChange, readChartThemeColors } from '@shared/utilities/chart-theme';
 
 am4core.useTheme(am4themes_animated);
 
@@ -34,6 +35,8 @@ export class SharedLineChartComponent implements AfterViewInit, OnChanges, OnDes
   @Input() categoryField: string = 'category';
   @Input() valueField: string = 'value';
   @Input() chartHeight: string = '450px';
+  /** Overrides amCharts' default bottom padding (~15px) — for compact fixed-height cards. */
+  @Input() bottomPadding: number | null = null;
   @Input() lineColor: string = '#3B82F6';
   // Legend label for the primary valueField line — only visible once `series` makes the legend appear.
   @Input() valueName?: string;
@@ -44,8 +47,15 @@ export class SharedLineChartComponent implements AfterViewInit, OnChanges, OnDes
   private chart!: am4charts.XYChart;
   private primarySeries?: am4charts.LineSeries;
 
+  private unsubscribeTheme?: () => void;
+
   ngAfterViewInit() {
     this.createChart();
+    // Colors are resolved from the theme at build time, so rebuild once a new theme has applied.
+    this.unsubscribeTheme = onChartThemeChange(() => {
+      this.chart?.dispose();
+      this.createChart();
+    });
   }
 
   ngOnChanges(changes: SimpleChanges) {
@@ -70,7 +80,15 @@ export class SharedLineChartComponent implements AfterViewInit, OnChanges, OnDes
   }
 
   private createChart() {
+    const { label, grid, text } = readChartThemeColors();
+    const labelColor = am4core.color(label);
+    const gridColor = am4core.color(grid);
+    const textColor = am4core.color(text);
+
     const chart = am4core.create(this.chartDiv.nativeElement, am4charts.XYChart);
+    if (this.bottomPadding !== null) {
+      chart.paddingBottom = this.bottomPadding;
+    }
     this.chart = chart;
 
     if (chart.logo) {
@@ -91,22 +109,16 @@ export class SharedLineChartComponent implements AfterViewInit, OnChanges, OnDes
     categoryAxis.renderer.grid.template.disabled = true;
     categoryAxis.renderer.minGridDistance = 30;
     categoryAxis.renderer.labels.template.fontSize = 12;
-    categoryAxis.renderer.labels.template.fill = am4core.color('#64748B');
+    categoryAxis.renderer.labels.template.fill = labelColor;
     categoryAxis.startLocation = 0.5;
     categoryAxis.endLocation = 0.5;
-
-    categoryAxis.renderer.labels.template.adapter.add('textOutput', (value: string) => {
-      if (!value) {
-        return value;
-      }
-      return value.split(/[-\s/]/)[0];
-    });
 
     const valueAxis = chart.yAxes.push(new am4charts.ValueAxis());
     valueAxis.min = 0;
     valueAxis.renderer.grid.template.strokeDasharray = '4,4';
+    valueAxis.renderer.grid.template.stroke = gridColor;
     valueAxis.renderer.labels.template.fontSize = 12;
-    valueAxis.renderer.labels.template.fill = am4core.color('#64748B');
+    valueAxis.renderer.labels.template.fill = labelColor;
 
     valueAxis.renderer.labels.template.adapter.add('text', (value: string | undefined) => {
       if (!value) {
@@ -138,7 +150,12 @@ export class SharedLineChartComponent implements AfterViewInit, OnChanges, OnDes
 
       chart.legend = new am4charts.Legend();
       chart.legend.position = 'bottom';
+      if (this.bottomPadding !== null) {
+        chart.legend.marginTop = 0;
+        chart.legend.paddingBottom = 0;
+      }
       chart.legend.labels.template.fontSize = 11;
+      chart.legend.labels.template.fill = textColor;
       chart.legend.markers.template.width = 10;
       chart.legend.markers.template.height = 10;
     } else {
@@ -191,6 +208,7 @@ export class SharedLineChartComponent implements AfterViewInit, OnChanges, OnDes
   }
 
   ngOnDestroy() {
+    this.unsubscribeTheme?.();
     if (this.chart) {
       this.chart.dispose();
     }

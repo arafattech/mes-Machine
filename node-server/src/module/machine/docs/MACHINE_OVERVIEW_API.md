@@ -7,7 +7,11 @@ This document outlines the architecture and calculation logic behind the Machine
 The endpoint is served by `MachineCalculationsController` and implemented in `MachineCalculationsService`. It computes aggregations over the specified `[from, to)` date range for a single machine.
 
 ### Caching
-The results of this calculation are cached in Redis using a short Time-To-Live (TTL), configured by `MACHINE_CALC_CACHE_TTL_MS` (defaulting to 8 seconds). This absorbs repeated dashboard polling without serving stale data during active production.
+The results are cached in Redis with a short TTL, `MACHINE_CALC_CACHE_TTL_MS` (default 8 seconds). The key embeds the machine's **calc version** (`machine:calc:ver:machine:{id}`). That version is bumped:
+- on every production, wastage, config, target or work-order write (`ProductionRealtimeService`, via the `mes:production-events` Redis channel);
+- on every persisted state transition (`MachineStateTrackerService`).
+
+A refetch triggered by a realtime push therefore never gets a pre-change result. Overview queries run in parallel (`Promise.all`). See `Frontend/docs/production-management/REALTIME_PRODUCTION_EVENTS.md`.
 
 ---
 
@@ -42,8 +46,8 @@ The speed at which the machine operated compared to its configured ideal cycle t
 *(Capped at a maximum of 100%)*
 
 #### Quality
-The percentage of good parts produced versus total parts.
-- **Formula:** `(Good Count / Total Count) * 100`
+The percentage of good output versus total output, where the total includes kg logged in the Wastage Log (`machine_wastage_allocations` by `entry_date`).
+- **Formula:** `(Good Count / (Total Count + Logged Wastage kg)) * 100`
 
 #### Efficiency (M/C Efficiency / Overall OEE)
 The overall effectiveness score for the machine over the date range.
@@ -79,6 +83,10 @@ Here is exactly how the backend calculated these numbers:
 
 Along with OEE, the endpoint provides:
 - **Target:** The production target (`target_qty`) fetched from the most recently effective row in `machine_production_targets`.
-- **Achieved (Total):** The sum of `total_count`.
+- **Achieved / Total:** The sum of `total_count`. This is the machine's own counts; logged wastage is not included.
 - **Ok (Good):** The sum of `good_count`.
-- **Waste (Scrap):** The sum of `scrap_count`.
+- **Waste:** `scrap_count` sum + logged wastage kg. `logged_wastage_kg` reports the logged part on its own.
+- **`live`** (realtime OEE inputs): `{computed_at, age_ms, active_seconds, total_seconds, open_state_productive, ideal_cycle_seconds, total_count, good_count, quality_total}`.
+  - `open_state_productive` is `null` when no state is open or the window ended in the past.
+  - `age_ms` is added outside the cache: how old the snapshot is, on the server clock.
+  - The frontend (`MachineOverviewDataService.liveOeeMetrics`) advances the OEE tiles every second from these inputs, using the same formulas. **Keep both in sync.**

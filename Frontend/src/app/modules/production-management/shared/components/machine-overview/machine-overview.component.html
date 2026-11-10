@@ -1,335 +1,37 @@
-<div
-  class="h-[calc(100vh-49px)] w-full flex flex-col gap-1 px-4 py-0 box-border overflow-hidden"
->
-  <!-- Page header: identity, live status, quick actions -->
-  <div
-    class="panel shrink-0 rounded-b-xl px-4 py-2 flex flex-wrap items-center justify-between gap-3"
-  >
-  <div class="flex items-center gap-3 min-w-0">
-    <ui5-avatar
-        class="border border-slate-400 bg-white shrink-0"
-        [icon]="'navigation-left-arrow'"
-        interactive
-        size="XS"
-        color-scheme="Placeholder"
-      routerLink="/production"
-    >
-    <ui5-icon name="nav-back" class="shrink-0"></ui5-icon>
-    </ui5-avatar>
-    <div class="flex items-center gap-2 rounded-xl px-3 py-1.5 shrink-0"
-        [style.background]="statusTint"
-        [style.color]="statusColor"
-      >
-        <ui5-icon [name]="statusIcon"></ui5-icon>
-        <span class="font-semibold text-sm">{{ statusLabel }}</span>
-      </div>
-      <div class="min-w-0">
-        <h1 class="panel-title text-base font-semibold truncate leading-tight">
-          {{ machineData?.name || "N/A" }}
-        </h1>
-        <p class="panel-subtle text-xs truncate leading-tight">
-          <span i18n>ID</span>: {{ machineData?.id || "N/A" }}
-        </p>
-        <p *ngIf="durations.lastSeenAt != null" class="panel-subtle text-xs truncate leading-tight" i18n>
-          Last seen {{ durations.lastSeenAt | timeAgo }}
-        </p>
-      </div>
+<div class="h-[calc(100vh-49px)] w-full flex flex-col overflow-hidden">
+  @if (store.machineLoad() === 'loading') {
+    <div class="flex-1 flex items-center justify-center">
+      <ui5-busy-indicator active size="L" [delay]="0"></ui5-busy-indicator>
     </div>
+  } @else {
+    @if (store.machineLoad() === 'error') {
+      <ui5-message-strip design="Critical" hide-close-button class="block shrink-0 mx-4 mt-1">
+        @if (store.machineKey()) {
+          <span i18n>Machine settings could not be loaded — showing the default dashboard.</span>
+          <ui5-button design="Transparent" (click)="store.retry()" i18n>Retry</ui5-button>
+        } @else {
+          <span i18n>No machine selected. Open a machine from the machine board.</span>
+          <ui5-button design="Transparent" routerLink="/production" i18n>Machine Board</ui5-button>
+        }
+      </ui5-message-strip>
+    }
 
-    <div class="flex items-center gap-2 shrink-0">
-      <ui5-button
-        design="Transparent"
-        (click)="openLogProductionForm()"
-        i18n
-      >
-        Log Production
-      </ui5-button>
-      <ng-container *ngFor="let label of menuItems">
-        <!-- <ui5-button
-          *ngIf="label !== 'Production Orders'"
-          design="Transparent"
-          routerLink="/production"
-        >
-          {{ label }}
-        </ui5-button> -->
-        <ui5-button
-          *ngIf="label === 'Production Orders'"
-          design="Transparent"
-          routerLink="/production/work-orders"
-        >
-          {{ label }}
-        </ui5-button>
-      </ng-container>
-    </div>
-  </div>
-
-  <!-- Main content — busy indicator overlays on top rather than wrapping the tabcontainer:
-       ui5-busy-indicator doesn't propagate flex/percentage height through its slot, which
-       collapsed the whole page when the tabcontainer was nested inside it. -->
-  <div class="relative flex-1 min-h-0 flex flex-col">
-  <ui5-tabcontainer
-    class="flex-1 min-h-0 flex flex-col"
-    header-background-design="Solid"
-    content-background-design="Transparent"
-    (tab-select)="onTabSelect($event)"
-  >
-  <ui5-tab
-    text="Overview"
-    i18n-text
-    [selected]="selectedTab === 'overview'"
-    id="overview"
-    class="h-full overflow-hidden"
-  >
-  <div class="grid grid-cols-12 gap-3 h-full min-h-0">
-    <!-- Left column -->
-    <div class="col-span-12 xl:col-span-3 flex flex-col gap-3 min-h-0 min-w-0">
-      <!-- State durations -->
-      <div class="panel rounded-2xl p-4 shrink-0 relative overflow-hidden"
-           [style.backgroundColor]="'color-mix(in srgb, ' + statusColor + ' 5%, var(--sapTile_Background, #fff))'"
-           [style.borderLeft]="'3px solid ' + statusColor"
-           [style.borderLeftColor]="statusColor">
-        <div *ngIf="loadingStates" class="absolute inset-0 z-10 flex items-center justify-center">
-          <ui5-busy-indicator active size="M" [delay]="0"></ui5-busy-indicator>
-        </div>
-        <div class="text-[11px] uppercase tracking-wide font-semibold mb-3 relative z-0"
-             style="color: var(--sapContent_LabelColor, #556b82); letter-spacing: 0.08em;" i18n>
-          State Durations (today · live)
-        </div>
-
-        <div
-          *ngFor="let state of machineStates.getAll(); let last = last"
-          [class.mb-3]="!last"
-        >
-          <div class="flex items-center justify-between text-sm">
-            <span class="flex items-center gap-1.5 font-semibold">
-              <span
-                class="w-2.5 h-2.5 rounded-full shrink-0"
-                [style.background]="machineStates.getColor(state.id)"
-                [style.boxShadow]="'0 0 5px ' + machineStates.getColor(state.id) + 'aa'"
-              ></span>
-              <span [style.color]="machineStates.getColor(state.id)">{{ state.name }}</span>
-            </span>
-            <span class="font-bold tabular-nums text-sm"
-                  style="color: var(--sapTextColor, #1d2d3e)">
-              {{ (durations.perState[state.id!] ?? 0) | duration }}
-            </span>
-          </div>
-          <div class="mt-1 h-2 rounded-full overflow-hidden"
-               [style.backgroundColor]="'color-mix(in srgb, ' + machineStates.getColor(state.id) + ' 18%, var(--sapTile_Background, #fff))'">
-            <div
-              class="h-full rounded-full transition-all duration-500"
-              [style.width.%]="pct(durations.perState[state.id!] ?? 0)"
-              [style.background]="machineStates.getColor(state.id)"
-              [style.boxShadow]="'0 0 6px ' + machineStates.getColor(state.id) + '66'"
-            ></div>
-          </div>
-        </div>
+    @if (store.machineKey()) {
+      <div class="flex-1 min-h-0">
+        @switch (store.view()) {
+          @case (ViewType.RUNTIME_STATUS) {
+            <app-machine-runtime-dashboard></app-machine-runtime-dashboard>
+          }
+          @case (ViewType.SAP_FIORI) {
+            <app-sap-fiori-machine-dashboard (logProduction)="openLogProductionForm()"></app-sap-fiori-machine-dashboard>
+          }
+          @default {
+            <app-oee-production-dashboard (logProduction)="openLogProductionForm()"></app-oee-production-dashboard>
+          }
+        }
       </div>
-
-
-        <div class="relative block w-full rounded-2xl overflow-hidden">
-          <div *ngIf="loadingShiftBreakdown || loadingStates" class="absolute inset-0 z-10 flex items-center justify-center ">
-            <ui5-busy-indicator active size="M" [delay]="0"></ui5-busy-indicator>
-          </div>
-          <app-ag-grid-table
-            class="block w-full relative z-0"
-          [columns]="shiftBreakdownColumns"
-          [toolbarConfig]="shiftBreakdownToolbarConfig"
-          [dataSource]="shiftBreakdownDataSource"
-          [displayConfig]="shiftBreakdownDisplayConfig"
-          [enableRowClick]="false"
-          noRowsMessage="No shift data for this range"
-          i18n-noRowsMessage
-        ></app-ag-grid-table>
-        </div>
-
-    </div>
-
-    <!-- Middle column: charts -->
-    <div class="col-span-12 xl:col-span-5 flex flex-col gap-3 min-h-0 min-w-0">
-      <div class="panel rounded-2xl p-4 flex-1 min-h-0 relative overflow-hidden flex flex-col">
-        <div *ngIf="loadingActivity" class="absolute inset-0 z-10 flex items-center justify-center">
-          <ui5-busy-indicator active size="M" [delay]="0"></ui5-busy-indicator>
-        </div>
-        <app-am-activity-chart
-          class="flex-1 min-h-0 block w-full relative z-0"
-          title="Recent – Activity"
-          [yMin]="0"
-          [yMax]="24"
-          [datasets]="datasets"
-          (dataPointClicked)="onPointClick($event)"
-        >
-        </app-am-activity-chart>
-      </div>
-
-      <div class="panel rounded-2xl p-4 flex-1 min-h-0 flex flex-col relative overflow-hidden">
-        <div *ngIf="loading7Days" class="absolute inset-0 z-10 flex items-center justify-center ">
-          <ui5-busy-indicator active size="M" [delay]="0"></ui5-busy-indicator>
-        </div>
-        <app-am-divergent-stacked-bar
-          class="flex-1 min-h-0 block w-full relative z-0"
-          [title]="todayChartTitle"
-          [data]="todayProductionData"
-        >
-        </app-am-divergent-stacked-bar>
-      </div>
-    </div>
-
-    <!-- Right column -->
-    <div
-      class="col-span-12 xl:col-span-4 flex flex-col gap-2 min-h-0 min-w-0 overflow-y-auto"
-    >
-      <div class="panel rounded-2xl p-3 shrink-0">
-        <ui5-label for="machineOverviewDateRange" show-colon i18n
-          >Date Range</ui5-label
-        >
-        <div class="flex items-center gap-2 mt-1">
-          <ui5-daterange-picker
-            id="machineOverviewDateRange"
-            class="flex-1 min-w-0"
-            format-pattern="dd/MM/yyyy"
-            [max-date]="maxDate"
-            [value]="dateRangeValue"
-            (change)="onDateRangeChange($event)"
-          >
-          </ui5-daterange-picker>
-          <ui5-button
-            design="Transparent"
-            [disabled]="!isFiltered"
-            (click)="resetDateRange()"
-            i18n
-          >
-            Reset
-          </ui5-button>
-        </div>
-        <div
-          class="mt-2 text-xs"
-          [style.color]="
-            isFiltered
-              ? 'var(--sapCriticalColor, #e76500)'
-              : 'var(--sapContent_LabelColor, #556b82)'
-          "
-        >
-          <span *ngIf="isFiltered" i18n
-            >Showing a snapshot for the selected range.</span
-          >
-          <span *ngIf="!isFiltered" i18n>Showing current month to date.</span>
-        </div>
-      </div>
-
-      <div class="panel rounded-2xl p-3 shrink-0 relative overflow-hidden">
-        <div *ngIf="loadingOEE" class="absolute inset-0 z-10 flex items-center justify-center">
-          <ui5-busy-indicator active size="M" [delay]="0"></ui5-busy-indicator>
-        </div>
-        <div class="flex flex-wrap items-center justify-between gap-2 mb-2 relative z-0">
-          <h2 class="text-base font-semibold panel-title" i18n>
-            Overall Equipment Effectiveness
-          </h2>
-          <div class="text-xs panel-subtle">
-            {{ periodLabel }}
-          </div>
-        </div>
-        <app-quality-efficiency
-          *ngIf="metrics[3] as efficiency"
-          [metric]="efficiency"
-          variant="hero"
-          class="block mb-2"
-        ></app-quality-efficiency>
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
-          <app-quality-efficiency
-            *ngFor="let m of metrics.slice(0, 3); trackBy: trackByMetricLabel"
-            [metric]="m"
-            variant="compact"
-          ></app-quality-efficiency>
-        </div>
-      </div>
-
-      <div class="flex-1 min-h-0 flex flex-col relative overflow-hidden rounded-2xl">
-        <div *ngIf="loadingOEE" class="absolute inset-0 z-10 flex items-center justify-center">
-          <ui5-busy-indicator active size="M" [delay]="0"></ui5-busy-indicator>
-        </div>
-        <app-production-overview
-          class="h-full flex flex-col relative z-0"
-          [compact]="true"
-          [periodLabel]="periodLabel"
-          [productionTarget]="target"
-          [productionAchieved]="achieved"
-          [machineOk]="ok"
-          [machineTotal]="total"
-          [wastage]="waste"
-          unit="kg"
-        ></app-production-overview>
-      </div>
-    </div>
-  </div>
-  </ui5-tab>
-  <ui5-tab
-    text="Production Order"
-    i18n-text
-    [selected]="selectedTab === 'workOrder'"
-    id="workOrder"
-    class="h-full overflow-auto bg-white"
-  >
-    <app-machine-work-orders
-      [machineKey]="machineKey"
-      [refreshToken]="workOrderRefreshToken"
-    ></app-machine-work-orders>
-  </ui5-tab>
-  </ui5-tabcontainer>
-  </div>
-
-  <ui5-dialog
-    class="w-[70vw]"
-    state="Information"
-    [open]="drillDownOpen"
-    [headerText]="drillDownTitle"
-    (before-close)="closeDrillDown()"
-  >
-    <ui5-busy-indicator
-      [active]="drillDownLoading"
-      [delay]="0"
-      size="M"
-      class="block w-full"
-    >
-      <div class="p-2 h-[52vh] flex flex-col w-full box-border">
-        <div class="flex flex-wrap gap-2 mb-2 shrink-0">
-          <div
-            *ngFor="let state of machineStates.getAll()"
-            class="flex items-center gap-1.5 text-xs font-medium rounded-full px-2.5 py-1"
-            [style.background]="machineStates.getTint(state.id)"
-            [style.color]="machineStates.getColor(state.id)"
-          >
-            <span
-              class="w-2 h-2 rounded-full"
-              [style.background]="machineStates.getColor(state.id)"
-            ></span>
-            <span>{{ state.name }}</span>
-            <span class="tabular-nums">{{
-              (drillDownSummary[state.id!] ?? 0) | duration
-            }}</span>
-          </div>
-        </div>
-        <div class="w-full flex-1 min-h-0">
-          <app-ag-grid-table
-            [columns]="drillDownColumns"
-            [toolbarConfig]="toolbarConfig"
-            [dataSource]="drillDownDataSource"
-            [displayConfig]="displayConfig"
-            [enableRowClick]="false"
-            noRowsMessage="No state events in this window"
-            i18n-noRowsMessage
-          >
-          </app-ag-grid-table>
-        </div>
-      </div>
-    </ui5-busy-indicator>
-    <div slot="footer" class="flex justify-end w-full">
-      <ui5-button (click)="closeDrillDown()" i18n>Close</ui5-button>
-    </div>
-  </ui5-dialog>
-
-  <app-production-log-form
-    #logFormRef
-    (RefreshTable)="onProductionLogged()"
-  ></app-production-log-form>
+    }
+  }
 </div>
+
+<app-production-log-form #logFormRef (RefreshTable)="onProductionLogged()"></app-production-log-form>

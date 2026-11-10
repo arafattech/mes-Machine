@@ -1,16 +1,12 @@
 @import "styles.sass";
 
 ui5-dialog {
-    width: $w-50;
-    height: $h-82;
+    width: 37.5% !important;
+    max-height: $h-82;
 }
 
 .array-table {
     height: $array-table-height;
-}
-
-ui5-tabcontainer {
-    height: $tab-container-height;
 }
 
 @media (max-width: 1800px) {

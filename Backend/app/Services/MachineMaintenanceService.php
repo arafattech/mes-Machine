@@ -31,11 +31,11 @@ class MachineMaintenanceService
      *
      * @throws ValidationException when an open schedule already exists.
      */
-    public function schedule(int $machineId, string $scheduledStartAt, string $reason, int $createdByUserId, bool $bufferEnabled = true): MachineMaintenanceSchedule
+    public function schedule(int $machineId, string $scheduledStartAt, string $reason, int $createdByUserId, bool $bufferEnabled = true, int $bufferMinutes = MachineMaintenanceSchedule::DEFAULT_BUFFER_MINUTES): MachineMaintenanceSchedule
     {
         $scheduledStart = Carbon::parse($scheduledStartAt);
 
-        return DB::transaction(function () use ($machineId, $scheduledStart, $reason, $createdByUserId, $bufferEnabled) {
+        return DB::transaction(function () use ($machineId, $scheduledStart, $reason, $createdByUserId, $bufferEnabled, $bufferMinutes) {
             // We only block creating a new emergency schedule if there's already an open EMERGENCY schedule.
             // A pending recurring schedule (maintenance_schedule_id IS NOT NULL) does not block emergency maintenance.
             $open = MachineMaintenanceSchedule::where('machine_id', $machineId)
@@ -57,6 +57,7 @@ class MachineMaintenanceService
                 'activated_at' => null,
                 'created_by_user_id' => $createdByUserId,
                 'buffer_enabled' => $bufferEnabled,
+                'buffer_minutes' => $bufferMinutes,
             ]);
         });
     }
@@ -65,15 +66,17 @@ class MachineMaintenanceService
      * Edit a maintenance schedule. While SCHEDULED (not yet activated), the
      * machine, start time, and reason are all editable; once ACTIVE only the
      * reason may change (the machine is already forced to MAINTENANCE); ended
-     * rows cannot be edited at all. `buffer_enabled` is always editable
-     * regardless of state — node-server reads it live from the row only when
-     * the schedule ends (`MachineStateTrackerService.reopenMaintenanceSession`).
+     * rows cannot be edited at all. `buffer_enabled` / `buffer_minutes` are always
+     * editable regardless of state — node-server reads them live from the row only
+     * when the schedule ends. Changing `buffer_minutes` while a verification window
+     * is already running shifts `pending_confirm_until` by the same delta so the
+     * window's start anchor (`pending_confirm_until - buffer_minutes`) is unchanged.
      *
      * @throws ValidationException on an ended row or an illegal ACTIVE-row edit.
      */
-    public function update(int $id, ?int $machineId, ?string $scheduledStartAt, ?string $reason, ?bool $bufferEnabled = null): ?MachineMaintenanceSchedule
+    public function update(int $id, ?int $machineId, ?string $scheduledStartAt, ?string $reason, ?bool $bufferEnabled = null, ?int $bufferMinutes = null): ?MachineMaintenanceSchedule
     {
-        return DB::transaction(function () use ($id, $machineId, $scheduledStartAt, $reason, $bufferEnabled) {
+        return DB::transaction(function () use ($id, $machineId, $scheduledStartAt, $reason, $bufferEnabled, $bufferMinutes) {
             $schedule = MachineMaintenanceSchedule::whereKey($id)->lockForUpdate()->first();
 
             if (! $schedule) {
@@ -92,6 +95,14 @@ class MachineMaintenanceService
             }
             if ($bufferEnabled !== null) {
                 $payload['buffer_enabled'] = $bufferEnabled;
+            }
+            if ($bufferMinutes !== null) {
+                $payload['buffer_minutes'] = $bufferMinutes;
+                if ($schedule->pending_confirm_until !== null) {
+                    $payload['pending_confirm_until'] = $schedule->pending_confirm_until
+                        ->copy()
+                        ->addMinutes($bufferMinutes - $schedule->buffer_minutes);
+                }
             }
 
             if ($schedule->activated_at !== null) {
@@ -160,12 +171,9 @@ class MachineMaintenanceService
 
     /**
      * Move a SCHEDULED row to ACTIVE. Idempotent: already-active or ended rows
-     * are no-ops. `$bufferMinutes` is the operator-chosen length (from the
-     * "Activate now" dialog) of the post-maintenance verification window
-     * node-server will use for this row, replacing the old fixed 5-minute
-     * default — see `MachineStateTrackerService.clearMaintenanceOverride`.
+     * are no-ops.
      */
-    public function activate(int $scheduleId, int $bufferMinutes): void
+    public function activate(int $scheduleId): void
     {
         $schedule = MachineMaintenanceSchedule::find($scheduleId);
 
@@ -173,7 +181,7 @@ class MachineMaintenanceService
             return;
         }
 
-        DB::transaction(function () use ($schedule, $bufferMinutes) {
+        DB::transaction(function () use ($schedule) {
             $fresh = MachineMaintenanceSchedule::whereKey($schedule->id)
                 ->whereNull('ended_at')
                 ->whereNull('activated_at')
@@ -184,10 +192,7 @@ class MachineMaintenanceService
                 return;
             }
 
-            $fresh->update([
-                'activated_at' => Carbon::now(),
-                'buffer_minutes' => $bufferMinutes,
-            ]);
+            $fresh->update(['activated_at' => Carbon::now()]);
 
             DB::afterCommit(fn () => $this->overrideSignal->activate((int) $fresh->machine_id));
         });
@@ -236,21 +241,13 @@ class MachineMaintenanceService
 
             // Check if it's tied to a recurring MaintenanceSchedule
             if ($schedule->maintenance_schedule_id) {
-                $recurring = \App\Models\MaintenanceSchedule::find($schedule->maintenance_schedule_id);
+                $recurring = \App\Models\MaintenanceSchedule::with('frequency')->find($schedule->maintenance_schedule_id);
                 if ($recurring && $recurring->is_active) {
                     // Calculate the new next_maintenance_date based on the ended date
                     $endedDateStr = Carbon::now()->format('Y-m-d');
                     $baseDate = Carbon::parse($endedDateStr . ' ' . $recurring->scheduled_time);
-                    
-                    $frequency = $recurring->frequency;
-                    $newNextDate = match ($frequency) {
-                        'weekly' => $baseDate->copy()->addWeek(),
-                        '10-days' => $baseDate->copy()->addDays(10),
-                        '15-days' => $baseDate->copy()->addDays(15),
-                        'monthly' => $baseDate->copy()->addMonth(),
-                        'yearly' => $baseDate->copy()->addYear(),
-                        default => $baseDate->copy()->addDays(1), // Fallback
-                    };
+
+                    $newNextDate = $recurring->frequency->nextAfter($baseDate);
 
                     // Update recurring schedule
                     $recurring->update(['next_maintenance_date' => $newNextDate]);
@@ -263,6 +260,7 @@ class MachineMaintenanceService
                         'created_by_user_id' => $endedByUserId,
                         'maintenance_schedule_id' => $recurring->id,
                         'buffer_enabled' => $recurring->buffer_enabled,
+                        'buffer_minutes' => $recurring->buffer_minutes,
                     ]);
                 }
             }

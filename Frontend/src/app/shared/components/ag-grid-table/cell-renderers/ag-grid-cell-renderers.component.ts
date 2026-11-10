@@ -308,16 +308,47 @@ export class AgGridRadioCellRendererComponent implements ICellRendererAngularCom
 
 // ─── Status badge cell renderer ───────────────────────────────────────────────
 
+export interface AgGridStatusBadgeWarning {
+  /** Short text — used as the icon tooltip and the popover header. */
+  title: string;
+  /** Label/value rows shown in the popover when the icon is clicked. */
+  details: { label: string; value: string }[];
+}
+
+export interface AgGridStatusBadgeParams extends ICellRendererParams {
+  /** Optional: return details to show a clickable warning icon after the badge (e.g. a manual status change). */
+  warning?: (data: any) => AgGridStatusBadgeWarning | null;
+}
+
 @Component({
   selector: 'app-ag-grid-status-badge-cell-renderer',
   standalone: true,
   imports: [CommonModule],
+  schemas: [CUSTOM_ELEMENTS_SCHEMA],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div style="display:flex;align-items:center;height:100%">
-      <span [style.background]="bg" [style.color]="color" style="padding:2px 10px;border-radius:8px;font-size:0.75rem;font-weight:600;white-space:nowrap;">
+    <div style="display:flex;align-items:center;gap:4px;height:100%">
+      <span *ngIf="label" [style.background]="bg" [style.color]="color" style="padding:2px 10px;border-radius:8px;font-size:0.75rem;font-weight:600;white-space:nowrap;">
         {{ label }}
       </span>
+      <ng-container *ngIf="warning">
+        <ui5-icon #warningIcon name="alert" interactive [attr.title]="warning.title" [attr.accessible-name]="warning.title"
+          style="width:0.875rem;height:0.875rem;cursor:pointer;color:var(--sapCriticalElementColor)"
+          (click)="openWarning($event)"></ui5-icon>
+        <ui5-popover [opener]="warningIcon" [open]="isWarningOpen" [attr.header-text]="warning.title"
+          placement="Bottom" (close)="isWarningOpen = false">
+          <div style="display:flex;flex-direction:column;gap:0.5rem;padding:0.5rem 0.25rem;min-width:14rem">
+            <div *ngFor="let row of warningRows" style="display:flex;justify-content:space-between;align-items:center;gap:1.5rem">
+              <ui5-label>{{ row.label }}</ui5-label>
+              <span *ngIf="row.pill; else plainValue" [style.background]="row.pill.backgroundColor"
+                style="padding:2px 10px;border-radius:8px;font-size:0.75rem;font-weight:600;white-space:nowrap;">
+                {{ row.pill.label }}
+              </span>
+              <ng-template #plainValue><ui5-text style="font-weight:600">{{ row.value }}</ui5-text></ng-template>
+            </div>
+          </div>
+        </ui5-popover>
+      </ng-container>
     </div>
   `,
 })
@@ -325,22 +356,46 @@ export class AgGridStatusBadgeComponent implements ICellRendererAngularComp {
   bg = 'rgba(172,172,172,0.3)';
   color = 'inherit';
   label = '';
+  warning: AgGridStatusBadgeWarning | null = null;
+  // Detail values that are a known status render as the same coloured pill as the badge.
+  warningRows: { label: string; value: string; pill: { backgroundColor?: string; label: string } | null }[] = [];
+  isWarningOpen = false;
 
-  agInit(params: ICellRendererParams): void {
-    this.update(params.value);
+  constructor(private cdr: ChangeDetectorRef) {}
+
+  agInit(params: AgGridStatusBadgeParams): void {
+    this.update(params);
   }
 
-  refresh(params: ICellRendererParams): boolean {
-    this.update(params.value);
+  refresh(params: AgGridStatusBadgeParams): boolean {
+    this.update(params);
+    this.cdr.markForCheck();
     return true;
   }
 
-  private update(value: string | null | undefined): void {
-    const key = value ?? 'UNPAID';
-    const style = statusStyles[key];
+  // The icon sits inside a clickable row — keep the click from also selecting/opening the row.
+  openWarning(event: Event): void {
+    event.stopPropagation();
+    this.isWarningOpen = true;
+  }
+
+  // An empty value renders no pill — columns that need a default (e.g. unpaid) pass it via valueGetter.
+  private update(params: AgGridStatusBadgeParams): void {
+    const value: string | null | undefined = params.value;
+    this.warning = params.warning?.(params.data) ?? null;
+    this.warningRows = (this.warning?.details ?? []).map((row) => {
+      const pillStyle = statusStyles[row.value];
+      return {
+        ...row,
+        pill: pillStyle
+          ? { backgroundColor: pillStyle.backgroundColor, label: pillStyle.label ?? row.value }
+          : null,
+      };
+    });
+    const style = value ? statusStyles[value] : undefined;
     this.bg = style?.backgroundColor ?? 'rgba(172,172,172,0.3)';
     this.color = style?.color ?? 'inherit';
-    this.label = style?.label ?? (value || 'Unpaid');
+    this.label = style?.label ?? (value || '');
   }
 }
 
@@ -371,12 +426,15 @@ export class AgGridApprovalProgressCellRendererComponent implements ICellRendere
   percent = 0;
   barColor = '#F59E0B';
 
+  constructor(private cdr: ChangeDetectorRef) {}
+
   agInit(params: ICellRendererParams<any, AgGridApprovalProgressValue | null>): void {
     this.update(params.value);
   }
 
   refresh(params: ICellRendererParams<any, AgGridApprovalProgressValue | null>): boolean {
     this.update(params.value);
+    this.cdr.markForCheck();
     return true;
   }
 
@@ -389,6 +447,8 @@ export class AgGridApprovalProgressCellRendererComponent implements ICellRendere
 }
 
 // ─── Badge list cell renderer ─────────────────────────────────────────────────
+
+const MAX_VISIBLE_BADGES = 2;
 
 @Component({
   selector: 'app-ag-grid-badge-list-cell-renderer',
@@ -407,14 +467,13 @@ export class AgGridApprovalProgressCellRendererComponent implements ICellRendere
         *ngIf="overflow > 0"
         design="Set2"
         color-scheme="5"
-      >{{ total }}</ui5-tag>
+      >+{{ overflow }}</ui5-tag>
     </div>
   `,
 })
 export class AgGridBadgeListCellRendererComponent implements ICellRendererAngularComp {
   displayed: string[] = [];
   overflow = 0;
-  total = 0;
 
   agInit(params: ICellRendererParams): void {
     this.setValues(params.value);
@@ -427,14 +486,8 @@ export class AgGridBadgeListCellRendererComponent implements ICellRendererAngula
 
   private setValues(value: { name: string }[] | null | undefined): void {
     const list = Array.isArray(value) ? value : [];
-    this.total = list.length;
-    if (list.length > 2) {
-      this.displayed = [];
-      this.overflow = list.length;
-    } else {
-      this.displayed = list.map((r) => r.name);
-      this.overflow = 0;
-    }
+    this.displayed = list.slice(0, MAX_VISIBLE_BADGES).map((r) => r.name);
+    this.overflow = Math.max(list.length - MAX_VISIBLE_BADGES, 0);
   }
 }
 
@@ -445,6 +498,8 @@ interface NoRowsOverlayParams {
   subtitle: string;
   height: string;
   message: string;
+  loadFailed: boolean;
+  onRetry: () => void;
 }
 
 @Component({
@@ -454,6 +509,17 @@ interface NoRowsOverlayParams {
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
+    <ui5-illustrated-message
+      *ngIf="p.loadFailed; else empty"
+      name="UnableToLoad"
+      design="Scene"
+      [style.height]="p.height || 'calc(100vh - 160px)'"
+    >
+      <div slot="title" i18n>Unable to load data</div>
+      <div slot="subtitle" i18n>The server could not be reached. Please try again.</div>
+      <ui5-button design="Emphasized" (click)="p.onRetry()" i18n>Retry</ui5-button>
+    </ui5-illustrated-message>
+    <ng-template #empty>
     <ng-container *ngIf="p.showIllustrated; else plain">
       <ui5-illustrated-message
         [name]="p.illustratedName || 'NoData'"
@@ -466,6 +532,7 @@ interface NoRowsOverlayParams {
     </ng-container>
     <ng-template #plain>
       <span class="ag-grid-table-no-rows">{{ p.message }}</span>
+    </ng-template>
     </ng-template>
   `,
 })

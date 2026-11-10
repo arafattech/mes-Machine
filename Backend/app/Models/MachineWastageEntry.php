@@ -12,6 +12,7 @@ class MachineWastageEntry extends Model
         'shift_id',
         'entry_date',
         'qty_kg',
+        'justification',
         'created_by',
     ];
 

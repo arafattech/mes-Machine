@@ -43,7 +43,8 @@
   [headerText]="detailSubtitle"
   (before-close)="closeDetail()"
 >
-  <div class="w-full bg-[var(--sapBackgroundColor,#f5f7fa)] p-2" style="overflow-y: auto; min-height: 70vh;">
+  <!-- The dialog content is the only scroll container; nested scrollers clipped the Machines & Shifts grid. -->
+  <div class="w-full bg-[var(--sapBackgroundColor,#f5f7fa)] p-2 min-h-[70vh]">
     <app-work-order-detail [workOrderId]="detailWorkOrderId"></app-work-order-detail>
   </div>
   <ui5-toolbar slot="footer">

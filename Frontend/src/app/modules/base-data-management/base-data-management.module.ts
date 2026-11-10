@@ -65,6 +65,8 @@ import { ItemFormComponent } from '@base-data-module/product-management/item-for
 import { ItemVariantsComponent } from '@base-data-module/product-management/item-variants/item-variants.component';
 import { DepartmentManagementComponent } from '@base-data-module/department-management/department-management.component';
 import { MachineConfigComponent } from '@base-data-module/machine-management/machine-config/machine-config.component';
+import { ScheduleFrequencyListComponent } from '@base-data-module/machine-management/schedule-frequency/schedule-frequency-list/schedule-frequency-list.component';
+import { ScheduleFrequencyFormComponent } from '@base-data-module/machine-management/schedule-frequency/schedule-frequency-form/schedule-frequency-form.component';
 import { CountTypeListComponent } from '@base-data-module/count-type-management/count-type-list/count-type-list.component';
 import { CountTypeFormComponent } from '@base-data-module/count-type-management/count-type-form/count-type-form.component';
 import { ApproverListComponent } from '@base-data-module/approver-management/approver-list/approver-list.component';
@@ -95,6 +97,8 @@ import { ApproverAssignFormComponent } from '@base-data-module/approver-manageme
     MachineWastageTypeFormComponent,
     MachineProductionTargetListComponent,
     MachineProductionTargetFormComponent,
+    ScheduleFrequencyListComponent,
+    ScheduleFrequencyFormComponent,
     StorageLocationFormComponent,
     LocationListComponent,
     UnitsFormComponent,

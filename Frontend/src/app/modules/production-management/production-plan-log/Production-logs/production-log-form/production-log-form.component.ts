@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Output, ViewChild } from '@angular/core';
+import { Component, ElementRef, EventEmitter, Output, ViewChild } from '@angular/core';
 import { CommonService } from '@app/services/common-service/common.service';
 import { ToastService } from '@app/services/toast-service/toast.service';
 import { MachineOverviewDataService } from '@production-module/shared/services/machine-overview-data.service';
@@ -8,6 +8,13 @@ import {
   ShiftOption,
 } from '@production-module/shared/interface/interface';
 import { AgGridTableComponent } from '@shared/components/ag-grid-table/ag-grid-table.component';
+import {
+  factoryToday,
+  formatFactoryDate,
+  formatFactoryDateTime,
+  fromPickerDate,
+} from '@shared/utilities/date-format';
+import { apiErrorMessage } from '@shared/utilities/api-errors';
 import {
   AgGridTableColumn,
   AgGridTableDisplayConfig,
@@ -43,6 +50,9 @@ interface WorkOrderOption {
 export class ProductionLogFormComponent {
   @ViewChild('entryGridRef')
   entryGridRef?: AgGridTableComponent<ProductionLogEntryRow>;
+  // `read: ElementRef` — on a UI5 Angular-wrapped element a bare template ref resolves to the wrapper component.
+  @ViewChild('workOrderCombo', { read: ElementRef }) private workOrderCombo?: ElementRef<HTMLInputElement>;
+  @ViewChild('shiftCombo', { read: ElementRef }) private shiftCombo?: ElementRef<HTMLInputElement>;
   @Output() RefreshTable = new EventEmitter<void>();
 
   open = false;
@@ -151,8 +161,7 @@ export class ProductionLogFormComponent {
       sortable: false,
       filter: false,
       floatingFilter: false,
-      valueFormatter: ({ value }: any) =>
-        value ? new Date(value).toLocaleString() : '',
+      valueFormatter: ({ value }: any) => formatFactoryDateTime(value),
     },
   ];
   readonly historyToolbarConfig: AgGridTableToolbarConfig = {
@@ -214,7 +223,8 @@ export class ProductionLogFormComponent {
   submit(): void {
     this.entryGridRef?.stopEditing();
 
-    if (!this.workOrderId || !this.shiftId || !this.date) {
+    const date = fromPickerDate(this.date);
+    if (!this.workOrderId || !this.shiftId || !date) {
       this.toastService.show(
         'error',
         $localize`Select a work order, shift, and date first.`,
@@ -222,8 +232,13 @@ export class ProductionLogFormComponent {
       return;
     }
 
+    if (this.entryRows.some((row) => row.goodCount != null && row.goodCount < 0)) {
+      this.toastService.show('error', $localize`Good count cannot be negative.`);
+      return;
+    }
+
     const entries = this.entryRows
-      .filter((row) => row.goodCount != null && row.goodCount >= 0)
+      .filter((row) => row.goodCount != null)
       .map((row) => ({
         machineId: row.machineId,
         goodCount: row.goodCount as number,
@@ -240,7 +255,7 @@ export class ProductionLogFormComponent {
     this.submitting = true;
     this.productionLogService
       .submitProductionLog(this.workOrderId, {
-        date: this.date,
+        date,
         shiftId: this.shiftId!,
         entries,
       })
@@ -251,9 +266,9 @@ export class ProductionLogFormComponent {
           this.RefreshTable.emit();
           this.closeDialog();
         },
-        error: () => {
+        error: (error) => {
           this.submitting = false;
-          this.toastService.show('error');
+          this.toastService.show('error', apiErrorMessage(error));
         },
       });
   }
@@ -314,11 +329,20 @@ export class ProductionLogFormComponent {
     this.date = this.today();
     this.entryRows = [];
     this.selectedTab = 'entry';
+    this.clearComboboxes();
     this.syncEntryGrid();
     this.syncHistoryFilter();
   }
 
+  /** The dialog's DOM outlives closing, so a combobox keeps showing its last pick while the model
+   * has been reset to `null` — clear what it displays too, or Submit fails on a visibly filled form. */
+  private clearComboboxes(): void {
+    for (const combobox of [this.workOrderCombo, this.shiftCombo]) {
+      if (combobox) combobox.nativeElement.value = '';
+    }
+  }
+
   private today(): string {
-    return new Date().toISOString().slice(0, 10);
+    return formatFactoryDate(factoryToday());
   }
 }

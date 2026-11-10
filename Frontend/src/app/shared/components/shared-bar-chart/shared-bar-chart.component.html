@@ -1,1 +1,7 @@
-<div #chartdiv [style.height]="chartHeight" class="w-full"></div>
+<div class="relative w-full" [style.height]="chartHeight">
+  <div #chartdiv class="w-full h-full"></div>
+  @if (!hasData) {
+    <div class="absolute inset-0 flex items-center justify-center text-sm pointer-events-none"
+      style="color: var(--sapContent_LabelColor, #64748b)">{{ noDataMessage }}</div>
+  }
+</div>

@@ -43,14 +43,14 @@
           <ui5-input
             class="w-100"
             [(ngModel)]="operations.standard_cycle_time"
-            placeholder="Enter  Cycle Time"
+            placeholder="Enter Cycle Time"
             i18n-placeholder
             (input)="checkValidation($event, 'cycle')"
             [attr.value-state]="valueStateOptions.standard_cycle_time"
             type="Number"
           >
             <div slot="valueStateMessage">
-              {{ validationMessage }}
+              {{ cycleTimeMessage }}
             </div>
           </ui5-input>
 

@@ -1,17 +1,23 @@
-<div class="relative w-full group">
-  <div
-    class="w-full grid gap-[3px]"
-    [style.--heat-color]="color"
-    [style.grid-template-columns]="'repeat(' + weekCount + ', 1fr)'"
-    [style.grid-template-rows]="'repeat(7, ' + rowSize + ')'"
-    style="grid-auto-flow: column"
-  >
+<div class="relative w-full group" [class.h-full]="fitHeight" [class.flex]="fitHeight" [class.flex-col]="fitHeight">
+  <div class="mb-1 text-[11px] font-semibold range-label shrink-0">{{ rangeLabel }}</div>
+  <div class="flex gap-1" [class.flex-1]="fitHeight" [class.min-h-0]="fitHeight">
+    <div class="grid gap-[3px] shrink-0" [style.grid-template-rows]="rowTemplate">
+      <span *ngFor="let label of rowLabels" class="flex items-center text-[10px] row-label">{{ label }}</span>
+    </div>
     <div
-      *ngFor="let day of cells"
-      class="relative rounded-sm heat-cell cell-hover flex items-center justify-center text-[10px] font-medium leading-none"
-      [class]="'level-' + day.level"
-      [class.is-today]="day.isToday"
-    >{{ day.day }}<span class="cell-tooltip">{{ day.date }} — {{ day.value }} ({{ day.percent }}% of total) — {{ day.levelLabel }}{{ day.isToday ? ' (Today)' : '' }}</span></div>
+      class="flex-1 grid gap-[3px]"
+      [style.--heat-color]="color"
+      [style.grid-template-columns]="'repeat(' + weekCount + ', 1fr)'"
+      [style.grid-template-rows]="rowTemplate"
+      style="grid-auto-flow: column"
+    >
+      <div
+        *ngFor="let day of cells"
+        class="relative rounded-sm heat-cell cell-hover flex items-center justify-center text-[10px] font-medium leading-none"
+        [class]="'level-' + day.level"
+        [class.is-today]="day.isToday"
+      >{{ day.day }}<span class="cell-tooltip">{{ day.date }} — {{ day.value }} ({{ day.percent }}% of total) — {{ day.levelLabel }}{{ day.isToday ? ' (Today)' : '' }}</span></div>
+    </div>
   </div>
 
   <div

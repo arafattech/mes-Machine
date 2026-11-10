@@ -71,6 +71,14 @@ export const statusStyles: Record<
     backgroundColor: 'rgba(213, 89, 89, 0.8)',
     label: 'Critical',
   },
+  INCREASED: {
+    backgroundColor: 'rgba(40, 167, 69, 0.5)',
+    label: 'Increased',
+  },
+  DECREASED: {
+    backgroundColor: 'rgba(213, 89, 89, 0.8)',
+    label: 'Decreased',
+  },
   'Low Stock': {
     backgroundColor: 'rgba(213, 89, 89, 0.8)',
     label: 'Low Stock',
@@ -125,12 +133,10 @@ export const statusStyles: Record<
   },
   CREATED: {
     backgroundColor: 'rgba(40, 167, 69, 0.25)',
-    color: '#155724',
-    label: 'PO Created',
+    label: 'PI Created',
   },
   NOT_CREATED: {
     backgroundColor: 'rgba(173, 181, 189, 0.3)',
-    color: '#495057',
     label: 'Not Created',
   },
   active: {
@@ -196,6 +202,22 @@ export const statusStyles: Record<
   EXTRA_SHIFT: {
     backgroundColor: 'rgba(255, 140, 0, 0.25)',
     label: 'Extra Shift',
+  },
+  HOLIDAY_BONUS: {
+    backgroundColor: 'rgba(40, 167, 69, 0.25)',
+    label: 'Holiday Bonus',
+  },
+  HOLIDAY_OVERTIME: {
+    backgroundColor: 'rgba(23, 162, 184, 0.25)',
+    label: 'Holiday Overtime Bonus',
+  },
+  NIGHTSHIFT: {
+    backgroundColor: 'rgba(52, 58, 64, 0.25)',
+    label: 'Night Shift',
+  },
+  ATTENDANCE: {
+    backgroundColor: 'rgba(255, 193, 7, 0.3)',
+    label: 'Attendance',
   },
   VALID: {
     backgroundColor: 'rgba(40, 167, 69, 0.3)',
@@ -275,4 +297,19 @@ export function getStatusStyle(status?: string | null): { backgroundColor: strin
     color: style?.color ?? 'inherit',
     label: style?.label ?? (status || ''),
   };
+}
+
+/** HTML status pill for AG Grid cell renderers; text follows the active UI5 theme so it stays readable in dark mode. */
+export function renderStatusBadge(value: unknown): string {
+  const key = (value as string) || 'DRAFT';
+  const style = statusStyles[key] || statusStyles['disconnected'];
+  const background = style?.backgroundColor || '#e0e0e0';
+  const label = style?.label || (value as string) || 'Unknown';
+  return `<div style="min-width:90px;height:25px;border-radius:5px;background:${background};display:flex;justify-content:center;align-items:center;text-transform:uppercase"><span style="color:var(--sapTextColor);font-weight:500;font-size:.8rem">${label}</span></div>`;
+}
+
+/** Small count pill for AG Grid cells; uses UI5 theme tokens so it renders correctly in light and dark themes. */
+export function renderCountBadge(count: number): string {
+  if (!count) return '';
+  return `<span style="display:inline-flex;align-items:center;padding:2px 8px;background:var(--sapInformationBackground);color:var(--sapInformativeTextColor);border-radius:4px;font-size:12px;font-weight:500">${count}</span>`;
 }

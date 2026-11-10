@@ -99,7 +99,7 @@
         </span>
       </div>
 
-      <div class="flex items-center gap-1.5 whitespace-nowrap">
+      <div class="flex items-center gap-1.5 whitespace-nowrap" title="In state for" i18n-title>
       <ui5-icon name="history" class="w-4 h-4 metric-icon"></ui5-icon>
       <span class="text-[13px] font-semibold tabular-nums metric-value">
           {{
@@ -252,11 +252,11 @@
         </div>
       </div>
 
-      <!-- Uptime: live time in current status -->
+      <!-- Continuous time in the current status (may span days) — not today's uptime -->
       <div class="flex flex-col py-0.5 px-1.5 rounded-lg">
         <div class="flex items-center gap-1.5 text-xs">
           <ui5-icon name="history" class="w-3.5 h-3.5 metric-icon"></ui5-icon>
-          <span class="font-medium metric-label tracking-tight text-[11px]" i18n>Uptime</span>
+          <span class="font-medium metric-label tracking-tight text-[11px]" i18n>In state for</span>
         </div>
         <div class="font-semibold metric-value text-xs sm:text-sm mt-1 font-mono tabular-nums">
           {{

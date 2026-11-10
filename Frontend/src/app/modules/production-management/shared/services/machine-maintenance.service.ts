@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { CommonService } from '@app/services/common-service/common.service';
+import { DEFAULT_BUFFER_MINUTES } from '@production-module/shared/utils/maintenance-buffer';
 
 /**
  * Machine-maintenance scheduling — write-side REST client for the
@@ -17,18 +18,30 @@ export class MachineMaintenanceService {
   constructor(private readonly commonService: CommonService) {}
 
   /** Create a schedule. Always created SCHEDULED — activation is manual-only ("Activate now"), never automatic. */
-  create(machineId: number, scheduledStartAt: string, reason: string, bufferEnabled = true): Observable<unknown> {
+  create(
+    machineId: number,
+    scheduledStartAt: string,
+    reason: string,
+    bufferEnabled = true,
+    bufferMinutes = DEFAULT_BUFFER_MINUTES,
+  ): Observable<unknown> {
     return this.commonService.post(
       'machine/maintenance',
-      { machine_id: machineId, scheduled_start_at: scheduledStartAt, reason, buffer_enabled: bufferEnabled },
+      {
+        machine_id: machineId,
+        scheduled_start_at: scheduledStartAt,
+        reason,
+        buffer_enabled: bufferEnabled,
+        buffer_minutes: bufferMinutes,
+      },
       false,
     );
   }
 
   /**
    * Update a schedule. While SCHEDULED, machine / start time / reason are all
-   * editable; once ACTIVE only `reason` (and `buffer_enabled`, always editable
-   * regardless of state) are accepted by the backend. Send the field(s) to
+   * editable; once ACTIVE only `reason` (and `buffer_enabled` / `buffer_minutes`, always
+   * editable regardless of state) are accepted by the backend. Send the field(s) to
    * change — nulls are ignored by the backend.
    */
   update(
@@ -38,6 +51,7 @@ export class MachineMaintenanceService {
       scheduled_start_at?: string;
       reason?: string;
       buffer_enabled?: boolean;
+      buffer_minutes?: number;
     },
   ): Observable<unknown> {
     return this.commonService.put(`machine/maintenance/${id}`, payload, false);
@@ -53,13 +67,8 @@ export class MachineMaintenanceService {
     return this.commonService.post(`machine/${machineId}/maintenance/end`, { maintenance_note: maintenanceNote }, false);
   }
 
-  /** Activate a single SCHEDULED row on demand. `bufferMinutes` is the operator-chosen
-   * length (from the "Activate now" dialog) of the post-maintenance verification window. */
-  activate(id: number, bufferMinutes: number): Observable<unknown> {
-    return this.commonService.post(
-      `machine/maintenance/${id}/activate`,
-      { buffer_minutes: bufferMinutes },
-      false,
-    );
+  /** Activate a single SCHEDULED row on demand. */
+  activate(id: number): Observable<unknown> {
+    return this.commonService.post(`machine/maintenance/${id}/activate`, {}, false);
   }
 }

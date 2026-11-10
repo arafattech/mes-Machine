@@ -15,6 +15,8 @@ use Illuminate\Database\Eloquent\Model;
  */
 class MachineMaintenanceSchedule extends Model
 {
+    public const DEFAULT_BUFFER_MINUTES = 5;
+
     protected $fillable = [
         'machine_id',
         'scheduled_start_at',

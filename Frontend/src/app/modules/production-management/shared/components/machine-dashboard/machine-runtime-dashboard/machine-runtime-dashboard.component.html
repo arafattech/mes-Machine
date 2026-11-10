@@ -1,0 +1,224 @@
+<div class="h-full w-full flex flex-col gap-3 px-4 pb-3 box-border overflow-hidden">
+  <app-machine-dashboard-header [showProduction]="false"></app-machine-dashboard-header>
+
+  <div class="flex-1 min-h-0 grid grid-cols-12 gap-3">
+    <!-- Andon: stack light + time in the current state — the thing an operator looks up to see -->
+    <section
+      class="col-span-12 lg:col-span-4 xl:col-span-3 min-h-0 rounded-xl flex overflow-hidden border border-[color:var(--sapTile\_BorderColor,#d9d9d9)]"
+      [style.background]="store.status().tint"
+      aria-labelledby="andonState"
+    >
+      <div
+        class="w-16 shrink-0 flex flex-col gap-1.5 p-2 bg-[color:var(--sapTile\_Background,#fff)] border-r border-[color:var(--sapTile\_BorderColor,#d9d9d9)]"
+        aria-hidden="true"
+      >
+        @for (lamp of andon(); track lamp.stateId) {
+          <div
+            class="flex-1 rounded-md flex items-center justify-center transition-colors duration-300"
+            [style.background]="lamp.lit ? lamp.color : lamp.dim"
+            [style.boxShadow]="lamp.lit ? '0 0 16px ' + lamp.color : 'none'"
+            [attr.title]="lamp.name"
+          >
+            <ui5-icon class="w-5 h-5" [name]="lamp.icon" [style.color]="lamp.lit ? 'var(--sapContent_ContrastIconColor, #fff)' : lamp.color"></ui5-icon>
+          </div>
+        }
+      </div>
+
+      <div class="flex-1 min-w-0 p-6 flex flex-col">
+        <p
+          id="andonState"
+          class="flex items-center gap-2 text-2xl font-bold leading-tight"
+          [style.color]="store.status().color"
+          role="status"
+          aria-live="polite"
+        >
+          <ui5-icon class="w-7 h-7 shrink-0" [name]="store.status().icon"></ui5-icon>
+          <span class="truncate">{{ store.status().label }}</span>
+        </p>
+
+        <dl class="mt-5 flex flex-wrap gap-x-8 gap-y-3 text-sm">
+          <div>
+            <dt class="whitespace-nowrap text-[color:var(--sapContent\_LabelColor,#556b82)]" i18n>In this state today</dt>
+            <dd class="text-lg font-semibold tabular-nums text-[var(--sapTextColor,#1d2d3e)]">{{ currentStateToday() | duration }}</dd>
+          </div>
+          <div>
+            <dt class="whitespace-nowrap text-[color:var(--sapContent\_LabelColor,#556b82)]" i18n>Communication</dt>
+            <dd class="flex items-center gap-1 text-lg font-semibold whitespace-nowrap" [style.color]="connectivity().color">
+              <ui5-icon class="w-4 h-4 shrink-0" [name]="connectivity().icon"></ui5-icon>{{ connectivity().label }}
+            </dd>
+          </div>
+        </dl>
+
+        <!-- Today at a glance: share of the day per state, runtime share in the middle -->
+        <div class="flex-1 min-h-0 flex items-center justify-center py-4">
+          <div
+            class="relative aspect-square h-full max-h-48 rounded-full"
+            [style.background]="dayRing().background"
+            role="img"
+            [attr.aria-label]="dayRing().label"
+          >
+            <div
+              class="absolute inset-[14%] rounded-full flex flex-col items-center justify-center bg-[color:var(--sapTile\_Background,#fff)]"
+            >
+              <span class="text-2xl font-bold tabular-nums text-[var(--sapTextColor,#1d2d3e)]">
+                {{ today().runtimePct === null ? '—' : today().runtimePct + ' %' }}
+              </span>
+              <span class="text-xs text-[color:var(--sapContent\_LabelColor,#556b82)]" i18n>productive today</span>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <p class="text-sm text-[color:var(--sapContent\_LabelColor,#556b82)]" i18n>Time in this state</p>
+          <p class="text-6xl 2xl:text-7xl font-bold leading-none tabular-nums tracking-tight text-[var(--sapTextColor,#1d2d3e)]">
+            {{ store.durations().currentSeconds | duration }}
+          </p>
+          @if (stateSince()) {
+            <p class="mt-2 text-sm tabular-nums text-[color:var(--sapContent\_LabelColor,#556b82)]" i18n>Since {{ stateSince() }}</p>
+          }
+        </div>
+      </div>
+    </section>
+
+    <div class="col-span-12 lg:col-span-8 xl:col-span-9 min-h-0 flex flex-col gap-3">
+      <!-- Today's figures: one rail, cells split by rules -->
+      <section
+        class="shrink-0 rounded-xl grid grid-cols-2 md:grid-cols-4 divide-x divide-[color:var(--sapList\_BorderColor,#e5e5e5)] bg-[color:var(--sapTile\_Background,#fff)] border border-[color:var(--sapTile\_BorderColor,#d9d9d9)]"
+        aria-label="Today's runtime"
+        i18n-aria-label
+      >
+        <div class="px-5 py-3">
+          <p class="text-xs text-[color:var(--sapContent\_LabelColor,#556b82)]" i18n>Productive today</p>
+          <p class="text-3xl font-semibold tabular-nums text-[var(--sapPositiveTextColor)]">{{ today().productiveSeconds | duration }}</p>
+        </div>
+        <div class="px-5 py-3">
+          <p class="text-xs text-[color:var(--sapContent\_LabelColor,#556b82)]" i18n>Runtime share</p>
+          <p class="text-3xl font-semibold tabular-nums text-[var(--sapTextColor,#1d2d3e)]">
+            {{ today().runtimePct === null ? '—' : today().runtimePct + ' %' }}
+          </p>
+        </div>
+        <div class="px-5 py-3">
+          <p class="text-xs text-[color:var(--sapContent\_LabelColor,#556b82)]" i18n>Not productive today</p>
+          <p class="text-3xl font-semibold tabular-nums text-[var(--sapCriticalTextColor)]">{{ today().nonProductiveSeconds | duration }}</p>
+        </div>
+        <div class="px-5 py-3">
+          <p class="text-xs text-[color:var(--sapContent\_LabelColor,#556b82)]" i18n>State changes today</p>
+          <p class="text-3xl font-semibold tabular-nums text-[var(--sapTextColor,#1d2d3e)]">
+            {{ store.todayEventsState() === 'loading' ? '…' : stateChangesToday() }}
+            @if (lastTransition()) {
+              <span class="text-xs font-normal text-[color:var(--sapContent\_LabelColor,#556b82)]" i18n>last {{ lastTransition() }}</span>
+            }
+          </p>
+        </div>
+      </section>
+
+      <!-- Machine condition: maintenance and the temperature / speed sensors -->
+      <section
+        class="shrink-0 rounded-xl bg-[color:var(--sapTile\_Background,#fff)] border border-[color:var(--sapTile\_BorderColor,#d9d9d9)]"
+        aria-label="Machine condition"
+        i18n-aria-label
+      >
+        <app-machine-condition layout="row"></app-machine-condition>
+      </section>
+
+      <!-- Per-state lanes on a fixed 24 h axis -->
+      <section
+        class="shrink-0 rounded-xl px-5 pt-3 pb-2 bg-[color:var(--sapTile\_Background,#fff)] border border-[color:var(--sapTile\_BorderColor,#d9d9d9)]"
+        aria-labelledby="lanesTitle"
+      >
+        <h2 id="lanesTitle" class="text-sm font-semibold mb-2 text-[var(--sapTextColor,#1d2d3e)]" i18n>Today by state</h2>
+        <div class="flex flex-col gap-1.5" role="img" aria-label="Time spent in each machine state today" i18n-aria-label>
+          @for (lane of lanes(); track lane.stateId) {
+            <div class="flex items-center gap-3">
+              <div class="w-44 shrink-0 flex items-center justify-between gap-2 text-sm">
+                <span class="flex items-center gap-2 min-w-0 text-[var(--sapTextColor,#1d2d3e)]">
+                  <span class="w-2.5 h-2.5 rounded-sm shrink-0" [style.background]="lane.color"></span>
+                  <span class="truncate">{{ lane.name }}</span>
+                </span>
+                <span class="tabular-nums text-xs text-[color:var(--sapContent\_LabelColor,#556b82)]">{{ lane.seconds | duration }}</span>
+              </div>
+              <div class="relative flex-1 h-5 rounded overflow-hidden bg-[color:var(--sapList\_Background,#f5f6f7)]">
+                @for (guide of laneGuides; track guide) {
+                  <div class="absolute inset-y-0 w-px bg-[color:var(--sapList\_BorderColor,#e5e5e5)]" [style.left.%]="guide"></div>
+                }
+                @for (segment of lane.segments; track $index) {
+                  <div class="absolute inset-y-0" [style.left.%]="segment.leftPct" [style.width.%]="segment.widthPct" [style.background]="lane.color"></div>
+                }
+                <div class="absolute inset-y-0 w-0.5 bg-[var(--sapBrandColor)]" [style.left.%]="nowPct()"></div>
+              </div>
+            </div>
+          }
+        </div>
+        <div class="flex gap-3 mt-1">
+          <div class="w-44 shrink-0"></div>
+          <div class="flex-1 flex justify-between text-[11px] tabular-nums text-[color:var(--sapContent\_LabelColor,#556b82)]">
+            @for (tick of timelineTicks; track tick) {
+              <span>{{ tick }}</span>
+            }
+          </div>
+        </div>
+      </section>
+
+      <!-- Latest state changes: newest first, as many as fit -->
+      <section
+        class="flex-1 min-h-0 rounded-xl px-5 py-3 flex flex-col overflow-hidden bg-[color:var(--sapTile\_Background,#fff)] border border-[color:var(--sapTile\_BorderColor,#d9d9d9)]"
+        aria-labelledby="changesTitle"
+      >
+        <div class="flex items-baseline justify-between mb-1">
+          <h2 id="changesTitle" class="text-sm font-semibold text-[var(--sapTextColor,#1d2d3e)]" i18n>Latest state changes</h2>
+          @if (olderChangesHidden()) {
+            <span class="text-xs text-[color:var(--sapContent\_LabelColor,#556b82)]" i18n>{{ olderChangesHidden() }} earlier today not shown</span>
+          }
+        </div>
+        @switch (store.todayEventsState()) {
+          @case ('loading') {
+            <div class="flex-1 flex items-center justify-center">
+              <ui5-busy-indicator active size="M" [delay]="0"></ui5-busy-indicator>
+            </div>
+          }
+          @case ('error') {
+            <div class="flex-1 flex flex-col items-center justify-center gap-2 text-sm text-[color:var(--sapContent\_LabelColor,#556b82)]">
+              <span i18n>State history couldn't be loaded.</span>
+              <ui5-button design="Transparent" (click)="store.loadTodayEvents()" i18n>Try again</ui5-button>
+            </div>
+          }
+          @default {
+            @if (recentChanges().length) {
+              <!-- Column-first on wide screens so the list reads top-to-bottom, newest first -->
+              <ol class="flex-1 min-h-0 overflow-hidden grid grid-cols-1 xl:grid-cols-2 xl:grid-rows-6 xl:grid-flow-col gap-x-8 content-start">
+                @for (change of recentChanges(); track $index) {
+                  <li
+                    class="flex items-center gap-3 py-1.5 text-sm border-b border-[color:var(--sapList\_BorderColor,#e5e5e5)]"
+                    [class.opacity-50]="change.brief"
+                  >
+                    <span
+                      class="flex items-center gap-1.5 w-32 shrink-0 font-semibold rounded-full px-2.5 py-0.5"
+                      [style.background]="change.tint"
+                      [style.color]="change.color"
+                    >
+                      <ui5-icon class="w-3.5 h-3.5 shrink-0" [name]="change.icon"></ui5-icon>
+                      <span class="truncate">{{ change.label }}</span>
+                    </span>
+                    <span class="tabular-nums text-[color:var(--sapContent\_LabelColor,#556b82)]">
+                      {{ change.start }} –
+                      @if (change.end) {
+                        {{ change.end }}
+                      } @else {
+                        <span class="font-semibold text-[var(--sapTextColor,#1d2d3e)]" i18n>now</span>
+                      }
+                    </span>
+                    <span class="ml-auto tabular-nums font-semibold text-[var(--sapTextColor,#1d2d3e)]">{{ change.seconds | duration }}</span>
+                  </li>
+                }
+              </ol>
+            } @else {
+              <p class="flex-1 flex items-center justify-center text-sm text-[color:var(--sapContent\_LabelColor,#556b82)]" i18n>
+                No state changes yet today.
+              </p>
+            }
+          }
+        }
+      </section>
+    </div>
+  </div>
+</div>

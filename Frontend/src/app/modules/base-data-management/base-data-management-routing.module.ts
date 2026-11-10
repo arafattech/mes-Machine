@@ -39,6 +39,7 @@ import { ItemVariantsComponent } from '@base-data-module/product-management/item
 import { DepartmentManagementComponent } from '@app/modules/base-data-management/department-management/department-management.component';
 import { Permissions } from '@app/shared/enums/permissions';
 import { MachineConfigComponent } from './machine-management/machine-config/machine-config.component';
+import { ScheduleFrequencyListComponent } from '@app/modules/base-data-management/machine-management/schedule-frequency/schedule-frequency-list/schedule-frequency-list.component';
 import { DesignationManagementComponent } from '@app/modules/hr-management/designation-management/designation-management.component';
 import { EmployeeTypeManagementComponent } from '@app/modules/hr-management/employee-type-management/employee-type-management.component';
 import { CountTypeListComponent } from '@app/modules/base-data-management/count-type-management/count-type-list/count-type-list.component';
@@ -233,6 +234,12 @@ const routes: Routes = [
         component: MachineProductionTargetListComponent,
         canActivate: [PermissionGuard],
         data: { permission: Permissions.BASE_DATA_MACHINE_PRODUCTION_TARGET },
+      },
+      {
+        path: 'schedule-frequency',
+        component: ScheduleFrequencyListComponent,
+        canActivate: [PermissionGuard],
+        data: { permission: Permissions.PRODUCTION_ADMIN },
       },
       {
         path: 'machine-config',

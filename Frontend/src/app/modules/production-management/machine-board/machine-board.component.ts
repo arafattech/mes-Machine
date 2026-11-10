@@ -211,17 +211,19 @@ export class MachineBoardComponent implements OnInit {
       }
     }
 
+    // Machines active = share of machines currently in a `counts_as_productive` state.
+    // A fleet activity ratio, not OEE — per-machine OEE lives on each machine's page.
     const productiveIds = this.machineStates.getProductiveIds();
     const productiveCount = [...countByStateId.entries()]
       .filter(([stateId]) => productiveIds.has(stateId))
       .reduce((sum, [, count]) => sum + count, 0);
-    const overallEfficiency = this.toPercent(productiveCount, total);
+    const machinesActivePercent = this.toPercent(productiveCount, total);
 
     const overallCard: StatusCardData = {
-      percent: overallEfficiency,
-      progress: overallEfficiency,
+      percent: machinesActivePercent,
+      progress: machinesActivePercent,
       counts: total,
-      label: $localize`Overall Efficiency`,
+      label: $localize`Machines Active`,
       type: 'overall',
     };
 

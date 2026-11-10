@@ -58,7 +58,7 @@ export class HallFormComponent implements OnInit {
   };
 
   plantDisplayConfig: AgGridTableDisplayConfig = {
-    gridHeight: "calc(100vh - 460px)",
+    gridHeight: "calc(45vh - 135px)",
     fillEmptyRows: true,
   };
 

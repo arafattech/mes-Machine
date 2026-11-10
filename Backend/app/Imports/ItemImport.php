@@ -50,6 +50,14 @@ class ItemImport  implements ToModel, WithHeadingRow, WithChunkReading
                 $uom_id = null;
             }
 
+            if (Product::isFormulaLike($row['model_number'] ?? null)) {
+                $row['model_number'] = null;
+            }
+
+            $row['rack_no'] = $this->withoutFormula($row['rack_no'] ?? null);
+            $row['current_stock'] = $this->withoutFormula($row['current_stock'] ?? null);
+            $row['rate'] = $this->withoutFormula($row['rate'] ?? null);
+
             if(!empty($product_name)){
                 $existingProduct = Product::where('product_name', $product_name)
                     ->where('model_number', $row['model_number'])
@@ -88,6 +96,11 @@ class ItemImport  implements ToModel, WithHeadingRow, WithChunkReading
                 }
             }
         }       
+    }
+
+    private function withoutFormula(mixed $value): mixed
+    {
+        return Product::isFormulaText($value) ? null : $value;
     }
 
     public function chunkSize(): int

@@ -16,6 +16,8 @@ import {
 } from './machine-runtime.types';
 import { MachineStateTrackerService } from './machine-state-tracker.service';
 import { MaintenanceOverrideService } from './maintenance-override.service';
+import { GetRedisClient } from 'config/redis/config.redis';
+import { PublishProductionEvent } from '@module/machine/realtime/production-events';
 
 type WorkerEntry = {
   worker: Worker;
@@ -27,6 +29,7 @@ type WorkerEntry = {
 @Injectable()
 export class MachineRuntimeService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(MachineRuntimeService.name);
+  private readonly redis = GetRedisClient();
   private readonly workers = new Map<string, WorkerEntry>();
   private stopping = false;
   private watchTimer?: NodeJS.Timeout;
@@ -577,23 +580,34 @@ export class MachineRuntimeService implements OnModuleInit, OnModuleDestroy {
             total_count: { increment: 1 },
           },
         });
-        return;
+      } else {
+        await this.prisma.machine_production_counts.create({
+          data: {
+            machine_id: id,
+            bucket_started_at: bucketStart,
+            bucket_ended_at: now,
+            good_count: isGood ? 1 : 0,
+            scrap_count: isGood ? 0 : 1,
+            total_count: 1,
+          },
+        });
       }
-
-      await this.prisma.machine_production_counts.create({
-        data: {
-          machine_id: id,
-          bucket_started_at: bucketStart,
-          bucket_ended_at: now,
-          good_count: isGood ? 1 : 0,
-          scrap_count: isGood ? 0 : 1,
-          total_count: 1,
-        },
-      });
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       this.logger.error(`Production count save error [machine ${machineId}]: ${message}`);
+      return;
     }
+
+    // Same channel Laravel publishes to — coalesced per window by ProductionRealtimeService,
+    // so a fast shot rate still yields at most one socket push per window.
+    PublishProductionEvent(this.redis, {
+      type: 'ProductionShot',
+      machine_ids: [Number(id)],
+      work_order_ids: [],
+    }).catch((error: unknown) => {
+      const message = error instanceof Error ? error.message : String(error);
+      this.logger.warn(`Production event publish failed [machine ${machineId}]: ${message}`);
+    });
   }
 
   private toUInt(value: number): number {

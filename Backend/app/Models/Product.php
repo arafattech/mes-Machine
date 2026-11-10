@@ -11,6 +11,7 @@ use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 use Flat3\Lodata\Attributes\LodataRelationship;
+use Illuminate\Validation\ValidationException;
 
 class Product extends Model implements HasMedia
 {
@@ -21,6 +22,44 @@ class Product extends Model implements HasMedia
     }
 
     protected $guarded = [];
+
+    protected static function booted(): void
+    {
+        // Leading = + - @ makes spreadsheet apps evaluate the value as a formula (CSV/Excel injection).
+        static::saving(function (Product $product) {
+            if (self::isFormulaLike($product->model_number)) {
+                throw ValidationException::withMessages([
+                    'model_number' => 'Model number must not start with =, +, - or @.',
+                ]);
+            }
+
+            foreach (self::FORMULA_GUARDED_FIELDS as $field => $label) {
+                if (self::isFormulaText($product->{$field})) {
+                    throw ValidationException::withMessages([
+                        $field => "{$label} must not be a spreadsheet formula.",
+                    ]);
+                }
+            }
+        });
+    }
+
+    /** Free-text/numeric columns that an Excel import can fill with raw formula text. */
+    public const FORMULA_GUARDED_FIELDS = [
+        'rack_no' => 'Rack number',
+        'current_stock' => 'Current stock',
+        'unit_price' => 'Unit price',
+    ];
+
+    /** Like isFormulaLike, but a plain signed number such as "-5" is not a formula. */
+    public static function isFormulaText(mixed $value): bool
+    {
+        return self::isFormulaLike($value) && ! is_numeric(trim($value));
+    }
+
+    public static function isFormulaLike(mixed $value): bool
+    {
+        return is_string($value) && preg_match('/^\s*[=+\-@]/', $value) === 1;
+    }
 
     #[
         LodataIdentifier('Products'),

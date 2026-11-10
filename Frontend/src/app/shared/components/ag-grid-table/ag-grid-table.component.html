@@ -481,6 +481,16 @@
       ></ui5-button>
 
       <ui5-button
+        *ngIf="ResolveToolbar.showPrint"
+        design="Transparent"
+        icon="print"
+        tooltip="Print"
+        i18n-tooltip
+        [disabled]="ResolveToolbar.disablePrintButton || isGridLoading"
+        (click)="printButtonClick.emit()"
+      ></ui5-button>
+
+      <ui5-button
         *ngIf="ResolveToolbar.showUpload"
         design="Transparent"
         icon="upload"
@@ -576,6 +586,7 @@
       [suppressPaginationPanel]="false"
       [getRowId]="rowIdGetter"
       [rowSelection]="resolvedSelectionMode"
+      [rowClassRules]="rowClassRules"
       [suppressServerSideFullWidthLoadingRow]="true"
       [class.ag-no-alternate-rows]="!ResolveDisplay.alternateRowColors"
       [suppressRowClickSelection]="isTreeTable || selectionRowBehavior === 'RowSelector'"

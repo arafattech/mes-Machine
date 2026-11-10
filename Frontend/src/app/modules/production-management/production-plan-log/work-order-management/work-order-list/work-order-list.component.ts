@@ -1,5 +1,6 @@
 import { Component, EventEmitter, OnInit, Output, ViewChild } from '@angular/core';
 import moment from 'moment';
+import { MS_PER_DAY, factoryMidnight, factoryToday, formatFactoryDate, fromPickerDate } from '@shared/utilities/date-format';
 import { WorkOrderFormComponent } from '@production-module/production-plan-log/work-order-management/work-order-form/work-order-form.component';
 import { RolePermissionService } from '@app/services/role-permission-service/role-permission.service';
 import { Permissions } from '@app/shared/enums/permissions';
@@ -57,6 +58,9 @@ export class WorkOrderListComponent implements OnInit {
     searchFields: ['custom_id', 'product.product_name'],
     pageSize: 40,
     scrollPagination: true,
+    // Newest first, so a just-created order is visible at the top.
+    sortBy: 'created_at',
+    sortDirection: 'desc',
   };
   toolbarConfig: AgGridTableToolbarConfig = {
     headerTitle: `${$localize`Production Order`} ${$localize`List`}`,
@@ -75,20 +79,21 @@ export class WorkOrderListComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    const today = moment();
-    const monthAgo = moment().subtract(1, 'month');
-    this.dateRangeValue = `${monthAgo.format('DD/MM/YYYY')} - ${today.format('DD/MM/YYYY')}`;
-    this.dateRangeFilter = this.buildDateRangeCondition(monthAgo, today);
-    this.rebuildFilter();
+    this.applyDefaultDateRange();
   }
 
   resetFilters(): void {
-    const today = moment();
-    const monthAgo = moment().subtract(1, 'month');
-    this.dateRangeValue = `${monthAgo.format('DD/MM/YYYY')} - ${today.format('DD/MM/YYYY')}`;
+    this.applyDefaultDateRange();
+    this.agGridRef?.clearSearch();
+  }
+
+  /** Last month up to today, in factory calendar days. */
+  private applyDefaultDateRange(): void {
+    const today = factoryToday();
+    const monthAgo = moment(today).subtract(1, 'month').format('YYYY-MM-DD');
+    this.dateRangeValue = `${formatFactoryDate(monthAgo)} - ${formatFactoryDate(today)}`;
     this.dateRangeFilter = this.buildDateRangeCondition(monthAgo, today);
     this.rebuildFilter();
-    this.agGridRef?.clearSearch();
   }
 
   onDateRangeStringChange(value: string): void {
@@ -99,18 +104,25 @@ export class WorkOrderListComponent implements OnInit {
       return;
     }
 
-    const [from, to] = value.split(' - ');
-    const start = moment(from, 'DD/MM/YYYY');
-    const end = moment(to, 'DD/MM/YYYY');
-    if (!start.isValid() || !end.isValid()) return;
+    const [start, end] = value.split(' - ').map(fromPickerDate);
+    if (!start || !end) return;
 
     this.dateRangeValue = value;
     this.dateRangeFilter = this.buildDateRangeCondition(start, end);
     this.rebuildFilter();
   }
 
-  private buildDateRangeCondition(start: moment.Moment, end: moment.Moment): string {
-    return `scheduled_start ge '${start.format('YYYY-MM-DD')}' and scheduled_start le '${end.format('YYYY-MM-DD')}'`;
+  /**
+   * Orders scheduled within `[start, end]` (factory days). Orders without a scheduled start
+   * fall back to when they were created, so they never vanish from the list.
+   */
+  private buildDateRangeCondition(start: string, end: string): string {
+    const from = factoryMidnight(start).toISOString();
+    const to = new Date(factoryMidnight(end).getTime() + MS_PER_DAY).toISOString();
+    return (
+      `((scheduled_start ge ${from} and scheduled_start lt ${to})` +
+      ` or (scheduled_start eq null and created_at ge ${from} and created_at lt ${to}))`
+    );
   }
 
   private rebuildFilter(): void {
@@ -184,13 +196,13 @@ export class WorkOrderListComponent implements OnInit {
 
   newWorkOrder(): void {
     this.workOrder = new WorkOrder().deserialize({});
-    this.workOrderFormRef.open = true;
+    this.workOrderFormRef.openDialog();
     this.saveMode = saveMode.POST;
   }
 
   editWorkOrder(data: any): void {
     this.workOrder = new WorkOrder().deserialize(data);
-    this.workOrderFormRef.open = true;
+    this.workOrderFormRef.openDialog();
     this.saveMode = saveMode.PUT;
   }
 

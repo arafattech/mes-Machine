@@ -1,0 +1,6 @@
+
+// AG Grid cells render outside this component's view encapsulation.
+:host ::ng-deep .maintenance-overdue {
+  color: var(--sapNegativeTextColor);
+  font-weight: 600;
+}

@@ -57,7 +57,7 @@
                 </div>
             </div>
           </div>
-          <div class="grid grid-cols-2">
+          <div class="grid grid-cols-2 gap-2">
             <div>
               <ui5-label required show-colon i18n>OEE</ui5-label>
               <ui5-input class="w-100" [(ngModel)]="machine.oee" placeholder="Enter Oee" required i18n-placeholder
@@ -66,6 +66,13 @@
                   {{ validationMessage }}
                 </div>
               </ui5-input>
+            </div>
+            <div class="flex flex-col" *ngIf="canChangeDashboardView">
+              <ui5-label for="machineDashboardView" show-colon i18n>Dashboard View</ui5-label>
+              <ui5-select id="machineDashboardView" class="w-full" (change)="onDashboardViewChange($event)">
+                <ui5-option *ngFor="let option of dashboardViewOptions" [attr.value]="option.value"
+                  [selected]="machine.dashboard_view === option.value">{{ option.label }}</ui5-option>
+              </ui5-select>
             </div>
           </div>
         </section>

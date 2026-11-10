@@ -9,6 +9,7 @@ import {
   AgGridTableODataSourceConfig,
   AgGridTableToolbarConfig,
 } from '@app/shared/components/ag-grid-table/types/ag-grid-table.types';
+import { MaintenanceWorkTypeClass } from '@production-module/shared/enums/maintenance-work-type';
 import { formatDate, formatDateTime, formatTime } from '@shared/utilities/date-format';
 import { MachineMaintenanceScheduleFormComponent } from '../machine-maintenance-schedule-form/machine-maintenance-schedule-form.component';
 import { CommonService } from '@app/services/common-service/common.service';
@@ -38,7 +39,7 @@ export class MachineMaintenanceScheduleListComponent {
     endpoint: '',
     customEndpoint: 'maintenance-schedules',
     fromCustomPaginator: true,
-    searchFields: ['machine.machine_name', 'frequency'],
+    searchFields: ['machine.machine_name', 'frequency.name'],
     pageSize: 40,
     scrollPagination: true,
     sortBy: 'id',
@@ -49,6 +50,7 @@ export class MachineMaintenanceScheduleListComponent {
     headerTitle: $localize`Machine Maintenance Schedule`,
     showSearch: true,
     showRowCount: true,
+    showSegmentButton: true,
     addButtonText: $localize`New`,
     showNewButton: this.rolePermissionService.hasPermission(
       Permissions.PRODUCTION_ADMIN,
@@ -84,9 +86,16 @@ export class MachineMaintenanceScheduleListComponent {
         valueFormatter: ({ value }: any) => formatTime(value),
       },
       {
-        field: 'frequency',
+        colId: 'frequency.name',
         headerName: $localize`Frequency`,
         minWidth: 160,
+        valueGetter: (p) => p.data?.frequency?.name ?? '',
+      },
+      {
+        field: 'type_of_work',
+        headerName: $localize`Type of Works`,
+        minWidth: 180,
+        valueGetter: (p) => MaintenanceWorkTypeClass.getLabel(p.data?.type_of_work),
       },
       {
         field: 'is_active',
@@ -97,8 +106,14 @@ export class MachineMaintenanceScheduleListComponent {
       {
         field: 'next_maintenance_date',
         headerName: $localize`Next Maintenance Date`,
-        minWidth: 200,
-        valueFormatter: ({ value }: any) => formatDateTime(value),
+        minWidth: 240,
+        // A schedule never completed keeps a past date; flag it instead of showing it as upcoming.
+        valueFormatter: (p) => {
+          const next = formatDateTime(p.value);
+          const overdueDays: number | null = p.data?.overdue_days ?? null;
+          return overdueDays === null ? next : `${next} · ${$localize`Overdue (${overdueDays} days)`}`;
+        },
+        cellClass: (p) => (p.data?.overdue_days != null ? 'maintenance-overdue' : ''),
       },
     ];
   }

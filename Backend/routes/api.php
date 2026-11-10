@@ -10,6 +10,7 @@ use App\Http\Controllers\ClientController;
 use App\Http\Controllers\MachineController;
 use App\Http\Controllers\MachineConfigController;
 use App\Http\Controllers\MachineMaintenanceController;
+use App\Http\Controllers\ProducibleProductController;
 use App\Http\Controllers\WorkOrderController;
 use App\Http\Controllers\ProductionLotBatchController;
 use App\Http\Controllers\ProductionLotCountController;
@@ -82,6 +83,8 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::post('machine/maintenance/{id}/activate', [MachineMaintenanceController::class, 'activate']);
     Route::post('machine/{machineId}/maintenance/end', [MachineMaintenanceController::class, 'end']);
     Route::apiResource('maintenance-schedules', App\Http\Controllers\MaintenanceScheduleController::class);
+    Route::get('schedule-frequencies/options', [App\Http\Controllers\ScheduleFrequencyController::class, 'options']);
+    Route::apiResource('schedule-frequencies', App\Http\Controllers\ScheduleFrequencyController::class);
     // Machine overview/OEE, current-work-order, and the work-order execution rollup are
     // now served by node-server (NestJS/Prisma) — it already owns the write-side of
     // machine_state_events/machine_production_counts. See node-server/src/module/machine/
@@ -91,6 +94,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('production-logs', [MachineController::class, 'productionLogs']);
     Route::get('wastage-logs', [MachineController::class, 'wastageLogs']);
     Route::get('wastage-logs-detail', [MachineController::class, 'wastageLogDetail']);
+    Route::get('production/producible-products', ProducibleProductController::class);
     Route::post('work-orders', [WorkOrderController::class, 'store']);
     Route::put('work-orders/{id}', [WorkOrderController::class, 'update']);
     Route::post('work-orders/{id}/production-counts', [WorkOrderController::class, 'logProductionCounts']);

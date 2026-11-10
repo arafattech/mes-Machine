@@ -55,12 +55,14 @@ export class AgGridTableQueryBuilderService {
     // created_at) makes $skip/$top pagination non-deterministic — MySQL has no
     // guaranteed tie order, so the same row can reappear on a later page while
     // another is skipped, silently losing rows across an infinite-scroll session.
-    // A stable id tiebreaker fixes that without changing the primary sort.
+    // A stable id tiebreaker fixes that without changing the primary sort; it follows the
+    // primary sort's direction so a newest-first sort stays newest-first within ties.
     // Skipped for type:'api' — those hit bespoke REST controllers whose $orderby
     // parsing is a single anchored `field (asc|desc)` regex with no comma support;
     // a real OData/lodata backend parses multi-clause $orderby natively.
     if (!isApiType && clauses.length && !clauses.some((c) => c.startsWith('id '))) {
-      clauses.push('id asc');
+      const primaryDirection = clauses[0].endsWith(' desc') ? 'desc' : 'asc';
+      clauses.push(`id ${primaryDirection}`);
     }
 
     return clauses.join(', ');

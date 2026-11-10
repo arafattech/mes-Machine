@@ -8,10 +8,24 @@
 >
   <ui5-busy-indicator [delay]="0" [active]="loading" size="M" class="w-full">
     <section class="w-full p-2 space-y-4">
-      <div>
-        <ui5-label i18n>Verification Buffer</ui5-label>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-start">
         <div>
-          <ui5-switch [checked]="bufferEnabled" (change)="onBufferEnabledChange($event)"></ui5-switch>
+          <ui5-label i18n>Verification Buffer</ui5-label>
+          <div>
+            <ui5-switch [checked]="bufferEnabled" (change)="onBufferEnabledChange($event)"></ui5-switch>
+          </div>
+        </div>
+        <div class="md:col-start-3" [class.invisible]="!bufferEnabled">
+          <ui5-label show-colon i18n>Buffer Time (minutes)</ui5-label>
+          <div>
+            <ui5-step-input
+              [value]="bufferMinutes"
+              [min]="minBufferMinutes"
+              [max]="maxBufferMinutes"
+              [step]="1"
+              (change)="onBufferMinutesChange($event)"
+            ></ui5-step-input>
+          </div>
         </div>
       </div>
 
@@ -37,10 +51,10 @@
           <ui5-label show-colon required i18n>Scheduled Date</ui5-label>
           <ui5-date-picker
             class="w-100"
-            format-pattern="yyyy-MM-dd"
+            format-pattern="dd/MM/yyyy"
             [value]="startDate"
             (change)="onDateChange($event)"
-            placeholder="Select date"
+            placeholder="DD/MM/YYYY"
             i18n-placeholder
             [attr.value-state]="valueStateOptions.startDate"
           >

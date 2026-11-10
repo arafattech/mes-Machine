@@ -1,0 +1,53 @@
+<app-ag-grid-table
+  #agGridRef
+  [gridId]="gridId"
+  [columns]="columns"
+  [dataSource]="dataSource"
+  [toolbarConfig]="toolbarConfig"
+  [showAction]="true"
+  (newButtonClick)="newFrequency()"
+  (editClick)="editFrequency($event)"
+  (deleteClick)="deleteClick($event)"
+  [showEditButton]="
+    rolePermissionService.hasPermission(permissions.PRODUCTION_ADMIN)
+  "
+  [showDeleteButton]="
+    rolePermissionService.hasPermission(permissions.PRODUCTION_ADMIN)
+  "
+>
+</app-ag-grid-table>
+
+<app-schedule-frequency-form
+  #frequencyForm
+  [saveMode]="saveMode"
+  (formSubmitted)="processData()"
+></app-schedule-frequency-form>
+
+<ui5-dialog
+  class="w-[90vw] max-w-sm"
+  [open]="deleteDialogOpen"
+  header-text="Confirm Deletion"
+  i18n-header-text
+  (before-close)="closeDeleteDialog()"
+>
+  <p i18n>
+    Are you sure you want to delete <strong>{{ frequencyToDelete?.name }}</strong
+    >?
+  </p>
+  <ui5-toolbar slot="footer">
+    <ui5-toolbar-button
+      design="Negative"
+      (click)="confirmDelete()"
+      [disabled]="deleting"
+      text="Delete"
+      i18n-text
+    ></ui5-toolbar-button>
+    <ui5-toolbar-button
+      design="Transparent"
+      [disabled]="deleting"
+      (click)="closeDeleteDialog()"
+      text="Cancel"
+      i18n-text
+    ></ui5-toolbar-button>
+  </ui5-toolbar>
+</ui5-dialog>

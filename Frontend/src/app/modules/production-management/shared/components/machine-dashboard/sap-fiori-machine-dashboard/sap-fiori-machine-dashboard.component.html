@@ -1,0 +1,416 @@
+<!-- Plain title block instead of `ui5-dynamic-page`: its internal scroll container always adds a scrollbar,
+     and here the cards below must take exactly the remaining viewport height. -->
+<header class="flex shrink-0 flex-col gap-2 border-b border-[color:var(--sapObjectHeader\_BorderColor,#d9d9d9)] bg-[color:var(--sapObjectHeader\_Background,#fff)] px-10 pt-3 pb-3">
+  <ui5-breadcrumbs (item-click)="onBreadcrumbClick($event)">
+    <ui5-breadcrumbs-item data-route="/production" i18n>Machine board</ui5-breadcrumbs-item>
+    <ui5-breadcrumbs-item>{{ store.machine()?.name }}</ui5-breadcrumbs-item>
+  </ui5-breadcrumbs>
+
+  <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+    <div class="flex flex-wrap items-center gap-x-4 gap-y-1">
+      <ui5-title level="H2">{{ store.machine()?.name }}</ui5-title>
+      <!-- The reporting period applies to the whole page -->
+      <div class="flex items-center gap-3">
+        <ui5-segmented-button accessible-name="Reporting period" i18n-accessible-name (selection-change)="onPeriodChange($event)">
+          <ui5-segmented-button-item data-period="today" [selected]="period() === 'today'" i18n>Today</ui5-segmented-button-item>
+          <ui5-segmented-button-item data-period="month" [selected]="period() === 'month'" i18n>Month to date</ui5-segmented-button-item>
+        </ui5-segmented-button>
+        <ui5-label class="tabular-nums">{{ periodLabel() }}</ui5-label>
+      </div>
+    </div>
+    <div class="flex shrink-0 items-center gap-2">
+      <ui5-button design="Emphasized" icon="add" (click)="logProduction.emit()" i18n>Log production</ui5-button>
+      <ui5-button design="Transparent" (click)="openProductionOrders()" i18n>Production orders</ui5-button>
+    </div>
+  </div>
+
+  <!-- Key attributes: live status chips on top, the machine's current context as stacked label / value pairs below -->
+  <div class="flex flex-col gap-2">
+    <div class="flex flex-wrap items-center gap-x-4 gap-y-1">
+      <ui5-label>{{ store.machine()?.customId }}</ui5-label>
+      <ui5-tag [design]="stateTagDesign()" hide-state-icon>
+        <ui5-icon slot="icon" [name]="store.status().icon"></ui5-icon>
+        {{ store.status().label }}
+      </ui5-tag>
+      <!-- <ui5-tag [design]="connectivity().tagDesign" hide-state-icon>
+        <ui5-icon slot="icon" [name]="connectivity().icon"></ui5-icon>
+        {{ connectivity().label }}
+      </ui5-tag> -->
+      @if (maintenanceTag(); as tag) {
+        <span class="flex items-center gap-1.5">
+          <ui5-tag [design]="tag.design" hide-state-icon [attr.title]="tag.text">
+            <ui5-icon slot="icon" [name]="tag.icon"></ui5-icon>
+            {{ tag.text }}
+          </ui5-tag>
+          <ui5-label class="tabular-nums">
+            {{ tag.detail }}
+            @if (tag.elapsed !== null) {
+              ({{ tag.elapsed | duration }})
+            }
+          </ui5-label>
+        </span>
+      }
+     
+    </div>
+    <div class="mt-1 flex flex-wrap gap-y-3">
+      <div class="flex flex-col gap-0.5 pr-8">
+        <ui5-label i18n>Time in state</ui5-label>
+        <ui5-text class="text-lg font-semibold tabular-nums">{{ store.durations().currentSeconds | duration }}</ui5-text>
+      </div>
+      @if (temperatureTag() || rpmTag()) {
+        <!-- Two-column grid so the Temperature and Speed tags start on the same line -->
+        <div class="grid grid-cols-[auto_auto] content-center items-center justify-start gap-x-2 gap-y-1 px-8 border-l border-[color:var(--sapList\_BorderColor,#e5e5e5)]">
+          @if (temperatureTag(); as tag) {
+            <ui5-label show-colon i18n>Temperature</ui5-label>
+            <ui5-tag class="justify-self-start" [design]="tag.design" hide-state-icon [attr.title]="tag.tooltip">
+              <ui5-icon slot="icon" name="temperature"></ui5-icon>
+              {{ tag.text }}
+            </ui5-tag>
+          }
+          @if (rpmTag(); as tag) {
+            <ui5-label show-colon i18n>Speed</ui5-label>
+            <ui5-tag class="justify-self-start" design="Neutral" hide-state-icon [attr.title]="tag.tooltip">
+              <ui5-icon slot="icon" name="performance"></ui5-icon>
+              {{ tag.text }}
+            </ui5-tag>
+          }
+        </div>
+      }
+
+      <!-- ml-auto pushes the order / product / shift group to the right edge -->
+      <div class="ml-auto flex flex-col gap-0.5 px-8 border-l border-[color:var(--sapList\_BorderColor,#e5e5e5)]">
+        <ui5-label i18n>Production order</ui5-label>
+        <ui5-text class="text-lg font-semibold">{{ store.currentWorkOrder()?.workOrder?.customId || '—' }}</ui5-text>
+      </div>
+      <div class="flex flex-col gap-0.5 px-8 border-l border-[color:var(--sapList\_BorderColor,#e5e5e5)]">
+        <ui5-label i18n>Product</ui5-label>
+        <ui5-text class="text-lg font-semibold">{{ store.currentWorkOrder()?.workOrder?.productName || '—' }}</ui5-text>
+      </div>
+      <div class="flex flex-col gap-0.5 pl-8 border-l border-[color:var(--sapList\_BorderColor,#e5e5e5)]">
+        <ui5-label i18n>Shift</ui5-label>
+        <ui5-text class="text-lg font-semibold">
+          @if (store.currentWorkOrder()?.shift; as shift) {
+            {{ shift.name }}, {{ store.shiftWindow() }}
+          } @else {
+            —
+          }
+        </ui5-text>
+      </div>
+    </div>
+  </div>
+</header>
+
+<!-- Two rows that split the viewport height (figures on top, latest activity below): the page never
+       scrolls, and switching Today / Month to date cannot change the rows' size. -->
+<div class="flex min-h-0 flex-1 flex-col gap-2 px-10 pt-2 pb-3">
+    <div class="grid min-h-0 grid-cols-1 grid-rows-1 lg:flex-[11] lg:grid-cols-3 gap-3 [&>ui5-card]:min-h-0 [&>ui5-card]:overflow-hidden">
+      <!-- OEE: the figure, then each factor with the inputs behind it -->
+      <ui5-card>
+        <ui5-card-header
+          slot="header"
+          title-text="Overall equipment effectiveness"
+          i18n-title-text
+        ></ui5-card-header>
+        <ui5-busy-indicator class="block w-full" [active]="store.overviewLoading()" [delay]="0">
+          <div class="flex gap-5 px-4 pb-4 w-full">
+            <div class="shrink-0 flex flex-col justify-center">
+              <ui5-label i18n>OEE</ui5-label>
+              <span class="text-5xl font-bold leading-none tabular-nums text-[color:var(--sapHighlightColor,#0a6ed1)]">{{ oeeText() }}</span>
+              <ui5-label class="mt-1" wrapping-type="Normal" i18n>Availability × performance × quality</ui5-label>
+            </div>
+            <div class="flex-1 min-w-0 flex flex-col gap-1">
+              @for (step of oeeSteps(); track step.label) {
+                <div class="min-w-0">
+                  <div class="flex items-baseline justify-between gap-2">
+                    <ui5-label class="truncate">{{ step.label }}</ui5-label>
+                    <ui5-text class="font-semibold tabular-nums shrink-0">{{ step.displayValue }}</ui5-text>
+                  </div>
+                  <!-- One gradient across the track: dimmed for the whole scale, full colour up to the value -->
+                  <div
+                    class="relative my-0.5 h-2 w-full overflow-hidden rounded-full"
+                    role="progressbar"
+                    aria-valuemin="0"
+                    aria-valuemax="100"
+                    [attr.aria-valuenow]="step.progress"
+                    [attr.aria-label]="step.label + ' ' + step.displayValue"
+                  >
+                    <div class="absolute inset-0 opacity-25" [style.background-image]="oeeGradient"></div>
+                    <div
+                      class="relative h-full rounded-full transition-all duration-500 ease-out"
+                      [style.width.%]="step.progress"
+                      [style.background-image]="oeeGradient"
+                      [style.background-size]="step.fillSize"
+                    ></div>
+                  </div>
+                  <p class="truncate text-xs text-[color:var(--sapContent\_LabelColor,#556b82)]" [attr.title]="step.detail">{{ step.detail }}</p>
+                </div>
+              }
+            </div>
+          </div>
+        </ui5-busy-indicator>
+      </ui5-card>
+
+      <!-- Production: produced vs target, output per day, yield -->
+      <ui5-card>
+        <ui5-card-header
+          slot="header"
+          title-text="Production"
+          i18n-title-text
+          [attr.additional-text]="achievementText() || null"
+        ></ui5-card-header>
+        <ui5-busy-indicator class="block w-full" [active]="store.overviewLoading()" [delay]="0">
+          <div class="flex flex-col gap-2 px-4 pb-4 w-full">
+            <div class="flex items-baseline gap-2">
+              <span class="text-4xl font-bold leading-none tabular-nums text-[var(--sapTextColor)]">
+                {{ store.production()?.productionAchieved ?? 0 | number }}
+              </span>
+              <ui5-label i18n>of {{ store.production()?.productionTarget ?? 0 | number }} target</ui5-label>
+            </div>
+            @if (achievement() === null) {
+              <ui5-text i18n>No target set for this period</ui5-text>
+            } @else {
+              <ui5-progress-indicator
+                [value]="achievementProgress()"
+                [attr.display-value]="achievementText()"
+                [attr.value-state]="achievementState()"
+                accessible-name="Progress to target"
+                i18n-accessible-name
+              ></ui5-progress-indicator>
+            }
+            @if (dailyGood().length > 1) {
+              <!-- Micro chart: good output per day (UI5 Web Components has no micro charts) -->
+              <div>
+                <div class="flex items-end gap-px h-10" role="img" [attr.aria-label]="dailyGoodSummary()">
+                  @for (bar of dailyGood(); track $index) {
+                    <div class="flex-1 rounded-t-sm bg-[color:var(--sapChart\_OrderedColor\_1,#5899da)]" [style.height.%]="bar.heightPct" [attr.title]="bar.label"></div>
+                  }
+                </div>
+                <div class="flex justify-between">
+                  <ui5-label>{{ dailyGoodRange().from }}</ui5-label>
+                  <ui5-label i18n>Good per day</ui5-label>
+                  <ui5-label>{{ dailyGoodRange().to }}</ui5-label>
+                </div>
+              </div>
+            }
+            <div class="grid grid-cols-3 gap-x-4">
+              <div class="flex flex-col min-w-0">
+                <ui5-label i18n>Yield</ui5-label>
+                <ui5-text class="font-semibold tabular-nums">{{ yieldText() }}</ui5-text>
+              </div>
+              <div class="flex flex-col min-w-0">
+                <ui5-label i18n>Good / total</ui5-label>
+                <ui5-text class="font-semibold tabular-nums">
+                  {{ store.production()?.machineOk ?? 0 | number }} / {{ store.production()?.machineTotal ?? 0 | number }}
+                </ui5-text>
+              </div>
+              <div class="flex flex-col min-w-0">
+                <ui5-label i18n>Wastage</ui5-label>
+                <ui5-text class="font-semibold tabular-nums">{{ store.production()?.wastage ?? 0 | number: '1.0-2' }} kg</ui5-text>
+              </div>
+            </div>
+          </div>
+        </ui5-busy-indicator>
+      </ui5-card>
+
+      <!-- Where non-productive time went in the period, plus today's split -->
+      <ui5-card>
+        <ui5-card-header slot="header" title-text="Biggest losses" i18n-title-text additional-text="share of tracked time" i18n-additional-text>
+          @if (periodAnalysisState() === 'error') {
+            <ui5-button slot="action" design="Transparent" (click)="retryPeriodAnalysis()" i18n>Try again</ui5-button>
+          }
+        </ui5-card-header>
+        <ui5-busy-indicator class="block w-full" [active]="periodAnalysisState() === 'loading'" [delay]="0">
+          <div class="flex flex-col gap-2 px-4 pb-4 w-full">
+            @for (loss of losses(); track loss.stateId) {
+              <div class="min-w-0">
+                <div class="flex items-center gap-2">
+                  <ui5-icon class="w-4 h-4 shrink-0" [name]="loss.icon" [style.color]="loss.color"></ui5-icon>
+                  <ui5-label class="font-semibold truncate">{{ loss.label }}</ui5-label>
+                  <ui5-label class="tabular-nums whitespace-nowrap" i18n>{{ loss.share }} %, {{ loss.stops }} stops, longest {{ loss.longestSeconds | duration }}</ui5-label>
+                  <ui5-text class="ml-auto font-semibold tabular-nums shrink-0">{{ loss.hours }}</ui5-text>
+                </div>
+                <!-- Same track + fill as the machine board's status cards: the state's tint and colour -->
+                <div
+                  class="my-0.5 h-2 w-full overflow-hidden rounded-full"
+                  [style.background]="loss.tint"
+                  role="progressbar"
+                  aria-valuemin="0"
+                  aria-valuemax="100"
+                  [attr.aria-valuenow]="loss.share"
+                  [attr.aria-label]="loss.label"
+                >
+                  <div class="h-full rounded-full transition-all duration-500 ease-out" [style.background]="loss.color" [style.width.%]="loss.share"></div>
+                </div>
+              </div>
+            } @empty {
+              @if (periodAnalysisState() === 'error') {
+                <ui5-text i18n>State history couldn't be loaded.</ui5-text>
+              } @else {
+                <ui5-text i18n>No non-productive time in this period.</ui5-text>
+              }
+            }
+            <div class="mt-auto pt-2 border-t border-[color:var(--sapList\_BorderColor,#e5e5e5)]">
+              <ui5-label i18n>Today by state</ui5-label>
+              <div class="flex h-7 mt-1 rounded overflow-hidden bg-[color:var(--sapList\_Background,#f5f6f7)]" role="img" [attr.aria-label]="todaySplitLabel()">
+                @for (part of todaySplit(); track part.stateId) {
+                  <div
+                    class="h-full flex items-center justify-center overflow-hidden text-xs font-semibold tabular-nums whitespace-nowrap text-white [text-shadow:0_1px_2px_rgb(0_0_0/0.45)]"
+                    [style.width.%]="part.percent"
+                    [style.background]="part.color"
+                    [attr.title]="part.title"
+                  >
+                    @if (part.showHours) {
+                      {{ part.hours }}
+                    }
+                  </div>
+                }
+              </div>
+            </div>
+          </div>
+        </ui5-busy-indicator>
+      </ui5-card>
+    </div>
+
+    <div class="grid min-h-0 grid-cols-1 grid-rows-1 xl:flex-[13] xl:grid-cols-3 gap-3 [&>ui5-card]:min-h-0 [&>ui5-card]:overflow-hidden">
+      <!-- What the machine is working on: order progress across its machines + the shift -->
+      <ui5-card>
+        <ui5-card-header
+          slot="header"
+          title-text="Current production order"
+          i18n-title-text
+          [attr.additional-text]="order()?.status ?? null"
+        ></ui5-card-header>
+        <div class="flex flex-col gap-2.5 px-4 pb-4">
+          @if (order(); as wo) {
+            <div class="flex items-baseline justify-between gap-2">
+              <span class="flex items-baseline gap-2 min-w-0">
+                <ui5-title level="H4">{{ wo.customId }}</ui5-title>
+                <ui5-label class="truncate">{{ wo.product }}</ui5-label>
+              </span>
+              <ui5-label class="shrink-0" i18n>Started {{ wo.startedAt }}</ui5-label>
+            </div>
+            <div>
+              <div class="flex items-baseline justify-between gap-2">
+                <ui5-label i18n>Produced of planned, all machines</ui5-label>
+                <ui5-text class="font-semibold tabular-nums">
+                  {{ wo.produced === null ? '—' : (wo.produced | number) }} / {{ wo.planned | number }}
+                </ui5-text>
+              </div>
+              <ui5-progress-indicator
+                [value]="wo.progress"
+                [attr.display-value]="wo.progressText"
+                [attr.value-state]="wo.progressState"
+                accessible-name="Order progress"
+                i18n-accessible-name
+              ></ui5-progress-indicator>
+            </div>
+            <div class="grid grid-cols-2 gap-x-4">
+              <div class="flex flex-col">
+                <ui5-label i18n>This machine</ui5-label>
+                <ui5-text class="font-semibold tabular-nums">{{ wo.thisMachineGood | number }} ({{ wo.thisMachineShare }})</ui5-text>
+              </div>
+              <div class="flex flex-col">
+                <ui5-label i18n>Machines on order</ui5-label>
+                <ui5-text class="font-semibold tabular-nums">{{ wo.machineCount ?? '—' }}</ui5-text>
+              </div>
+            </div>
+          } @else {
+            <ui5-text i18n>No production order is running on this machine.</ui5-text>
+          }
+          @if (shift(); as current) {
+            <div class="pt-2 border-t border-[color:var(--sapList\_BorderColor,#e5e5e5)]">
+              <div class="flex items-baseline justify-between gap-2">
+                <ui5-label i18n>{{ current.name }}, {{ current.window }}</ui5-label>
+                <ui5-text class="tabular-nums">{{ current.left }}</ui5-text>
+              </div>
+              <ui5-progress-indicator
+                [value]="current.progress"
+                [attr.display-value]="current.progress + ' %'"
+                accessible-name="Shift elapsed"
+                i18n-accessible-name
+              ></ui5-progress-indicator>
+            </div>
+          }
+        </div>
+      </ui5-card>
+
+      <!-- Latest state changes -->
+      <ui5-card>
+        <ui5-card-header slot="header" title-text="Today's state changes" i18n-title-text></ui5-card-header>
+        <ui5-table
+          overflow-mode="Popin"
+          accessible-name="Latest state changes"
+          i18n-accessible-name
+          [loading]="store.todayEventsState() === 'loading'"
+          [attr.no-data-text]="stateChangesNoData()"
+        >
+          <ui5-table-header-row slot="headerRow">
+            <ui5-table-header-cell i18n>State</ui5-table-header-cell>
+            <ui5-table-header-cell i18n>Start</ui5-table-header-cell>
+            <ui5-table-header-cell i18n>End</ui5-table-header-cell>
+            <ui5-table-header-cell i18n>Duration</ui5-table-header-cell>
+          </ui5-table-header-row>
+          @for (row of stateChanges(); track $index) {
+            <ui5-table-row>
+              <ui5-table-cell>
+                <!-- Solid pill in the state's own backend colour, like the machine board's -->
+                <span class="inline-flex items-center gap-1 rounded-lg px-2 py-0.5 text-xs font-semibold text-white" [style.background]="row.color">
+                  <ui5-icon class="h-3.5 w-3.5 text-white" [name]="row.icon"></ui5-icon>
+                  {{ row.label }}
+                </span>
+              </ui5-table-cell>
+              <ui5-table-cell class="tabular-nums">{{ row.start }}</ui5-table-cell>
+              <ui5-table-cell class="tabular-nums">
+                @if (row.end) {
+                  {{ row.end }}
+                } @else {
+                  <span i18n>In progress</span>
+                }
+              </ui5-table-cell>
+              <ui5-table-cell class="tabular-nums">{{ row.seconds | duration }}</ui5-table-cell>
+            </ui5-table-row>
+          }
+        </ui5-table>
+        @if (stateChangesFooter()) {
+          <div class="px-4 py-2">
+            <ui5-label>{{ stateChangesFooter() }}</ui5-label>
+          </div>
+        }
+      </ui5-card>
+
+      <!-- Latest production logs -->
+      <ui5-card>
+        <ui5-card-header slot="header" title-text="Latest production logs" i18n-title-text>
+          @if (productionLogsFailed()) {
+            <ui5-button slot="action" design="Transparent" (click)="retryProductionLogs()" i18n>Try again</ui5-button>
+          } @else {
+            <ui5-link slot="action" (click)="openProductionLog()" i18n>All production logs</ui5-link>
+          }
+        </ui5-card-header>
+        <ui5-table
+          overflow-mode="Popin"
+          accessible-name="Latest production logs"
+          i18n-accessible-name
+          [loading]="productionLogsLoading()"
+          [attr.no-data-text]="productionLogsNoData()"
+        >
+          <ui5-table-header-row slot="headerRow">
+            <ui5-table-header-cell i18n>Date</ui5-table-header-cell>
+            <ui5-table-header-cell i18n>Shift</ui5-table-header-cell>
+            <ui5-table-header-cell i18n>Order</ui5-table-header-cell>
+            <ui5-table-header-cell i18n>Good</ui5-table-header-cell>
+            <ui5-table-header-cell i18n>Scrap</ui5-table-header-cell>
+          </ui5-table-header-row>
+          @for (log of productionLogs(); track $index) {
+            <ui5-table-row>
+              <ui5-table-cell class="tabular-nums">{{ log.date }}</ui5-table-cell>
+              <ui5-table-cell>{{ log.shift }}</ui5-table-cell>
+              <ui5-table-cell>{{ log.workOrder }}</ui5-table-cell>
+              <ui5-table-cell class="tabular-nums">{{ log.good | number }}</ui5-table-cell>
+              <ui5-table-cell class="tabular-nums">{{ log.scrap | number }}</ui5-table-cell>
+            </ui5-table-row>
+          }
+        </ui5-table>
+      </ui5-card>
+    </div>
+</div>

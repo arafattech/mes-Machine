@@ -2,9 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\Production\LogProductionCountRequest;
+use App\Services\Production\ProductionLogRules;
 use App\Models\Machine;
 use App\Models\MachineProductionCount;
 use App\Models\MachineWastageEntry;
+use App\Models\WorkOrder;
+use App\Support\FactoryClock;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -42,16 +46,11 @@ class MachineController extends Controller
      * "manual data collection" pattern. Writes one `machine_production_counts` bucket
      * spanning from the last logged bucket's end (or 1 hour ago if none) to now.
      */
-    public function logProductionCount(Request $request, $id)
+    public function logProductionCount(LogProductionCountRequest $request, ProductionLogRules $logRules, $id)
     {
         $machine = Machine::findOrFail($id);
-
-        $validated = $request->validate([
-            'work_order_id' => ['required', 'integer', 'exists:work_orders,id'],
-            'shift_id' => ['required', 'integer', 'exists:employee_shifts,id'],
-            'good_count' => ['required', 'integer', 'min:0'],
-            'scrap_count' => ['required', 'integer', 'min:0'],
-        ]);
+        $validated = $request->validated();
+        $logRules->assertCanLog(WorkOrder::findOrFail($validated['work_order_id']), FactoryClock::today());
 
         $isAssigned = $machine->workOrders()->where('work_orders.id', $validated['work_order_id'])->exists();
         if (!$isAssigned) {
@@ -109,18 +108,19 @@ class MachineController extends Controller
         $base = MachineProductionCount::query();
         $this->applyProductionLogFilter($base, (string) $request->query('$filter', ''));
 
-        $groupBy = ['work_order_id', 'shift_id', DB::raw('DATE(bucket_started_at)')];
+        $logDate = FactoryClock::localDateSql('bucket_started_at');
+        $groupBy = ['work_order_id', 'shift_id', DB::raw($logDate)];
 
         $total = (clone $base)
             ->select('work_order_id', 'shift_id')
-            ->selectRaw('DATE(bucket_started_at) as log_date')
+            ->selectRaw("{$logDate} as log_date")
             ->groupBy($groupBy)
             ->get()
             ->count();
 
         $rows = (clone $base)
             ->select('work_order_id', 'shift_id')
-            ->selectRaw('DATE(bucket_started_at) as log_date')
+            ->selectRaw("{$logDate} as log_date")
             ->selectRaw('COUNT(DISTINCT machine_id) as machine_count')
             ->selectRaw('SUM(good_count) as good_count')
             ->selectRaw('SUM(scrap_count) as scrap_count')
@@ -132,18 +132,21 @@ class MachineController extends Controller
             ->skip($skip)
             ->take($top)
             ->with(['workOrder:id,custom_id', 'shift:id,name'])
+            ->withCasts(['logged_at' => 'datetime'])
             ->get();
 
         return response()->json(['data' => $rows, 'total' => $total]);
     }
 
     /**
-     * Recognizes exactly three fixed shapes the frontend generates into `$filter` — never a
+     * Recognizes exactly four fixed shapes the frontend generates into `$filter` — never a
      * general OData parser:
      *   - search (nav-path lambda, Work Order is a relation):
      *     `work_order/any(a:contains(tolower(a/custom_id), 'term'))`
      *   - date range (plain column): `bucket_started_at ge 'Y-m-d' and bucket_started_at le 'Y-m-d'`
      *   - shift multi-select (plain column, OR'd): `(shift_id eq 2 or shift_id eq 5)`
+     *   - single machine (plain column): `machine_id eq 7` — the per-machine dashboard's log tab;
+     *     groups then hold that machine's counts only, so `machine_count` is 1
      * All independent and optional; whichever are present get AND-ed onto the query.
      */
     private function applyProductionLogFilter($query, string $filter): void
@@ -157,16 +160,22 @@ class MachineController extends Controller
             $query->whereHas('workOrder', fn ($q) => $q->where('custom_id', 'like', '%' . $search . '%'));
         }
 
-        if (preg_match("/bucket_started_at ge '([0-9-]+)'/", $filter, $m)) {
-            $query->whereDate('bucket_started_at', '>=', $m[1]);
+        if (preg_match("/bucket_started_at ge '(\d{4}-\d{2}-\d{2})'/", $filter, $m)) {
+            $query->where('bucket_started_at', '>=', FactoryClock::dayWindow($m[1])[0]);
         }
 
-        if (preg_match("/bucket_started_at le '([0-9-]+)'/", $filter, $m)) {
-            $query->whereDate('bucket_started_at', '<=', $m[1]);
+        if (preg_match("/bucket_started_at le '(\d{4}-\d{2}-\d{2})'/", $filter, $m)) {
+            $query->where('bucket_started_at', '<', FactoryClock::dayWindow($m[1])[1]);
         }
 
         if (preg_match_all('/shift_id eq (\d+)/', $filter, $m) && $m[1]) {
             $query->whereIn('shift_id', $m[1]);
+        }
+
+        // Quoted literals are user search text — blank them so a search term can't pose as the scope.
+        $unquoted = preg_replace("/'[^']*'/", "''", $filter);
+        if (preg_match('/(?<![a-z_])machine_id eq (\d+)/', $unquoted, $m)) {
+            $query->where('machine_id', (int) $m[1]);
         }
     }
 
@@ -214,6 +223,7 @@ class MachineController extends Controller
             ->skip($skip)
             ->take($top)
             ->with(['workOrder:id,custom_id', 'shift:id,name'])
+            ->withCasts(['logged_at' => 'datetime'])
             ->get();
 
         return response()->json(['data' => $rows, 'total' => $total]);

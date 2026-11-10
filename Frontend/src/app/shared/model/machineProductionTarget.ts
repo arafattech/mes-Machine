@@ -1,4 +1,5 @@
 import { Deserializable } from '@app/shared/interfaces/deserializable';
+import { formatFactoryDate, fromPickerDate } from '@shared/utilities/date-format';
 
 export class MachineProductionTarget implements Deserializable {
   id?: number;
@@ -6,6 +7,7 @@ export class MachineProductionTarget implements Deserializable {
   work_order_id?: number;
   shift_id?: number;
   target_qty: number = 0;
+  /** `DD/MM/YYYY` — `ui5-date-picker` value; converted at the API boundary. */
   effective_from: string = '';
   effective_to?: string;
   is_active?: boolean = true;
@@ -15,23 +17,21 @@ export class MachineProductionTarget implements Deserializable {
   deserialize(input: any): this {
     if (input) {
       Object.assign(this, input);
-      // `effective_from`/`effective_to` come back from OData as full ISO datetimes
-      // (the column is a `datetime`, not a `date`) — truncate to `yyyy-MM-dd` so
-      // `ui5-date-picker`'s `format-pattern="yyyy-MM-dd"` binding shows a real date
-      // instead of the raw ISO string.
-      this.effective_from = this.toDateOnly(input.effective_from) ?? this.effective_from;
-      this.effective_to = this.toDateOnly(input.effective_to);
+      this.effective_from = formatFactoryDate(input.effective_from);
+      this.effective_to = formatFactoryDate(input.effective_to);
     }
     return this;
-  }
-
-  private toDateOnly(value: string | null | undefined): string | undefined {
-    return value ? value.slice(0, 10) : undefined;
   }
 
   toOdata(): Object {
     return {
       ...this,
+      effective_from: fromPickerDate(this.effective_from),
+      effective_to: fromPickerDate(this.effective_to) || null,
+      // Expanded navigation objects from the list row; lodata would treat them as nested writes.
+      machine: undefined,
+      workOrder: undefined,
+      shift: undefined,
       created_at: undefined,
       updated_at: undefined,
     };

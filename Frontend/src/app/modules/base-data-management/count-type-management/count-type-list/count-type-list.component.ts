@@ -6,6 +6,7 @@ import { saveMode } from '@app/shared/enums/saveMode';
 import { Localization } from '@app/shared/utilities/localization';
 import { Permissions } from '@app/shared/enums/permissions';
 import { AgGridTableComponent } from '@app/shared/components/ag-grid-table/ag-grid-table.component';
+import { AgGridBooleanCellRendererComponent } from '@app/shared/components/ag-grid-table/cell-renderers/ag-grid-boolean-cell-renderer.component';
 import {
   AgGridTableColumn,
   AgGridTableODataSourceConfig,
@@ -54,6 +55,16 @@ export class CountTypeListComponent {
 
   buildColumns(): AgGridTableColumn<any>[] {
     return [
+      {
+        field: 'is_active',
+        headerName: $localize`Active`,
+        minWidth: 80,
+        width: 90,
+        cellRenderer: AgGridBooleanCellRendererComponent,
+        filter: false,
+        sortable: false,
+        floatingFilter: false,
+      },
       { field: 'custom_id', headerName: $localize`ID`, minWidth: 100 },
       { field: 'name', headerName: $localize`Name`, minWidth: 180 },
       { field: 'prefix', headerName: $localize`Prefix`, minWidth: 120 },

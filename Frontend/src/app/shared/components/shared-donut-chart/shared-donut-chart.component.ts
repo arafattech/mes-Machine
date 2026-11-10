@@ -13,6 +13,7 @@ import { CommonModule } from '@angular/common';
 import * as am4core from '@amcharts/amcharts4/core';
 import * as am4charts from '@amcharts/amcharts4/charts';
 import am4themes_animated from '@amcharts/amcharts4/themes/animated';
+import { onChartThemeChange, readChartThemeColors } from '@shared/utilities/chart-theme';
 
 am4core.useTheme(am4themes_animated);
 
@@ -55,10 +56,13 @@ export class SharedDonutChartComponent
   @Input() centerOverlayValueSuffix: string = '%';
   @Input() showSideList: boolean = false;
   @Input() sideListValueSuffix: string = '%';
+  /** Vertical position of the side list beside the ring. 'center' keeps a short list level with the donut. */
+  @Input() sideListAlign: 'start' | 'center' = 'start';
   @Input() noDataMessage: string = $localize`No data available`;
 
   private chart!: am4charts.PieChart;
   private pieSeries!: am4charts.PieSeries;
+  private unsubscribeTheme?: () => void;
 
   get paletteColors(): string[] {
     return this.colors?.length ? this.colors : DEFAULT_DONUT_COLORS;
@@ -79,6 +83,8 @@ export class SharedDonutChartComponent
 
   ngAfterViewInit() {
     this.createChart();
+    this.applyThemeColors();
+    this.unsubscribeTheme = onChartThemeChange(() => this.applyThemeColors());
   }
 
   ngOnChanges(changes: SimpleChanges) {
@@ -123,6 +129,17 @@ export class SharedDonutChartComponent
     return typeof val === 'number' ? val : parseInt(val, 10);
   }
 
+  private applyThemeColors() {
+    const { label, surface } = readChartThemeColors();
+    const labelColor = am4core.color(label);
+    this.pieSeries.labels.template.fill = labelColor;
+    this.pieSeries.ticks.template.stroke = labelColor;
+    this.pieSeries.slices.template.stroke = am4core.color(surface);
+    if (this.chart.legend) {
+      this.chart.legend.labels.template.fill = labelColor;
+    }
+  }
+
   private createChart() {
     const chart = am4core.create(this.chartDiv.nativeElement, am4charts.PieChart);
     this.chart = chart;
@@ -131,6 +148,7 @@ export class SharedDonutChartComponent
       chart.logo.disabled = true;
     }
 
+    chart.padding(10, 10, 10, 10);
     chart.data = this.resolveData();
     chart.innerRadius = am4core.percent(this.parseRadius(this.innerRadius));
 
@@ -141,13 +159,11 @@ export class SharedDonutChartComponent
 
     pieSeries.colors.list = this.paletteColors.map((c) => am4core.color(c));
 
-    pieSeries.labels.template.fill = am4core.color('#64748B');
     pieSeries.labels.template.fontSize = 12;
     pieSeries.labels.template.maxWidth = 120;
     pieSeries.labels.template.wrap = true;
     pieSeries.labels.template.disabled = !this.showSliceLabels;
 
-    pieSeries.ticks.template.stroke = am4core.color('#64748B');
     pieSeries.ticks.template.strokeOpacity = 0.5;
     pieSeries.ticks.template.disabled = !this.showSliceTicks;
 
@@ -157,7 +173,6 @@ export class SharedDonutChartComponent
         ? `{${this.labelField}}`
         : `{${this.labelField}}: [bold]{value.percent.formatNumber('#.0')}%[/]`;
 
-    pieSeries.slices.template.stroke = am4core.color('#fff');
     pieSeries.slices.template.strokeWidth = 2;
     pieSeries.slices.template.strokeOpacity = 1;
 
@@ -172,7 +187,6 @@ export class SharedDonutChartComponent
       chart.legend.position = this.legendPosition;
       chart.legend.valign = 'bottom';
       chart.legend.contentAlign = 'center';
-      chart.legend.labels.template.fill = am4core.color('#64748B');
       chart.legend.labels.template.fontSize = this.legendFontSize;
       chart.legend.valueLabels.template.disabled = true;
       chart.legend.itemContainers.template.paddingTop = this.legendItemPaddingTop;
@@ -191,6 +205,7 @@ export class SharedDonutChartComponent
   }
 
   ngOnDestroy() {
+    this.unsubscribeTheme?.();
     if (this.chart) {
       this.chart.dispose();
     }

@@ -24,7 +24,7 @@ const OVERALL_PALETTE: StatusPalette = {
 export class StatusCardComponent {
   @Input() percent = 0;
   @Input() progress = 0;
-  @Input() label = 'Overall Efficiency';
+  @Input() label = $localize`Machines Active`;
   /** 'overall' for the fixed summary tile; otherwise a `machine_states.id` — one tile
    * per active state, not a fixed Active/Idle/Inactive/Maintenance/Fault set. */
   @Input() type: 'overall' | number = 'overall';

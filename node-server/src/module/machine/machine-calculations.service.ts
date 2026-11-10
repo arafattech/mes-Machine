@@ -2,7 +2,10 @@ import { BadRequestException, Injectable, Logger, NotFoundException } from '@nes
 import { PrismaService } from '@prisma/prisma.service';
 import { MachineConfigService } from '@module/machine/runtime/machine-config.service';
 import { CacheAside, GetRedisClient } from 'config/redis/config.redis';
+import { GetCalcVersion } from '@module/machine/realtime/production-events';
 import moment from 'moment';
+import { shiftWindowForDay } from '@module/machine/shift-window';
+import { isKgUom, qualityDenominator, qualityPercent } from '@module/machine/quality';
 
 /**
  * Read-heavy aggregation queries for the Angular machine-overview page — OEE,
@@ -48,6 +51,14 @@ export class MachineCalculationsService {
     }
   }
 
+  /** Cache-aside under the machine's calc version (bumped by `ProductionRealtimeService` on
+   * every production / wastage / config / target write), so a refetch triggered by a
+   * realtime push never gets the pre-change result. */
+  private async cachedForMachine<T>(machineId: bigint, key: string, compute: () => Promise<T>): Promise<T> {
+    const version = await GetCalcVersion(this.redis, 'machine', machineId);
+    return this.cached(`machine:calc:${key}:${machineId}:v${version}`, compute);
+  }
+
   private cached<T>(cacheKey: string, compute: () => Promise<T>): Promise<T> {
     return CacheAside(this.redis, cacheKey, this.cacheTtlMs, compute, (stage, error) => {
       const message = error instanceof Error ? error.message : String(error);
@@ -59,7 +70,14 @@ export class MachineCalculationsService {
    * Production/OEE bundle aggregated over [from, to). Availability comes from
    * `machine_state_events` (real today); Performance needs
    * `machine_has_configs.ideal_cycle_seconds` (usually unset today, so
-   * performance/efficiency come back null until it's configured).
+   * performance/efficiency come back null until it's configured). Waste and Quality
+   * include the kg logged via the Wastage Log (`machine_wastage_allocations`) on top of
+   * `scrap_count`; Performance stays on the machine's own counts.
+   *
+   * `live` carries the raw OEE inputs + the instant they were computed, so the frontend can
+   * advance Availability/Performance/OEE every second while a state is open (it changes with
+   * time, not only on writes) without polling — it refetches only on a realtime push.
+   * The frontend mirrors the formulas below (`MachineOverviewDataService.liveOeeMetrics`).
    */
   async overview(machineIdStr: string, fromStr?: string, toStr?: string) {
     const machineId = this.parseId(machineIdStr);
@@ -70,45 +88,63 @@ export class MachineCalculationsService {
     const from = fromStr ? moment(fromStr) : to.clone().startOf('month');
     this.assertRangeWithinLimit(from, to);
 
-    const cacheKey = `machine:calc:overview:${machineId}:${from.toISOString()}:${to.toISOString()}`;
-    return this.cached(cacheKey, async () => {
-      const { activeSeconds, totalSeconds } = await this.productiveSecondsInRange(machineId, from, to);
+    const result = await this.cachedForMachine(machineId, `overview:${from.toISOString()}:${to.toISOString()}`, async () => {
+      const [
+        { activeSeconds, totalSeconds, openStateProductive, computedAt },
+        counts,
+        countedUoms,
+        wastageByDay,
+        targetRow,
+        config,
+      ] = await Promise.all([
+        this.productiveSecondsInRange(machineId, from, to),
+        this.prisma.machine_production_counts.aggregate({
+          where: {
+            machine_id: machineId,
+            bucket_started_at: { lt: to.toDate() },
+            bucket_ended_at: { gt: from.toDate() },
+          },
+          _sum: { good_count: true, scrap_count: true, total_count: true },
+        }),
+        this.countedProductUoms(machineId, from, to),
+        this.loggedWastageByDay(machineId, from, to),
+        this.prisma.machine_production_targets.findFirst({
+          where: {
+            machine_id: machineId,
+            is_active: true,
+            effective_from: { lte: to.toDate() },
+            OR: [{ effective_to: null }, { effective_to: { gte: from.toDate() } }],
+          },
+          orderBy: { effective_from: 'desc' },
+          select: { target_qty: true },
+        }),
+        this.prisma.machine_has_configs.findFirst({
+          where: { machine_id: machineId, is_active: true },
+          select: { ideal_cycle_seconds: true },
+        }),
+      ]);
 
-      const counts = await this.prisma.machine_production_counts.aggregate({
-        where: {
-          machine_id: machineId,
-          bucket_started_at: { lt: to.toDate() },
-          bucket_ended_at: { gt: from.toDate() },
-        },
-        _sum: { good_count: true, scrap_count: true, total_count: true },
-      });
       const good = counts._sum.good_count ?? 0;
       const scrap = counts._sum.scrap_count ?? 0;
       const total = counts._sum.total_count ?? 0;
-
-      const targetRow = await this.prisma.machine_production_targets.findFirst({
-        where: {
-          machine_id: machineId,
-          is_active: true,
-          effective_from: { lte: to.toDate() },
-          OR: [{ effective_to: null }, { effective_to: { gte: from.toDate() } }],
-        },
-        orderBy: { effective_from: 'desc' },
-        select: { target_qty: true },
-      });
+      const loggedWastage = this.sumValues(wastageByDay);
+      // Logged wastage is material lost on top of the counted output, so it widens the
+      // Quality denominator rather than eating into `good`. `total`/`achieved` stay the
+      // machine's own counts (unchanged contract).
+      const qualityInput = {
+        good,
+        total,
+        wastageKg: loggedWastage,
+        countsInKg: countedUoms.every(isKgUom),
+      };
       const target = targetRow?.target_qty ?? 0;
-
-      const config = await this.prisma.machine_has_configs.findFirst({
-        where: { machine_id: machineId, is_active: true },
-        select: { ideal_cycle_seconds: true },
-      });
       const idealCycleSeconds = config?.ideal_cycle_seconds ?? null;
 
       const availability = totalSeconds > 0 ? round1((activeSeconds / totalSeconds) * 100) : null;
       const performance = idealCycleSeconds && activeSeconds > 0
         ? round1(Math.min(100, (total * idealCycleSeconds / activeSeconds) * 100))
         : null;
-      const quality = total > 0 ? round1((good / total) * 100) : null;
+      const quality = qualityPercent(qualityInput);
       const efficiency = availability !== null && performance !== null && quality !== null
         ? round1((availability * performance * quality) / 10000)
         : null;
@@ -118,10 +154,29 @@ export class MachineCalculationsService {
         achieved: total,
         ok: good,
         total,
-        waste: scrap,
+        waste: round2(scrap + loggedWastage),
+        logged_wastage_kg: round2(loggedWastage),
         oee: { availability, performance, quality, efficiency },
+        live: {
+          computed_at: computedAt.toISOString(),
+          active_seconds: activeSeconds,
+          total_seconds: totalSeconds,
+          open_state_productive: openStateProductive,
+          ideal_cycle_seconds: idealCycleSeconds,
+          total_count: total,
+          good_count: good,
+          quality_total: qualityDenominator(qualityInput),
+        },
       };
     });
+
+    // Computed outside the cache: how old this (possibly cached) snapshot is, measured on the
+    // server's own clock, so the client can extrapolate from the true snapshot instant without
+    // depending on client/server clock agreement.
+    return {
+      ...result,
+      live: { ...result.live, age_ms: Math.max(0, Date.now() - Date.parse(result.live.computed_at)) },
+    };
   }
 
   /**
@@ -186,8 +241,7 @@ export class MachineCalculationsService {
     const from = fromStr ? moment(fromStr) : to.clone().startOf('month');
     this.assertRangeWithinLimit(from, to);
 
-    const cacheKey = `machine:calc:shift-breakdown:${machineId}:${from.toISOString()}:${to.toISOString()}`;
-    return this.cached(cacheKey, async () => {
+    return this.cachedForMachine(machineId, `shift-breakdown:${from.toISOString()}:${to.toISOString()}`, async () => {
       // Fetched once, reused across every day × shift window below — no query inside the loop.
       const events = await this.prisma.machine_state_events.findMany({
         where: {
@@ -216,7 +270,7 @@ export class MachineCalculationsService {
 
       for (let day = from.clone().startOf('day'); day.isBefore(to); day.add(1, 'day')) {
         for (const shift of shifts) {
-          const [windowStart, windowEnd] = this.shiftWindowForDay(shift, day);
+          const [windowStart, windowEnd] = shiftWindowForDay(shift, day);
           // Clip the shift window itself to the requested [from, to) — a night shift
           // on the last day can extend past `to`; anything beyond the picked range
           // must not count, same as every other endpoint on this page.
@@ -248,7 +302,8 @@ export class MachineCalculationsService {
   }
 
   /**
-   * Daily aggregated good and scrap counts for the machine.
+   * Daily aggregated good and scrap for the machine — `scrap` is `scrap_count` plus the kg
+   * logged via the Wastage Log for that day.
    */
   async dailyProduction(machineIdStr: string, fromStr?: string, toStr?: string) {
     const machineId = this.parseId(machineIdStr);
@@ -256,16 +311,18 @@ export class MachineCalculationsService {
     const from = fromStr ? moment(fromStr) : to.clone().startOf('month');
     this.assertRangeWithinLimit(from, to);
 
-    const cacheKey = `machine:calc:daily-production:${machineId}:${from.toISOString()}:${to.toISOString()}`;
-    return this.cached(cacheKey, async () => {
-      const counts = await this.prisma.machine_production_counts.findMany({
-        where: {
-          machine_id: machineId,
-          bucket_started_at: { lt: to.toDate() },
-          bucket_ended_at: { gt: from.toDate() },
-        },
-        select: { bucket_started_at: true, good_count: true, scrap_count: true },
-      });
+    return this.cachedForMachine(machineId, `daily-production:${from.toISOString()}:${to.toISOString()}`, async () => {
+      const [counts, wastageByDay] = await Promise.all([
+        this.prisma.machine_production_counts.findMany({
+          where: {
+            machine_id: machineId,
+            bucket_started_at: { lt: to.toDate() },
+            bucket_ended_at: { gt: from.toDate() },
+          },
+          select: { bucket_started_at: true, good_count: true, scrap_count: true },
+        }),
+        this.loggedWastageByDay(machineId, from, to),
+      ]);
 
       const msByDay = new Map<string, { good: number; scrap: number }>();
 
@@ -289,12 +346,53 @@ export class MachineCalculationsService {
         rows.push({
           date: key,
           good: bucket.good,
-          scrap: bucket.scrap,
+          scrap: round2(bucket.scrap + (wastageByDay.get(key) ?? 0)),
         });
       }
 
       return { rows };
     });
+  }
+
+  /**
+   * kg allocated to this machine from Wastage Log entries, keyed by `entry_date`
+   * (`YYYY-MM-DD`). Written by Laravel (`WorkOrderController::logWastage`), which splits each
+   * entry across machines by production share. `entry_date` is a calendar DATE (no time),
+   * so the range is matched by local calendar day: `to` is exclusive, hence the -1ms.
+   */
+  private async loggedWastageByDay(
+    machineId: bigint,
+    from: moment.Moment,
+    to: moment.Moment,
+  ): Promise<Map<string, number>> {
+    const allocations = await this.prisma.machine_wastage_allocations.findMany({
+      where: {
+        machine_id: machineId,
+        machine_wastage_entries: {
+          entry_date: {
+            gte: calendarDate(from),
+            lte: calendarDate(to.clone().subtract(1, 'ms')),
+          },
+        },
+      },
+      select: {
+        allocated_qty_kg: true,
+        machine_wastage_entries: { select: { entry_date: true } },
+      },
+    });
+
+    const kgByDay = new Map<string, number>();
+    for (const allocation of allocations) {
+      const dayKey = moment.utc(allocation.machine_wastage_entries.entry_date).format('YYYY-MM-DD');
+      kgByDay.set(dayKey, (kgByDay.get(dayKey) ?? 0) + Number(allocation.allocated_qty_kg));
+    }
+    return kgByDay;
+  }
+
+  private sumValues(values: Map<string, number>): number {
+    let sum = 0;
+    for (const value of values.values()) sum += value;
+    return sum;
   }
 
   /** id → {name, color} for every active `machine_states` row — small table, one query per request. */
@@ -307,6 +405,25 @@ export class MachineCalculationsService {
     );
   }
 
+  /**
+   * Distinct product UoM names of the counts overlapping `[from, to)` — decides whether Quality
+   * applies (see `quality.ts`). One indexed round trip on a hot, realtime-refetched path.
+   * Buckets without a work order have no product and are left out (only the legacy PLC count
+   * writer, disabled under channel mapping, produces them).
+   */
+  private async countedProductUoms(machineId: bigint, from: moment.Moment, to: moment.Moment): Promise<Array<string | null>> {
+    const rows = await this.prisma.$queryRaw<Array<{ name: string | null }>>`
+      SELECT DISTINCT u.name
+      FROM machine_production_counts c
+      JOIN work_orders w ON w.id = c.work_order_id
+      JOIN products p ON p.id = w.product_id
+      LEFT JOIN uoms u ON u.id = p.uom_id
+      WHERE c.machine_id = ${machineId}
+        AND c.bucket_started_at < ${to.toDate()}
+        AND c.bucket_ended_at > ${from.toDate()}`;
+    return rows.map((row) => row.name);
+  }
+
   /** The set of `machine_states.id` that count toward OEE Availability — replaces
    * `state === 'active'`. Reuses the shared Redis-cached states map. */
   private async loadProductiveStateIds(): Promise<Set<number>> {
@@ -314,21 +431,6 @@ export class MachineCalculationsService {
     return new Set(
       [...statesById.values()].filter((meta) => meta.counts_as_productive).map((meta) => meta.id),
     );
-  }
-
-  /** A shift's real datetime window for one specific calendar day — time-of-day
-   * only, the shift row's own stored date is irrelevant. */
-  private shiftWindowForDay(
-    shift: { start_time: Date; end_time: Date },
-    day: moment.Moment,
-  ): [moment.Moment, moment.Moment] {
-    const dayStr = day.format('YYYY-MM-DD');
-    const start = moment(`${dayStr} ${moment(shift.start_time).format('HH:mm:ss')}`);
-    const end = moment(`${dayStr} ${moment(shift.end_time).format('HH:mm:ss')}`);
-    if (end.isSameOrBefore(start)) {
-      end.add(1, 'day');
-    }
-    return [start, end];
   }
 
   /** Per-state seconds within [start, end), clipping already-fetched events in memory — dynamic, one entry per state actually observed (no fixed bucket set, no hardcoded exclusion). */
@@ -360,7 +462,14 @@ export class MachineCalculationsService {
     machineId: bigint,
     from: moment.Moment,
     to: moment.Moment,
-  ): Promise<{ activeSeconds: number; totalSeconds: number }> {
+  ): Promise<{
+    activeSeconds: number;
+    totalSeconds: number;
+    /** Productive flag of the still-open state when the window reaches now; `null` when no state
+     * is open or the window ended in the past — nothing keeps accruing, so nothing to extrapolate. */
+    openStateProductive: boolean | null;
+    computedAt: moment.Moment;
+  }> {
     const [events, productiveStateIds] = await Promise.all([
       this.prisma.machine_state_events.findMany({
         where: {
@@ -373,25 +482,39 @@ export class MachineCalculationsService {
       this.loadProductiveStateIds(),
     ]);
 
+    const now = moment();
+    const windowReachesNow = to.isSameOrAfter(now);
     let activeSeconds = 0;
     let totalSeconds = 0;
+    let openStateProductive: boolean | null = null;
 
     for (const event of events) {
+      const isProductive =
+        event.machine_state_id !== null && productiveStateIds.has(Number(event.machine_state_id));
+      if (event.ended_at === null && windowReachesNow) openStateProductive = isProductive;
+
       const start = moment.max(moment(event.started_at), from);
-      const end = moment.min(event.ended_at ? moment(event.ended_at) : moment(), to);
+      const end = moment.min(event.ended_at ? moment(event.ended_at) : now, to);
       if (end.isSameOrBefore(start)) continue;
 
       const seconds = end.diff(start, 'seconds');
       totalSeconds += seconds;
-      if (event.machine_state_id !== null && productiveStateIds.has(Number(event.machine_state_id))) {
-        activeSeconds += seconds;
-      }
+      if (isProductive) activeSeconds += seconds;
     }
 
-    return { activeSeconds, totalSeconds };
+    return { activeSeconds, totalSeconds, openStateProductive, computedAt: now };
   }
 }
 
 function round1(value: number): number {
   return Math.round(value * 10) / 10;
+}
+
+function round2(value: number): number {
+  return Math.round(value * 100) / 100;
+}
+
+/** A local calendar day as the UTC-midnight `Date` Prisma uses for MySQL `DATE` columns. */
+function calendarDate(value: moment.Moment): Date {
+  return new Date(`${value.format('YYYY-MM-DD')}T00:00:00.000Z`);
 }

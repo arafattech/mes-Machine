@@ -14,6 +14,8 @@ import { CalendarComponent } from '@app/shared/components/calender/calender.comp
 import { ExcelImportExportComponent } from '@shared/components/excel-import-export/excel-import-export.component';
 import { ClientFormComponent } from '@app/modules/base-data-management/client-management/client-form/client-form.component';
 import { ServerDropdownComponent } from '@shared/components/server-dropdown/server-dropdown.component';
+import { SideNavActiveDirective } from '@app/directives/side-nav-active.directive';
+import { SideNavNewTabDirective } from '@app/directives/side-nav-new-tab.directive';
 @NgModule({
   declarations: [
     ClientFormComponent,
@@ -33,7 +35,9 @@ import { ServerDropdownComponent } from '@shared/components/server-dropdown/serv
     AgGridTableComponent,
     CalendarComponent,
     ExcelImportExportComponent,
-    ServerDropdownComponent
+    ServerDropdownComponent,
+    SideNavNewTabDirective,
+    SideNavActiveDirective,
   ],
   exports: [
     DeleteEntityComponent,
@@ -52,6 +56,8 @@ import { ServerDropdownComponent } from '@shared/components/server-dropdown/serv
     ExcelImportExportComponent,
     ClientFormComponent,
     ServerDropdownComponent,
+    SideNavNewTabDirective,
+    SideNavActiveDirective,
   ],
 })
 export class SharedModule {}

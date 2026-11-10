@@ -15,6 +15,7 @@ import {
 import { AgGridStatusBadgeComponent } from '@app/shared/components/ag-grid-table/cell-renderers/ag-grid-cell-renderers.component';
 import { MachineMaintenanceService } from '@production-module/shared/services/machine-maintenance.service';
 import { MachineMaintenanceSchedule } from '@production-module/shared/interface/interface';
+import { DEFAULT_BUFFER_MINUTES } from '@production-module/shared/utils/maintenance-buffer';
 import { MachineMaintenanceFormComponent } from '../machine-maintenance-form/machine-maintenance-form.component';
 import { DurationPipe } from '@production-module/shared/pipes/duration.pipe';
 
@@ -49,13 +50,6 @@ export class MachineMaintenanceListComponent {
   maintenanceNoteState: any = ValueState.None;
   valueState = ValueState;
   validationMessage = Localization.requiredField;
-
-  /** Row pending activation — buffer minutes are collected via dialog, not hardcoded. */
-  scheduleToActivate: any = null;
-  activateDialogOpen = false;
-  activating = false;
-  bufferMinutes: number | null = 5;
-  bufferMinutesState: any = ValueState.None;
 
   scheduleToView: any = null;
   viewDialogOpen = false;
@@ -102,7 +96,7 @@ export class MachineMaintenanceListComponent {
       tooltip: $localize`Activate now`,
       design: 'Emphasized' as const,
       hide: (row: any) => row.ended_at != null || row.activated_at != null,
-      onClick: (row: any) => this.openActivateDialog(row),
+      onClick: (row: any) => this.activate(row),
     },
     {
       id: 'end',
@@ -234,8 +228,8 @@ export class MachineMaintenanceListComponent {
     return moment.utc(String(value)).format('DD/MM/YYYY hh:mm A');
   }
 
-  /** Grid cells render plain text, so strip markup from the rich-text maintenance note for the preview. */
-  private stripHtml(value: any): string {
+  /** Grid cells and the details dialog render plain text, so strip markup from the rich-text maintenance note. */
+  stripHtml(value: any): string {
     if (!value) return '';
     return String(value).replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
   }
@@ -283,43 +277,13 @@ export class MachineMaintenanceListComponent {
     });
   }
 
-  openActivateDialog(row: any): void {
-    this.scheduleToActivate = row;
-    this.bufferMinutes = 5;
-    this.bufferMinutesState = ValueState.None;
-    this.activateDialogOpen = true;
-  }
-
-  onBufferMinutesInput(event: any): void {
-    const value = event?.target?.value ?? '';
-    this.bufferMinutes = value === '' ? null : Number(value);
-    this.bufferMinutesState = ValueState.None;
-  }
-
-  closeActivateDialog(): void {
-    this.activateDialogOpen = false;
-    this.scheduleToActivate = null;
-  }
-
-  confirmActivate(): void {
-    if (!this.scheduleToActivate) return;
-    if (!this.bufferMinutes || this.bufferMinutes < 1) {
-      this.bufferMinutesState = ValueState.Negative;
-      return;
-    }
-
-    this.activating = true;
-    this.maintenanceService.activate(this.scheduleToActivate.id, this.bufferMinutes).subscribe({
+  activate(row: any): void {
+    this.maintenanceService.activate(row.id).subscribe({
       next: () => {
-        this.activating = false;
         this.toastService.show('approve');
-        this.closeActivateDialog();
         this.processData();
       },
-      error: () => {
-        this.activating = false;
-        this.toastService.show('error');
-      },
+      error: () => this.toastService.show('error'),
     });
   }
 
@@ -394,6 +358,7 @@ export class MachineMaintenanceListComponent {
       endedBy:
         row.ended_by === 'AUTO' || row.ended_by === 'MANUAL' ? row.ended_by : null,
       bufferEnabled: row.buffer_enabled == null ? true : !!row.buffer_enabled,
+      bufferMinutes: row.buffer_minutes ?? DEFAULT_BUFFER_MINUTES,
     };
   }
 }

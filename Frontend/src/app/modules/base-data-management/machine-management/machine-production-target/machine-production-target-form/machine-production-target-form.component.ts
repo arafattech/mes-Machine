@@ -5,6 +5,7 @@ import { Localization } from '@shared/utilities/localization';
 import { ValueState } from '@shared/utilities/value-state-wrapper';
 import { ToastService } from '@app/services/toast-service/toast.service';
 import { MachineProductionTarget } from '@shared/model/machineProductionTarget';
+import { fromPickerDate, isInvalidPickerDate } from '@shared/utilities/date-format';
 
 @Component({
   selector: 'app-machine-production-target-form',
@@ -25,6 +26,7 @@ export class MachineProductionTargetFormComponent implements OnInit {
     machine_id: ValueState.None,
     target_qty: ValueState.None,
     effective_from: ValueState.None,
+    effective_to: ValueState.None,
   };
 
   machines: { id: number; machine_name: string }[] = [];
@@ -124,6 +126,7 @@ export class MachineProductionTargetFormComponent implements OnInit {
     this.valueStateOptions.machine_id = ValueState.None;
     this.valueStateOptions.target_qty = ValueState.None;
     this.valueStateOptions.effective_from = ValueState.None;
+    this.valueStateOptions.effective_to = ValueState.None;
 
     if (!this.machineProductionTarget.machine_id) {
       this.valueStateOptions.machine_id = ValueState.Negative;
@@ -133,8 +136,12 @@ export class MachineProductionTargetFormComponent implements OnInit {
       this.valueStateOptions.target_qty = ValueState.Negative;
       isValid = false;
     }
-    if (!this.machineProductionTarget.effective_from) {
+    if (!fromPickerDate(this.machineProductionTarget.effective_from)) {
       this.valueStateOptions.effective_from = ValueState.Negative;
+      isValid = false;
+    }
+    if (isInvalidPickerDate(this.machineProductionTarget.effective_to)) {
+      this.valueStateOptions.effective_to = ValueState.Negative;
       isValid = false;
     }
     return isValid;
@@ -146,6 +153,7 @@ export class MachineProductionTargetFormComponent implements OnInit {
     this.valueStateOptions.machine_id = ValueState.None;
     this.valueStateOptions.target_qty = ValueState.None;
     this.valueStateOptions.effective_from = ValueState.None;
+    this.valueStateOptions.effective_to = ValueState.None;
     this.machineProductionTarget = new MachineProductionTarget().deserialize({});
   }
 }

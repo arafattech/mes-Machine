@@ -2,30 +2,36 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\Production\LogProductionCountsRequest;
+use App\Http\Requests\Production\LogWastageRequest;
+use App\Http\Requests\Production\WorkOrderRequest;
 use App\Models\EmployeeShift;
 use App\Models\MachineProductionCount;
 use App\Models\MachineWastageAllocation;
 use App\Models\MachineWastageEntry;
 use App\Models\WorkOrder;
-use Carbon\Carbon;
+use App\Services\Production\ProductionLogRules;
+use App\Services\Production\WorkOrderService;
+use App\Support\FactoryClock;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class WorkOrderController extends Controller
 {
+    public function __construct(
+        private readonly WorkOrderService $workOrders,
+        private readonly ProductionLogRules $logRules,
+    ) {
+    }
+
     /**
      * Custom REST create/update (not OData) because assigning a work order to several
      * machines is a pivot sync, not a scalar field — mirrors `MachineConfigController`'s
      * validate → transaction → sync-related-collection shape.
      */
-    public function store(Request $request)
+    public function store(WorkOrderRequest $request)
     {
-        $validated = $this->validatePayload($request);
-        $machineIds = $validated['machine_ids'] ?? [];
-        unset($validated['machine_ids']);
-
-        $workOrder = WorkOrder::create($validated);
-        $workOrder->machines()->sync($machineIds);
+        $workOrder = $this->workOrders->create($request->validated());
 
         return response()->json([
             'message' => 'Work order created successfully.',
@@ -33,34 +39,13 @@ class WorkOrderController extends Controller
         ], 201);
     }
 
-    public function update(Request $request, $id)
+    public function update(WorkOrderRequest $request, $id)
     {
-        $workOrder = WorkOrder::findOrFail($id);
-        $validated = $this->validatePayload($request);
-        $machineIds = $validated['machine_ids'] ?? [];
-        unset($validated['machine_ids']);
-
-        $workOrder->update($validated);
-        $workOrder->machines()->sync($machineIds);
+        $workOrder = $this->workOrders->update(WorkOrder::findOrFail($id), $request->validated());
 
         return response()->json([
             'message' => 'Work order updated successfully.',
             'data' => $workOrder->fresh(['product', 'machines']),
-        ]);
-    }
-
-    private function validatePayload(Request $request): array
-    {
-        return $request->validate([
-            'is_active' => ['sometimes', 'boolean'],
-            'custom_id' => ['nullable', 'string', 'max:255'],
-            'product_id' => ['required', 'integer', 'exists:products,id'],
-            'quantity' => ['required', 'integer', 'min:1'],
-            'status' => ['nullable', 'string', 'in:pending,in_progress,completed,cancelled'],
-            'scheduled_start' => ['nullable', 'date'],
-            'actual_start' => ['nullable', 'date'],
-            'machine_ids' => ['nullable', 'array'],
-            'machine_ids.*' => ['integer', 'exists:machines,id'],
         ]);
     }
 
@@ -73,17 +58,11 @@ class WorkOrderController extends Controller
      * Always additive (one new row per submission, never an upsert) to match the existing
      * per-machine flow's audit-trail semantics.
      */
-    public function logProductionCounts(Request $request, $id)
+    public function logProductionCounts(LogProductionCountsRequest $request, $id)
     {
         $workOrder = WorkOrder::findOrFail($id);
-
-        $validated = $request->validate([
-            'date' => ['required', 'date'],
-            'shift_id' => ['required', 'integer', 'exists:employee_shifts,id'],
-            'entries' => ['required', 'array', 'min:1'],
-            'entries.*.machine_id' => ['required', 'integer', 'exists:machines,id'],
-            'entries.*.good_count' => ['required', 'integer', 'min:0'],
-        ]);
+        $validated = $request->validated();
+        $this->logRules->assertCanLog($workOrder, $validated['date']);
 
         $assignedMachineIds = $workOrder->machines()->pluck('machines.id')->all();
         $invalidMachineIds = collect($validated['entries'])->pluck('machine_id')->diff($assignedMachineIds);
@@ -94,7 +73,7 @@ class WorkOrderController extends Controller
         }
 
         $shift = EmployeeShift::findOrFail($validated['shift_id']);
-        [$bucketStartedAt, $bucketEndedAt] = $this->resolveShiftWindow($validated['date'], $shift);
+        [$bucketStartedAt, $bucketEndedAt] = FactoryClock::shiftWindow($shift, $validated['date']);
 
         $created = DB::transaction(fn () => collect($validated['entries'])->map(fn ($entry) =>
             MachineProductionCount::create([
@@ -125,25 +104,26 @@ class WorkOrderController extends Controller
      * (there's no output data to weight by). Always additive — matches
      * `logProductionCounts`' audit-trail semantics, no upsert.
      */
-    public function logWastage(Request $request, $id)
+    public function logWastage(LogWastageRequest $request, $id)
     {
-        $workOrder = WorkOrder::findOrFail($id);
-
-        $validated = $request->validate([
-            'wastage_type_id' => ['required_without:entries', 'integer', 'exists:machine_wastage_types,id'],
-            'shift_id' => ['nullable', 'integer', 'exists:employee_shifts,id'],
-            'date' => ['required', 'date'],
-            'qty_kg' => ['required_without:entries', 'numeric', 'min:0.01'],
-            'entries' => ['nullable', 'array', 'min:1'],
-            'entries.*.wastage_type_id' => ['required_with:entries', 'integer', 'exists:machine_wastage_types,id'],
-            'entries.*.qty_kg' => ['required_with:entries', 'numeric', 'min:0.01'],
-        ]);
+        $validated = $request->validated();
+        // Resolved first: a missing shift must fail before the user is asked to confirm wastage.
+        $validated['shift_id'] = $this->logRules->resolveWastageShiftId($validated['shift_id'] ?? null, $validated['date']);
 
         $items = isset($validated['entries']) ? $validated['entries'] : [
             ['wastage_type_id' => $validated['wastage_type_id'], 'qty_kg' => $validated['qty_kg']]
         ];
 
-        $results = DB::transaction(function () use ($workOrder, $validated, $items) {
+        $results = DB::transaction(function () use ($id, $validated, $items) {
+            // Row lock: concurrent submissions for one order are checked against each other's wastage.
+            $workOrder = WorkOrder::with('product.uom')->lockForUpdate()->findOrFail($id);
+            $this->logRules->assertCanLog($workOrder, $validated['date']);
+            $this->logRules->assertWastageWithinThreshold(
+                $workOrder,
+                (float) collect($items)->sum('qty_kg'),
+                (bool) ($validated['confirm_over_threshold'] ?? false),
+            );
+
             $createdEntries = [];
             foreach ($items as $item) {
                 $wastageTypeId = (int) $item['wastage_type_id'];
@@ -165,6 +145,7 @@ class WorkOrderController extends Controller
                     'shift_id' => $validated['shift_id'] ?? null,
                     'entry_date' => $validated['date'],
                     'qty_kg' => $qtyKg,
+                    'justification' => $validated['justification'] ?? null,
                     'created_by' => auth()->id(),
                 ]);
 
@@ -214,9 +195,14 @@ class WorkOrderController extends Controller
      */
     private function resolveWastageShares($workOrderId, $eligibleMachineIds, string $date, ?int $shiftId): array
     {
+        // A night shift runs past factory midnight, so a shift scope uses the shift's own window.
+        [$windowStart, $windowEnd] = $shiftId
+            ? FactoryClock::shiftWindow(EmployeeShift::findOrFail($shiftId), $date)
+            : FactoryClock::dayWindow($date);
         $sums = MachineProductionCount::whereIn('machine_id', $eligibleMachineIds)
             ->where('work_order_id', $workOrderId)
-            ->whereDate('bucket_started_at', $date)
+            ->where('bucket_started_at', '>=', $windowStart)
+            ->where('bucket_started_at', '<', $windowEnd)
             ->when($shiftId, fn ($q) => $q->where('shift_id', $shiftId))
             ->selectRaw('machine_id, SUM(total_count) as total')
             ->groupBy('machine_id')
@@ -280,6 +266,7 @@ class WorkOrderController extends Controller
      */
     public function productionLogs(Request $request, $id)
     {
+        $request->validate(['date' => ['nullable', 'date_format:Y-m-d']]);
         $top = max(1, min(200, (int) $request->query('$top', 40)));
         $skip = max(0, (int) $request->query('$skip', 0));
 
@@ -290,7 +277,8 @@ class WorkOrderController extends Controller
             $query->where('shift_id', $request->query('shift_id'));
         }
         if ($request->filled('date')) {
-            $query->whereDate('bucket_started_at', $request->query('date'));
+            [$dayStart, $dayEnd] = FactoryClock::dayWindow($request->query('date'));
+            $query->where('bucket_started_at', '>=', $dayStart)->where('bucket_started_at', '<', $dayEnd);
         }
 
         $query->orderByDesc('bucket_started_at')->orderByDesc('id');
@@ -299,16 +287,5 @@ class WorkOrderController extends Controller
         $rows = $query->skip($skip)->take($top)->get();
 
         return response()->json(['data' => $rows, 'total' => $total]);
-    }
-
-    private function resolveShiftWindow(string $date, EmployeeShift $shift): array
-    {
-        $start = Carbon::parse($date)->setTimeFrom(Carbon::parse($shift->start_time));
-        $end = Carbon::parse($date)->setTimeFrom(Carbon::parse($shift->end_time));
-        if ($end->lessThanOrEqualTo($start)) {
-            $end->addDay();
-        }
-
-        return [$start, $end];
     }
 }

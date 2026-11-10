@@ -27,6 +27,9 @@ import {
 import { Hall } from '@shared/model/hall';
 import { Machine } from '@shared/model/machine';
 import { Permissions } from '@app/shared/enums/permissions';
+import { SideNavNewTabDirective } from '@app/directives/side-nav-new-tab.directive';
+import { keepActiveSidebarGroupOpen } from '@shared/utilities/sidebar-active';
+import { SideNavActiveDirective } from '@app/directives/side-nav-active.directive';
 @Component({
   selector: 'app-layout',
   standalone: true,
@@ -39,12 +42,18 @@ import { Permissions } from '@app/shared/enums/permissions';
     RouterLink,
     RouterLinkActive,
     RouterOutlet,
+ 
+    SideNavNewTabDirective,
+    SideNavActiveDirective,
   ],
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
   templateUrl: './layout.component.html',
   styleUrl: './layout.component.scss',
 })
 export class LayoutComponent {
+  /** Opens the group holding the current page — call after the menu is (re)built. */
+  private readonly expandActiveGroups = keepActiveSidebarGroupOpen(() => this.sidebarMenu);
+
   home = $localize`Home`;
   isCollapsed = false;
   isHide = false;
@@ -147,6 +156,7 @@ export class LayoutComponent {
         ],
       },
     ];
+    this.expandActiveGroups();
   }
 
   ngOnInit(): void {

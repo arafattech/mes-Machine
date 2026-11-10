@@ -108,6 +108,7 @@ export class ServerDropdownComponent implements OnChanges, OnDestroy {
       this.items = [];
       this.hasSearched = false;
     }
+    if (changes['disabled'] && this.disabled) this.closePanel();
   }
 
   ngOnDestroy(): void {
@@ -181,9 +182,18 @@ export class ServerDropdownComponent implements OnChanges, OnDestroy {
     this.searchTimer = setTimeout(() => this.search(typed), 300);
   }
 
-  onFocus(): void {
+  /** The list opens only from the arrow (or by typing), never on plain focus. Opening lists the
+   * first page straight away, and re-fetches when the last load was a filtered search so
+   * reopening never shows a stale result set for a cleared term. */
+  toggleList(): void {
+    if (this.disabled) return;
+    if (this.open) {
+      this.closePanel();
+      return;
+    }
     this.openPanel();
     if (this.multiple) this.searchText = '';
+    if (!this.hasSearched || this.term) this.search('');
   }
 
   selectItem(item: any): void {
@@ -230,13 +240,12 @@ export class ServerDropdownComponent implements OnChanges, OnDestroy {
   }
 
   clearValue(): void {
+    if (this.disabled) return;
     this.value = '';
     this.searchText = '';
     this.selectedItems = [];
     this.selectionChange.emit(null);
     this.selectionListChange.emit([]);
-    this.openPanel();
-    this.search('');
   }
 
   private loadMore(): void {

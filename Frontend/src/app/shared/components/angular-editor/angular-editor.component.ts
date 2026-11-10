@@ -59,6 +59,7 @@ export class AngularEditorComponent implements ControlValueAccessor {
     return {
       ...this.editorConfig,
       editable: !this.isReadonly,
+      showToolbar: !this.isReadonly,
     };
   }
 }

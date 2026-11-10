@@ -1,0 +1,373 @@
+<div class="h-full w-full flex flex-col gap-2 px-4 pb-2 box-border overflow-hidden">
+  <app-machine-dashboard-header (logProduction)="logProduction.emit()"></app-machine-dashboard-header>
+
+  <!-- Busy indicators overlay their panel rather than wrapping it: ui5-busy-indicator doesn't
+       propagate flex/percentage height through its slot. -->
+  <div class="relative flex-1 min-h-0 flex flex-col">
+    <ui5-tabcontainer
+      class="flex-1 min-h-0 flex flex-col"
+      header-background-design="Transparent"
+      content-background-design="Transparent"
+      (tab-select)="onTabSelect($event)"
+    >
+      <!-- ───────────── Overview ───────────── -->
+      <ui5-tab text="Overview" i18n-text [selected]="selectedTab === 'overview'" id="overview" class="h-full overflow-hidden">
+        <div class="h-full min-h-0 flex flex-col gap-3 pt-2">
+          <!-- Performance band: why OEE is what it is, what was produced, and where time was lost -->
+          <section class="panel shrink-0 rounded-xl relative overflow-hidden" aria-labelledby="oeeBandTitle">
+            @if (store.overviewLoading()) {
+              <div class="absolute inset-0 z-10 flex items-center justify-center">
+                <ui5-busy-indicator active size="M" [delay]="0"></ui5-busy-indicator>
+              </div>
+            }
+            <div class="flex flex-wrap items-center gap-x-3 gap-y-1 px-4 pt-2.5 pb-2 border-b border-[color:var(--sapList\_BorderColor,#e5e5e5)]">
+              <h2 id="oeeBandTitle" class="text-sm font-semibold panel-title" i18n>Performance</h2>
+              <span class="text-sm tabular-nums panel-subtle">{{ periodLabel }}</span>
+              <span class="text-xs" [style.color]="isFiltered ? 'var(--sapCriticalTextColor)' : 'var(--sapContent_LabelColor)'">
+                @if (isFiltered) {
+                  <span i18n>Fixed range</span>
+                } @else {
+                  <span i18n>Month to date, live</span>
+                }
+              </span>
+              <div class="ml-auto flex items-center gap-1">
+                <ui5-daterange-picker
+                  class="w-60"
+                  accessible-name="Reporting period"
+                  i18n-accessible-name
+                  format-pattern="dd/MM/yyyy"
+                  [maxDate]="maxDate"
+                  [value]="dateRangeValue"
+                  (change)="onDateRangeChange($event)"
+                ></ui5-daterange-picker>
+                <ui5-button design="Transparent" [disabled]="!isFiltered" (click)="resetDateRange()" i18n>Month to date</ui5-button>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-12 lg:divide-x divide-[color:var(--sapList\_BorderColor,#e5e5e5)]">
+              <!-- OEE + loss cascade -->
+              <div class="lg:col-span-5 px-4 py-3 flex gap-5 min-w-0">
+                <div class="shrink-0 flex flex-col justify-center">
+                  <span class="text-xs panel-subtle" i18n>OEE</span>
+                  <span class="text-5xl font-bold leading-none tabular-nums text-[color:var(--sapHighlightColor,#0a6ed1)]">{{ oeeText() }}</span>
+                  <span class="mt-1.5 text-[11px] panel-subtle" i18n>Availability × performance × quality</span>
+                </div>
+                <ol class="flex-1 min-w-0 flex flex-col justify-center gap-2" aria-label="OEE losses step by step" i18n-aria-label>
+                  @for (step of cascade(); track step.label) {
+                    <li class="min-w-0">
+                      <div class="flex items-baseline justify-between gap-2 text-xs">
+                        <span class="font-semibold panel-title truncate">{{ step.label }}</span>
+                        <span class="font-semibold tabular-nums" [class.panel-subtle]="!step.measured" [class.panel-title]="step.measured">{{ step.text }}</span>
+                      </div>
+                      <!-- Every factor on the same full-width 0–100 bar; what the fill leaves is the loss at this step -->
+                      <div class="relative h-1.5 mt-1 rounded-full overflow-hidden track">
+                        <div class="absolute inset-0 rounded-full bg-[color:color-mix(in_srgb,var(--sapNegativeColor)_28%,transparent)]"></div>
+                        @if (step.measured) {
+                          <div class="absolute inset-y-0 left-0 rounded-full bg-[var(--sapBrandColor)]" [style.width.%]="step.progress"></div>
+                        }
+                      </div>
+                      <p class="mt-0.5 text-[11px] truncate panel-subtle" [attr.title]="step.detail">{{ step.detail }}</p>
+                    </li>
+                  }
+                </ol>
+              </div>
+
+              <!-- Production for the period -->
+              <div class="lg:col-span-4 px-4 py-3 flex flex-col gap-2 min-w-0">
+                <div class="flex items-baseline justify-between gap-2">
+                  <span class="text-xs panel-subtle" i18n>Produced of target</span>
+                  <span class="text-xs font-semibold tabular-nums" [style.color]="achievementColor()">
+                    {{ achievementText() }}
+                  </span>
+                </div>
+                <div class="flex items-baseline gap-1.5">
+                  <span class="text-3xl font-bold leading-none tabular-nums panel-title">{{ store.production()?.productionAchieved ?? 0 | number }}</span>
+                  <span class="text-sm tabular-nums panel-subtle">/ {{ store.production()?.productionTarget ?? 0 | number }}</span>
+                </div>
+                <div class="h-1.5 rounded-full overflow-hidden track">
+                  <div class="h-full rounded-full bg-[var(--sapPositiveColor)]" [style.width.%]="achievementProgress()"></div>
+                </div>
+                @if (dailyGood().length) {
+                  <div
+                    class="flex items-end gap-px h-9"
+                    role="img"
+                    [attr.aria-label]="sparklineLabel()"
+                  >
+                    @for (bar of dailyGood(); track $index) {
+                      <div class="flex-1 rounded-t-sm bg-[color:color-mix(in_srgb,var(--sapPositiveColor)_70%,transparent)]" [style.height.%]="bar.heightPct" [attr.title]="bar.label"></div>
+                    }
+                  </div>
+                  <div class="flex justify-between -mt-1 text-[10px] tabular-nums panel-subtle">
+                    <span>{{ sparklineRange().from }}</span>
+                    <span i18n>good per day</span>
+                    <span>{{ sparklineRange().to }}</span>
+                  </div>
+                }
+                <dl class="grid grid-cols-3 gap-2 text-xs">
+                  <div>
+                    <dt class="panel-subtle" i18n>Yield</dt>
+                    <dd class="text-sm font-semibold tabular-nums panel-title">{{ yieldText() }}</dd>
+                  </div>
+                  <div>
+                    <dt class="panel-subtle" i18n>Good / total</dt>
+                    <dd class="text-sm font-semibold tabular-nums panel-title">
+                      {{ store.production()?.machineOk ?? 0 | number }} / {{ store.production()?.machineTotal ?? 0 | number }}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt class="panel-subtle" i18n>Wastage</dt>
+                    <dd class="text-sm font-semibold tabular-nums panel-title">{{ store.production()?.wastage ?? 0 | number: '1.0-2' }} kg</dd>
+                  </div>
+                </dl>
+              </div>
+
+              <!-- Where non-productive time went -->
+              <div class="lg:col-span-3 px-4 py-3 flex flex-col gap-2 min-w-0">
+                <div class="flex items-baseline justify-between gap-2">
+                  <span class="text-xs panel-subtle" i18n>Biggest losses</span>
+                  <span class="text-[11px] panel-subtle" i18n>share of tracked time</span>
+                </div>
+                @for (loss of biggestLosses(); track loss.stateId) {
+                  <div class="min-w-0">
+                    <div class="flex items-baseline justify-between gap-2 text-sm">
+                      <span class="flex items-center gap-1.5 min-w-0 font-semibold panel-title">
+                        <span class="w-2.5 h-2.5 rounded-sm shrink-0" [style.background]="loss.color"></span>
+                        <span class="truncate">{{ loss.label }}</span>
+                      </span>
+                      <span class="tabular-nums font-semibold panel-title">{{ loss.hours }}</span>
+                    </div>
+                    <div class="relative h-1.5 mt-1 rounded-full overflow-hidden track">
+                      <div class="absolute inset-y-0 left-0 rounded-full" [style.width.%]="loss.share" [style.background]="loss.color"></div>
+                    </div>
+                    <p class="mt-0.5 flex gap-3 text-[11px] tabular-nums panel-subtle">
+                      <span>{{ loss.share }} %</span>
+                      <span i18n>{{ loss.stops }} stops</span>
+                      <span i18n>longest {{ loss.longestSeconds | duration }}</span>
+                    </p>
+                  </div>
+                } @empty {
+                  <p class="flex-1 flex items-center text-sm panel-subtle" i18n>No non-productive time in this period.</p>
+                }
+              </div>
+            </div>
+          </section>
+
+          <!-- Today live | activity over the period | last 7 days output -->
+          <div class="flex-1 min-h-0 grid grid-cols-12 gap-3">
+            <!-- Tinted with the machine's current state colour (from the backend), so the card shows its status at a glance -->
+            <section
+              class="panel col-span-12 lg:col-span-3 rounded-xl p-4 flex flex-col min-h-0 transition-colors duration-300"
+              [style.background]="store.status().tint"
+              aria-labelledby="todayStatesTitle"
+            >
+              <div class="flex items-baseline justify-between mb-2">
+                <h2 id="todayStatesTitle" class="text-sm font-semibold panel-title" i18n>Today by state</h2>
+                <span class="text-xs tabular-nums panel-subtle">{{ store.durations().total | duration }}</span>
+              </div>
+              <!-- The day so far as one bar, so the split reads at a glance before the rows -->
+              <div class="shrink-0 flex h-8 rounded overflow-hidden track mb-3" aria-hidden="true">
+                @for (segment of todaySegments(); track segment.stateId) {
+                  <div
+                    class="h-full flex items-center justify-center overflow-hidden text-xs font-semibold tabular-nums whitespace-nowrap text-white [text-shadow:0_1px_2px_rgb(0_0_0/0.45)] transition-[width] duration-500"
+                    [style.width.%]="segment.percent"
+                    [style.background]="segment.color"
+                    [attr.title]="segment.title"
+                  >
+                    @if (segment.showHours) {
+                      {{ segment.hours }}
+                    }
+                  </div>
+                }
+              </div>
+              <!-- Proportions are in the bar above; rows give the exact live totals -->
+              <ul class="flex-1 min-h-0 overflow-hidden flex flex-col justify-around">
+                @for (state of machineStates.getAll(); track state.id) {
+                  <li class="flex items-center justify-between text-sm">
+                    <span class="flex items-center gap-2 font-medium panel-title">
+                      <span class="w-2.5 h-2.5 rounded-sm shrink-0" [style.background]="machineStates.getColor(state.id)"></span>
+                      {{ state.name }}
+                    </span>
+                    <span class="font-semibold tabular-nums panel-title">{{ store.durations().perState[state.id!] ?? 0 | duration }}</span>
+                  </li>
+                }
+              </ul>
+              <!-- Machine condition: maintenance and the temperature / speed sensors -->
+              <div class="shrink-0 pt-3 border-t border-[color:var(--sapList\_BorderColor,#e5e5e5)]">
+                <app-machine-condition layout="stack"></app-machine-condition>
+              </div>
+            </section>
+
+            <section class="panel col-span-12 lg:col-span-5 rounded-xl p-3 min-h-0 relative overflow-hidden flex flex-col">
+              @if (loadingActivity) {
+                <div class="absolute inset-0 z-10 flex items-center justify-center">
+                  <ui5-busy-indicator active size="M" [delay]="0"></ui5-busy-indicator>
+                </div>
+              }
+              <app-am-activity-chart
+                class="flex-1 min-h-0 block w-full relative z-0"
+                title="Hours by state per day"
+                i18n-title
+                [yMin]="0"
+                [yMax]="24"
+                [datasets]="datasets"
+                (dataPointClicked)="onPointClick($event)"
+              ></app-am-activity-chart>
+            </section>
+
+            <section class="panel col-span-12 lg:col-span-4 rounded-xl p-3 min-h-0 relative overflow-hidden flex flex-col">
+              @if (loading7Days) {
+                <div class="absolute inset-0 z-10 flex items-center justify-center">
+                  <ui5-busy-indicator active size="M" [delay]="0"></ui5-busy-indicator>
+                </div>
+              }
+              <app-am-divergent-stacked-bar
+                class="flex-1 min-h-0 block w-full relative z-0"
+                [title]="todayChartTitle"
+                [data]="todayProductionData"
+              ></app-am-divergent-stacked-bar>
+            </section>
+          </div>
+        </div>
+      </ui5-tab>
+
+      <!-- ───────────── Downtime ───────────── -->
+      <ui5-tab text="Downtime" i18n-text [selected]="selectedTab === 'downtime'" id="downtime" class="h-full overflow-hidden">
+        <!-- Created only while selected: a grid in a hidden tab sizes against zero width. -->
+        @if (selectedTab === 'downtime') {
+          <div class="h-full min-h-0 flex flex-col gap-3 pt-2">
+            <section class="panel shrink-0 rounded-xl grid grid-cols-2 lg:grid-cols-4 divide-x divide-[color:var(--sapList\_BorderColor,#e5e5e5)]">
+              <div class="px-4 py-3">
+                <div class="text-xs panel-subtle" i18n>Productive time</div>
+                <div class="text-xl font-semibold tabular-nums text-[var(--sapPositiveTextColor)]">{{ productiveSeconds() | duration }}</div>
+              </div>
+              <div class="px-4 py-3">
+                <div class="text-xs panel-subtle" i18n>Non-productive time</div>
+                <div class="text-xl font-semibold tabular-nums text-[var(--sapCriticalTextColor)]">{{ nonProductiveSeconds() | duration }}</div>
+              </div>
+              <div class="px-4 py-3">
+                <div class="text-xs panel-subtle" i18n>Non-productive share</div>
+                <div class="text-xl font-semibold tabular-nums panel-title">{{ nonProductiveShare() === null ? '—' : nonProductiveShare() + ' %' }}</div>
+              </div>
+              <div class="px-4 py-3">
+                <div class="text-xs panel-subtle" i18n>State changes</div>
+                <div class="text-xl font-semibold tabular-nums panel-title">{{ stateChangeCount() | number }}</div>
+              </div>
+            </section>
+            <p class="shrink-0 text-xs panel-subtle" i18n>
+              {{ periodLabel }}. Time is grouped by machine state; downtime reasons and planned or unplanned stops aren't recorded yet.
+            </p>
+            <div class="flex-1 min-h-0 grid grid-cols-12 gap-3">
+              <div class="col-span-12 xl:col-span-7 relative min-h-0">
+                @if (loadingActivity) {
+                  <div class="absolute inset-0 z-10 flex items-center justify-center">
+                    <ui5-busy-indicator active size="M" [delay]="0"></ui5-busy-indicator>
+                  </div>
+                }
+                <app-ag-grid-table
+                  class="block w-full relative z-0"
+                  [columns]="downtimeColumns"
+                  [toolbarConfig]="downtimeToolbarConfig"
+                  [dataSource]="downtimeDataSource"
+                  [displayConfig]="downtimeDisplayConfig"
+                  [enableRowClick]="false"
+                  noRowsMessage="No state events in this range"
+                  i18n-noRowsMessage
+                ></app-ag-grid-table>
+              </div>
+              <div class="col-span-12 xl:col-span-5 relative min-h-0">
+                @if (loadingShiftBreakdown) {
+                  <div class="absolute inset-0 z-10 flex items-center justify-center">
+                    <ui5-busy-indicator active size="M" [delay]="0"></ui5-busy-indicator>
+                  </div>
+                }
+                <app-ag-grid-table
+                  class="block w-full relative z-0"
+                  [columns]="shiftBreakdownColumns"
+                  [toolbarConfig]="shiftBreakdownToolbarConfig"
+                  [dataSource]="shiftBreakdownDataSource"
+                  [displayConfig]="downtimeDisplayConfig"
+                  [enableRowClick]="false"
+                  noRowsMessage="No shift data for this range"
+                  i18n-noRowsMessage
+                ></app-ag-grid-table>
+              </div>
+            </div>
+          </div>
+        }
+      </ui5-tab>
+
+      <!-- Production log tab: hidden for now. To bring it back, delete these comment markers.
+           (The grid is created only while the tab is selected, so its paged request runs on demand, not on page load.)
+      <ui5-tab text="Production log" i18n-text [selected]="selectedTab === 'productionLog'" id="productionLog" class="h-full overflow-hidden">
+        @if (selectedTab === 'productionLog') {
+          <app-ag-grid-table
+            #productionLogGrid
+            class="block w-full pt-2"
+            gridId="machine-dashboard-production-log"
+            [isBase]="true"
+            [columns]="productionLogColumns"
+            [dataSource]="productionLogDataSource"
+            [toolbarConfig]="productionLogToolbarConfig"
+            [displayConfig]="productionLogDisplayConfig"
+            [enableRowClick]="false"
+            [showDateRangePicker]="true"
+            [dateRangePickerValue]="productionLogDateRange"
+            (changeRangeDatePicker)="onProductionLogDateRangeChange($event)"
+            [showIllustratedMessage]="true"
+            IllustratedName="NoData"
+            IllustratedTitle="No production logged yet"
+            i18n-IllustratedTitle
+            IllustratedSubtitle="Use Log production to record output for this machine."
+            i18n-IllustratedSubtitle
+          ></app-ag-grid-table>
+        }
+      </ui5-tab>
+      -->
+
+      <!-- ───────────── Production orders ───────────── -->
+      <ui5-tab text="Production orders" i18n-text [selected]="selectedTab === 'workOrder'" id="workOrder" class="h-full overflow-auto">
+        <app-machine-work-orders [machineKey]="store.machineKey()" [refreshToken]="workOrderRefreshToken"></app-machine-work-orders>
+      </ui5-tab>
+    </ui5-tabcontainer>
+  </div>
+
+  <ui5-dialog
+    class="w-[70vw]"
+    state="Information"
+    [open]="drillDownOpen"
+    [headerText]="drillDownTitle"
+    (before-close)="closeDrillDown()"
+  >
+    <ui5-busy-indicator [active]="drillDownLoading" [delay]="0" size="M" class="block w-full">
+      <div class="p-2 h-[52vh] flex flex-col w-full box-border">
+        <div class="flex flex-wrap gap-2 mb-2 shrink-0">
+          @for (state of machineStates.getAll(); track state.id) {
+            <div
+              class="flex items-center gap-1.5 text-xs font-medium rounded-full px-2.5 py-1"
+              [style.background]="machineStates.getTint(state.id)"
+              [style.color]="machineStates.getColor(state.id)"
+            >
+              <span class="w-2 h-2 rounded-full" [style.background]="machineStates.getColor(state.id)"></span>
+              <span>{{ state.name }}</span>
+              <span class="tabular-nums">{{ drillDownSummary[state.id!] ?? 0 | duration }}</span>
+            </div>
+          }
+        </div>
+        <div class="w-full flex-1 min-h-0">
+          <app-ag-grid-table
+            [columns]="drillDownColumns"
+            [toolbarConfig]="toolbarConfig"
+            [dataSource]="drillDownDataSource"
+            [displayConfig]="displayConfig"
+            [enableRowClick]="false"
+            noRowsMessage="No state events in this window"
+            i18n-noRowsMessage
+          ></app-ag-grid-table>
+        </div>
+      </div>
+    </ui5-busy-indicator>
+    <div slot="footer" class="flex justify-end w-full">
+      <ui5-button (click)="closeDrillDown()" i18n>Close</ui5-button>
+    </div>
+  </ui5-dialog>
+</div>

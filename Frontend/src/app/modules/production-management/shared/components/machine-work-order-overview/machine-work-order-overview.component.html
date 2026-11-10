@@ -63,6 +63,7 @@
                   </span>
                 </div>
                 <ui5-progress-indicator
+                  hide-value
                   [value]="totals.percentComplete ?? 0"
                   [valueState]="(totals.percentComplete ?? 0) >= 100 ? 'Positive' : 'None'"
                   class="w-full"

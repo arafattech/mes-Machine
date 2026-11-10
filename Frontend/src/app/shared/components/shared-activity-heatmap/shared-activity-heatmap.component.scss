@@ -2,6 +2,14 @@
   display: block;
 }
 
+.range-label {
+  color: var(--sapTextColor, #1d2d3e);
+}
+
+.row-label {
+  color: var(--sapContent_LabelColor, #64748b);
+}
+
 .heat-cell {
   background-color: var(--sapList_Background, #ebedf0);
   border: 1px solid var(--sapList_BorderColor, #d9d9d9);

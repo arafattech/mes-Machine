@@ -20,6 +20,7 @@ export class OperationManagementFormComponent {
   loading: boolean = false;
   ToastType: "add" | "edit" | "error" = "add";
   public validationMessage = Localization.requiredField;
+  public cycleTimeMessage = Localization.requiredField;
   public valueState = ValueState;
   public responseType: saveMode = saveMode.POST;
   public localization = Localization;
@@ -82,11 +83,8 @@ export class OperationManagementFormComponent {
         break;
 
       case "cycle":
-        if (!value.trim()) {
-          this.valueStateOptions.standard_cycle_time = ValueState.Negative;
-        } else {
+        if (this.validateCycleTime(value)) {
           this.operations.standard_cycle_time = value;
-          this.valueStateOptions.standard_cycle_time = ValueState.None;
         }
         break;
       case "product":
@@ -110,13 +108,7 @@ export class OperationManagementFormComponent {
       this.valueStateOptions.operation_name = ValueState.Negative;
       isValid = false;
     }
-    if (
-      this.operations.standard_cycle_time !== null &&
-      this.operations.standard_cycle_time !== undefined
-    ) {
-      this.valueStateOptions.standard_cycle_time = ValueState.None;
-    } else {
-      this.valueStateOptions.standard_cycle_time = ValueState.Negative;
+    if (!this.validateCycleTime(this.operations.standard_cycle_time)) {
       isValid = false;
     }
     if (this.operations.item_id) {
@@ -128,6 +120,19 @@ export class OperationManagementFormComponent {
 
     return isValid;
   }
+  private validateCycleTime(value: string | number | null | undefined): boolean {
+    const isBlank = value === null || value === undefined || String(value).trim() === "";
+    const isNegative = !isBlank && Number(value) < 0;
+    this.cycleTimeMessage = isNegative
+      ? $localize`Cycle time cannot be negative.`
+      : Localization.requiredField;
+    const isValid = !isBlank && !isNegative;
+    this.valueStateOptions.standard_cycle_time = isValid
+      ? ValueState.None
+      : ValueState.Negative;
+    return isValid;
+  }
+
   SelctedProduct(data: any) {
     this.operations.item_id = data.detail.item.id;
     this.productTitle = data.detail.item.text;

@@ -2,6 +2,8 @@ import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '@prisma/prisma.service';
 import { MachineConfigService } from '@module/machine/runtime/machine-config.service';
 import { CacheAside, GetRedisClient } from 'config/redis/config.redis';
+import { GetCalcVersion } from '@module/machine/realtime/production-events';
+import { isKgUom, qualityPercent } from '@module/machine/quality';
 
 interface RollupRow {
   machine_id: number;
@@ -69,7 +71,8 @@ export class WorkOrderDetailService {
       throw new NotFoundException('Work order not found');
     }
 
-    const cacheKey = `machine:calc:wo-detail:${id.toString()}`;
+    const version = await GetCalcVersion(this.redis, 'wo', id);
+    const cacheKey = `machine:calc:wo-detail:${id.toString()}:v${version}`;
     return CacheAside(this.redis, cacheKey, this.cacheTtlMs, () => this.computeDetail(id), (stage, error) => {
       const message = error instanceof Error ? error.message : String(error);
       this.logger.warn(`Cache ${stage} failed for ${cacheKey}: ${message}`);
@@ -79,14 +82,32 @@ export class WorkOrderDetailService {
   private async computeDetail(id: bigint) {
     const workOrder = await this.prisma.work_orders.findUnique({
       where: { id },
-      include: { products: true, work_order_machines: { include: { machines: true } } },
+      include: {
+        products: { include: { uoms: { select: { name: true } } } },
+        work_order_machines: { include: { machines: true } },
+      },
     });
     if (!workOrder) throw new NotFoundException('Work order not found');
 
-    const buckets = await this.prisma.machine_production_counts.findMany({
-      where: { work_order_id: id },
-      include: { machines: true, employee_shifts: true },
-    });
+    const [buckets, wastageAllocations] = await Promise.all([
+      this.prisma.machine_production_counts.findMany({
+        where: { work_order_id: id },
+        include: { machines: true, employee_shifts: true },
+      }),
+      // kg logged via the Wastage Log against this WO, split per machine by Laravel —
+      // widens Quality's denominator exactly like `MachineCalculationsService.overview()`,
+      // so the work-order and machine screens agree.
+      this.prisma.machine_wastage_allocations.findMany({
+        where: { machine_wastage_entries: { work_order_id: id } },
+        select: { machine_id: true, allocated_qty_kg: true },
+      }),
+    ]);
+
+    const loggedWastageByMachine = new Map<string, number>();
+    for (const allocation of wastageAllocations) {
+      const key = allocation.machine_id.toString();
+      loggedWastageByMachine.set(key, (loggedWastageByMachine.get(key) ?? 0) + Number(allocation.allocated_qty_kg));
+    }
 
     const rowsByKey = new Map<string, RollupRow>();
     // Per-machine (not per machine+shift) window — this WO's whole engagement on that
@@ -139,7 +160,14 @@ export class WorkOrderDetailService {
     const totalGood = rows.reduce((sum, row) => sum + row.good_count, 0);
     const totalScrap = rows.reduce((sum, row) => sum + row.scrap_count, 0);
     const totalCount = rows.reduce((sum, row) => sum + row.total_count, 0);
-    const oee = await this.computeOee(machineWindowById, totalGood, totalCount);
+    const loggedWastageKg = [...loggedWastageByMachine.values()].reduce((sum, kg) => sum + kg, 0);
+    const oee = await this.computeOee(
+      machineWindowById,
+      totalGood,
+      totalCount,
+      loggedWastageByMachine,
+      isKgUom(workOrder.products?.uoms?.name),
+    );
 
     return {
       work_order: {
@@ -171,6 +199,7 @@ export class WorkOrderDetailService {
         good_count: totalGood,
         scrap_count: totalScrap,
         total_count: totalCount,
+        logged_wastage_kg: Math.round(loggedWastageKg * 100) / 100,
         quantity_target: workOrder.quantity,
         percent_complete: workOrder.quantity
           ? Math.round(Math.min(100, (totalGood / workOrder.quantity) * 100) * 10) / 10
@@ -210,6 +239,8 @@ export class WorkOrderDetailService {
     machineWindowById: Map<string, MachineWindow>,
     totalGood: number,
     totalCount: number,
+    loggedWastageByMachine: Map<string, number>,
+    countsInKg: boolean,
   ): Promise<WorkOrderOeeResult> {
     const empty: WorkOrderOee = { availability: null, performance: null, quality: null, efficiency: null };
     if (!machineWindowById.size) {
@@ -291,7 +322,8 @@ export class WorkOrderDetailService {
     const performance = avgIdealCycleSeconds && activeSeconds > 0
       ? round1(Math.min(100, ((machinesTotalCount * avgIdealCycleSeconds) / activeSeconds) * 100))
       : null;
-    const quality = totalCount > 0 ? round1((totalGood / totalCount) * 100) : null;
+    const loggedWastageKg = [...loggedWastageByMachine.values()].reduce((sum, kg) => sum + kg, 0);
+    const quality = qualityPercent({ good: totalGood, total: totalCount, wastageKg: loggedWastageKg, countsInKg });
     const efficiency = availability !== null && performance !== null && quality !== null
       ? round1((availability * performance * quality) / 10000)
       : null;
@@ -305,7 +337,12 @@ export class WorkOrderDetailService {
       const mPerformance = idealCycleSeconds && seconds && seconds.active > 0
         ? round1(Math.min(100, ((window.totalCount * idealCycleSeconds) / seconds.active) * 100))
         : null;
-      const mQuality = window.totalCount > 0 ? round1((window.goodCount / window.totalCount) * 100) : null;
+      const mQuality = qualityPercent({
+        good: window.goodCount,
+        total: window.totalCount,
+        wastageKg: loggedWastageByMachine.get(machineKey) ?? 0,
+        countsInKg,
+      });
       const mEfficiency = mAvailability !== null && mPerformance !== null && mQuality !== null
         ? round1((mAvailability * mPerformance * mQuality) / 10000)
         : null;

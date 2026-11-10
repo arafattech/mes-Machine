@@ -12,6 +12,7 @@ import {
 import { LogWastageComponent } from '@production-module/production-plan-log/wastage-logs/log-wastage/log-wastage.component';
 import { ProductionLogService } from '@production-module/shared/services/production-log.service';
 import moment from 'moment';
+import { formatFactoryDate, formatFactoryDateTime } from '@shared/utilities/date-format';
 
 @Component({
   selector: 'app-ag-grid-machines-wastage-types-cell-renderer',
@@ -133,8 +134,7 @@ export class WastageLogListComponent implements OnInit {
       sortable: false,
       filter: false,
       floatingFilter: false,
-      valueFormatter: ({ value }: any) =>
-        value ? moment(value).format('DD/MM/YYYY, hh:mm A') : '',
+      valueFormatter: ({ value }: any) => formatFactoryDateTime(value),
     },
   ];
 
@@ -247,7 +247,7 @@ export class WastageLogListComponent implements OnInit {
 
     const workOrderLabel = row?.work_order?.custom_id ?? `WO-${workOrderId}`;
     const shiftLabel = row?.shift?.name ? ` · ${row.shift.name}` : '';
-    const dateLabel = date ? ` · ${moment(date).format('DD/MM/YYYY')}` : '';
+    const dateLabel = date ? ` · ${formatFactoryDate(date)}` : '';
 
     this.detailSubtitle = `${workOrderLabel}${shiftLabel}${dateLabel}`;
     this.detailOpen = true;

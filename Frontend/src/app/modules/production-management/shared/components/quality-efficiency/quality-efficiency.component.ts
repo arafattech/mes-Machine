@@ -72,7 +72,7 @@ export class QualityEfficiencyComponent {
     };
   }
 
-  formatValue(v: number, unit = '%') {
-    return `${v}${unit}`;
+  formatValue(v: number | null, unit = '%') {
+    return v === null ? $localize`n/a` : `${v}${unit}`;
   }
 }

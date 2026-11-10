@@ -4,8 +4,8 @@ import { CommonService } from '@app/services/common-service/common.service';
 import {
   AssignedWorkOrder,
   CurrentWorkOrderShift,
-  MachineSpecs,
   Metric,
+  OeeLiveInputs,
   ProductionSummary,
   ShiftBreakdownRow,
   ShiftOption,
@@ -13,6 +13,7 @@ import {
   WorkOrderWastageDetail,
 } from '@production-module/shared/interface/interface';
 import { MetricColor, MetricIcon } from '@production-module/shared/utils/types';
+import { formatFactoryDate } from '@shared/utilities/date-format';
 
 export interface DailyProductionRow {
   date: string;
@@ -27,15 +28,6 @@ const OEE_TILE_META: Record<string, { icon: MetricIcon; color: MetricColor }> = 
   Quality: { icon: 'sparkles', color: 'orange' },
   'M/C Efficiency': { icon: 'wrench', color: 'rose' },
 };
-
-const ZERO_SPECS: MachineSpecs = { maxRpm: 0, minRpm: 0, maxTemp: 0, minTemp: 0 };
-
-interface MachineHasConfigRow {
-  max_rpm: number | null;
-  min_rpm: number | null;
-  max_temp: number | null;
-  min_temp: number | null;
-}
 
 interface CurrentWorkOrderResponse {
   work_order: {
@@ -142,12 +134,26 @@ interface MachineOverviewResponse {
   ok: number;
   total: number;
   waste: number;
-  oee: {
-    availability: number | null;
-    performance: number | null;
-    quality: number | null;
-    efficiency: number | null;
+  oee: OeeValues;
+  /** Absent from a pre-realtime node-server (deploy order / rollback) — no live ticking then. */
+  live?: {
+    computed_at: string;
+    active_seconds: number;
+    total_seconds: number;
+    open_state_productive: boolean | null;
+    ideal_cycle_seconds: number | null;
+    total_count: number;
+    good_count: number;
+    quality_total: number | null;
+    age_ms: number;
   };
+}
+
+interface OeeValues {
+  availability: number | null;
+  performance: number | null;
+  quality: number | null;
+  efficiency: number | null;
 }
 
 interface ShiftBreakdownResponse {
@@ -171,29 +177,6 @@ interface ShiftBreakdownResponse {
 export class MachineOverviewDataService {
   constructor(private readonly common: CommonService) {}
 
-  /** Real: `machine_has_configs` already carries these thresholds and is OData-exposed. */
-  getSpecs(machineKey: string): Observable<MachineSpecs> {
-    if (!machineKey) return of(ZERO_SPECS);
-
-    return this.common
-      .get<{ value: MachineHasConfigRow[] }>(
-        `MachineHasConfigs?$filter=machine_id eq ${machineKey} and is_active eq true&$select=max_rpm,min_rpm,max_temp,min_temp`,
-      )
-      .pipe(
-        map((res) => {
-          const row = res?.value?.[0];
-          if (!row) return ZERO_SPECS;
-          return {
-            maxRpm: row.max_rpm ?? 0,
-            minRpm: row.min_rpm ?? 0,
-            maxTemp: row.max_temp ?? 0,
-            minTemp: row.min_temp ?? 0,
-          };
-        }),
-        catchError(() => of(ZERO_SPECS)),
-      );
-  }
-
   /**
    * Real: `GET /api/machine/{id}/overview` — node-server (NestJS/Prisma), not Laravel.
    * Moved here because node-server already owns the write-side of
@@ -210,7 +193,7 @@ export class MachineOverviewDataService {
     machineKey: string,
     from: Date,
     to: Date,
-  ): Observable<{ production: ProductionSummary; oeeMetrics: Metric[] }> {
+  ): Observable<{ production: ProductionSummary; oeeMetrics: Metric[]; oeeLive: OeeLiveInputs | null }> {
     if (!machineKey) return of(this.emptyOverview(from, to));
 
     const url = `machine/${machineKey}/overview?from=${from.toISOString()}&to=${to.toISOString()}`;
@@ -226,12 +209,19 @@ export class MachineOverviewDataService {
           wastage: res.waste,
           unit: 'kg',
         },
-        oeeMetrics: [
-          this.toMetric('Product Availability', res.oee.availability),
-          this.toMetric('M/C Performance', res.oee.performance),
-          this.toMetric('Quality', res.oee.quality),
-          this.toMetric('M/C Efficiency', res.oee.efficiency),
-        ],
+        oeeMetrics: this.toOeeMetrics(res.oee),
+        oeeLive: res.live
+          ? {
+              activeSeconds: res.live.active_seconds,
+              totalSeconds: res.live.total_seconds,
+              openStateProductive: res.live.open_state_productive,
+              idealCycleSeconds: res.live.ideal_cycle_seconds,
+              totalCount: res.live.total_count,
+              goodCount: res.live.good_count,
+              qualityTotal: res.live.quality_total,
+              ageMs: res.live.age_ms,
+            }
+          : null,
       })),
       catchError(() => of(this.emptyOverview(from, to))),
     );
@@ -505,11 +495,50 @@ export class MachineOverviewDataService {
       }, false);
   }
 
-  private toMetric(label: string, value: number | null): Metric {
-    return { label, value: value ?? 0, ...OEE_TILE_META[label] };
+  /**
+   * OEE tiles advanced `elapsedSeconds` past the snapshot in `inputs` — the open state keeps
+   * accruing (to Availability's denominator, and to its numerator if productive), counts don't
+   * change until the next realtime push. Mirrors node-server
+   * `MachineCalculationsService.overview()` exactly (round1, Performance capped at 100), so at
+   * `elapsedSeconds = 0` it reproduces the server's figures; keep the two in sync.
+   */
+  liveOeeMetrics(inputs: OeeLiveInputs, elapsedSeconds: number): Metric[] {
+    const accrued = inputs.openStateProductive === null ? 0 : Math.max(0, Math.floor(elapsedSeconds));
+    const activeSeconds = inputs.activeSeconds + (inputs.openStateProductive ? accrued : 0);
+    const totalSeconds = inputs.totalSeconds + accrued;
+    const round1 = (value: number) => Math.round(value * 10) / 10;
+
+    const availability = totalSeconds > 0 ? round1((activeSeconds / totalSeconds) * 100) : null;
+    const performance =
+      inputs.idealCycleSeconds && activeSeconds > 0
+        ? round1(Math.min(100, ((inputs.totalCount * inputs.idealCycleSeconds) / activeSeconds) * 100))
+        : null;
+    const quality = inputs.qualityTotal ? round1((inputs.goodCount / inputs.qualityTotal) * 100) : null;
+    const efficiency =
+      availability !== null && performance !== null && quality !== null
+        ? round1((availability * performance * quality) / 10000)
+        : null;
+
+    return this.toOeeMetrics({ availability, performance, quality, efficiency });
   }
 
-  private emptyOverview(from: Date, to: Date): { production: ProductionSummary; oeeMetrics: Metric[] } {
+  private toOeeMetrics(oee: OeeValues): Metric[] {
+    return [
+      this.toMetric('Product Availability', oee.availability),
+      this.toMetric('M/C Performance', oee.performance),
+      this.toMetric('Quality', oee.quality),
+      this.toMetric('M/C Efficiency', oee.efficiency),
+    ];
+  }
+
+  private toMetric(label: string, value: number | null): Metric {
+    return { label, value, ...OEE_TILE_META[label] };
+  }
+
+  private emptyOverview(
+    from: Date,
+    to: Date,
+  ): { production: ProductionSummary; oeeMetrics: Metric[]; oeeLive: OeeLiveInputs | null } {
     return {
       production: {
         periodLabel: this.formatRange(from, to),
@@ -520,17 +549,12 @@ export class MachineOverviewDataService {
         wastage: 0,
         unit: 'kg',
       },
-      oeeMetrics: [
-        this.toMetric('Product Availability', null),
-        this.toMetric('M/C Performance', null),
-        this.toMetric('Quality', null),
-        this.toMetric('M/C Efficiency', null),
-      ],
+      oeeMetrics: this.toOeeMetrics({ availability: null, performance: null, quality: null, efficiency: null }),
+      oeeLive: null,
     };
   }
 
   private formatRange(from: Date, to: Date): string {
-    const fmt = (d: Date) => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-    return `${fmt(from)} – ${fmt(to)}`;
+    return `${formatFactoryDate(from)} – ${formatFactoryDate(to)}`;
   }
 }

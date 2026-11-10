@@ -44,6 +44,14 @@ export interface AgGridTableMultiSelectFilterControl {
   type: 'multiSelect';
   options: AgGridTableFilterOptionInput[];
   placeholder?: string;
+  // Custom OData fragment for the selected values (e.g. a value that maps to `eq null`).
+  // Return '' for "no filter". Omit to use the default `field eq value or ...` clause.
+  toOdataFilter?: (values: string[]) => string;
+}
+
+export interface AgGridTableColumnOdataFilterChange {
+  colId: string;
+  values: string[];
 }
 
 export type AgGridTableFilterControl =
@@ -309,6 +317,8 @@ export interface AgGridTableToolbarConfig {
   syncButtonDisable?: boolean;
   showDownload?: boolean;
   disableDownloadButton?: boolean;
+  showPrint?: boolean;
+  disablePrintButton?: boolean;
   showUpload?: boolean;
   disableUploadButton?: boolean;
   showDeleteButtonInHeader?: boolean;

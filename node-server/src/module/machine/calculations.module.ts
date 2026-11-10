@@ -7,6 +7,7 @@ import { WorkOrderDetailService } from '@module/machine/work-order-detail.servic
 import { WorkOrderWastageController } from '@module/machine/work-order-wastage.controller';
 import { WorkOrderWastageService } from '@module/machine/work-order-wastage.service';
 import { MachineConfigService } from '@module/machine/runtime/machine-config.service';
+import { ProductionRealtimeService } from '@module/machine/realtime/production-realtime.service';
 
 /**
  * Read-heavy calculation endpoints for the Angular machine-overview page.
@@ -20,9 +21,19 @@ import { MachineConfigService } from '@module/machine/runtime/machine-config.ser
  * `machine:states_map` Redis key instead of querying `machine_states` fresh on
  * every request — it only depends on `PrismaService`, already provided below,
  * so no further wiring is needed.
+ *
+ * `ProductionRealtimeService` lives here because it invalidates these services' caches
+ * (calc-version bump) before pushing `machine_production_updated` to the frontend.
  */
 @Module({
   controllers: [MachineCalculationsController, WorkOrderDetailController, WorkOrderWastageController],
-  providers: [PrismaService, MachineCalculationsService, WorkOrderDetailService, WorkOrderWastageService, MachineConfigService],
+  providers: [
+    PrismaService,
+    MachineCalculationsService,
+    WorkOrderDetailService,
+    WorkOrderWastageService,
+    MachineConfigService,
+    ProductionRealtimeService,
+  ],
 })
 export class CalculationsModule {}

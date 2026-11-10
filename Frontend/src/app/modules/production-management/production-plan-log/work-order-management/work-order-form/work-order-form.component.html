@@ -20,12 +20,14 @@
             class="w-100"
             placeholder="Select Product"
             i18n-placeholder
+            filter="None"
+            (input)="productPicker.searchFrom($event)"
             (selectionChange)="onProductSelection($event)"
             [value]="workOrder.product_name || ''"
             [attr.value-state]="valueStateOptions.product"
           >
             <ui5-cb-item
-              *ngFor="let item of Products"
+              *ngFor="let item of productPicker.options()"
               [text]="item.text"
               [id]="item.id"
               [value]="item.id"
@@ -64,9 +66,7 @@
             i18n-placeholder
             [attr.value-state]="valueStateOptions.quantity"
           >
-            <div slot="valueStateMessage">
-              {{ localization.requiredField }}
-            </div>
+            <div slot="valueStateMessage" i18n>Enter a whole number of at least 1.</div>
           </ui5-input>
         </div>
 
@@ -83,12 +83,14 @@
         </div>
 
         <div>
-          <ui5-label show-colon i18n>Scheduled Start</ui5-label>
+          <ui5-label show-colon required i18n>Scheduled Start</ui5-label>
           <ui5-date-picker
             class="w-100"
             [(ngModel)]="workOrder.scheduled_start"
-            format-pattern="yyyy-MM-dd"
-            placeholder="Select scheduled start"
+            [attr.value-state]="valueStateOptions.scheduledStart"
+            required
+            format-pattern="dd/MM/yyyy"
+            placeholder="DD/MM/YYYY"
             i18n-placeholder
           ></ui5-date-picker>
         </div>
@@ -98,8 +100,9 @@
           <ui5-date-picker
             class="w-100"
             [(ngModel)]="workOrder.actual_start"
-            format-pattern="yyyy-MM-dd"
-            placeholder="Select actual start"
+            [attr.value-state]="valueStateOptions.actualStart"
+            format-pattern="dd/MM/yyyy"
+            placeholder="DD/MM/YYYY"
             i18n-placeholder
           ></ui5-date-picker>
         </div>

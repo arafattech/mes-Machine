@@ -1,6 +1,7 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '@prisma/prisma.service';
 import { CacheAside, GetRedisClient } from 'config/redis/config.redis';
+import { GetCalcVersion } from '@module/machine/realtime/production-events';
 
 export interface WastageAllocationRow {
   machine_id: number;
@@ -52,7 +53,8 @@ export class WorkOrderWastageService {
     }
 
     const shiftId = shiftIdStr ? Number(shiftIdStr) : null;
-    const cacheKey = `machine:calc:wo-wastage:${id.toString()}:${shiftId ?? 'all'}:${date ?? 'all'}`;
+    const version = await GetCalcVersion(this.redis, 'wo', id);
+    const cacheKey = `machine:calc:wo-wastage:${id.toString()}:v${version}:${shiftId ?? 'all'}:${date ?? 'all'}`;
     return CacheAside(
       this.redis,
       cacheKey,

@@ -1,19 +1,24 @@
 import {
   AfterViewInit,
   Component,
+  DestroyRef,
   ElementRef,
   Input,
   OnChanges,
   OnDestroy,
   SimpleChanges,
   ViewChild,
-  NgZone
+  NgZone,
+  inject,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 import * as am4core from '@amcharts/amcharts4/core';
 import * as am4charts from '@amcharts/amcharts4/charts';
 import am4themes_animated from '@amcharts/amcharts4/themes/animated';
+import { ThemeService } from '@app/services/theme.service';
+import { chartTextColor } from '@production-module/shared/utils/chart-theme';
 
 export interface DivergentBarData {
   category: string;
@@ -39,12 +44,19 @@ export class AmDivergentStackedBarComponent implements AfterViewInit, OnChanges,
   }
 
   private chart?: am4charts.XYChart;
+  /** Axis label templates, recoloured when the theme changes. */
+  private readonly axisText: am4core.Label[] = [];
+  private legendText?: am4core.Label;
+
+  private readonly themeService = inject(ThemeService);
+  private readonly destroyRef = inject(DestroyRef);
 
   constructor(private zone: NgZone) {}
 
   ngAfterViewInit(): void {
     this.zone.runOutsideAngular(() => {
       this.createChart();
+      this.themeService.theme$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => this.applyTextColors());
       if (this.data && this.data.length) {
         this.updateData();
       }
@@ -84,7 +96,7 @@ export class AmDivergentStackedBarComponent implements AfterViewInit, OnChanges,
     yAxis.renderer.grid.template.location = 0;
     yAxis.renderer.minGridDistance = 20;
     yAxis.renderer.labels.template.fontSize = 11;
-    yAxis.renderer.labels.template.fill = am4core.color('#556b82');
+    this.axisText.push(yAxis.renderer.labels.template);
     yAxis.renderer.minWidth = 90; // enough room for "Mon, Aug 20"
     yAxis.renderer.cellStartLocation = 0.1;
     yAxis.renderer.cellEndLocation = 0.9;
@@ -97,7 +109,7 @@ export class AmDivergentStackedBarComponent implements AfterViewInit, OnChanges,
     xAxis.strictMinMax = true;
     xAxis.renderer.minGridDistance = 40;
     xAxis.renderer.labels.template.fontSize = 11;
-    xAxis.renderer.labels.template.fill = am4core.color('#556b82');
+    this.axisText.push(xAxis.renderer.labels.template);
     xAxis.renderer.grid.template.strokeOpacity = 0.15;
 
     // Format axis labels as absolute percentage (no minus sign)
@@ -159,10 +171,18 @@ export class AmDivergentStackedBarComponent implements AfterViewInit, OnChanges,
     chart.legend.position = 'bottom';
     chart.legend.contentAlign = 'center';
     chart.legend.labels.template.fontSize = 12;
+    this.legendText = chart.legend.labels.template;
     chart.legend.itemContainers.template.paddingTop = 4;
     chart.legend.itemContainers.template.paddingBottom = 4;
 
     this.chart = chart;
+  }
+
+  private applyTextColors(): void {
+    const dark = this.themeService.isDarkTheme();
+    const muted = am4core.color(chartTextColor(dark));
+    this.axisText.forEach((label) => (label.fill = muted));
+    if (this.legendText) this.legendText.fill = am4core.color(chartTextColor(dark, '#000000'));
   }
 
   private addBullet(series: am4charts.ColumnSeries): void {

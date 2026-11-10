@@ -1,4 +1,5 @@
 import { Deserializable } from '@app/shared/interfaces/deserializable';
+import { formatFactoryDate, fromPickerDate } from '@shared/utilities/date-format';
 
 export type LotStatusValue =
   | 'DOFFED'
@@ -72,10 +73,8 @@ export class ProductionLot implements Deserializable {
   deserialize(input: any): this {
     if (input) {
       Object.assign(this, input);
-      // Backend may return a full ISO timestamp (e.g. from a `date`-cast column) — the
-      // date-picker only ever wants the `yyyy-MM-dd` portion, and slicing a plain date
-      // string is a no-op, so this is safe regardless of which shape the API returned.
-      if (this.lot_date) this.lot_date = String(this.lot_date).slice(0, 10);
+      // `lot_date` holds the `ui5-date-picker` value (`DD/MM/YYYY`); converted back in the payloads.
+      this.lot_date = formatFactoryDate(input.lot_date);
       this.counts = (input.counts ?? []).map((count: any) => new ProductionLotCount().deserialize(count));
     }
     return this;
@@ -90,7 +89,7 @@ export class ProductionLot implements Deserializable {
       hall_id: this.hall_id,
       shift_id: this.shift_id,
       operator_id: this.operator_id,
-      lot_date: this.lot_date,
+      lot_date: fromPickerDate(this.lot_date) || null,
       doffed_at: this.doffed_at,
     };
   }

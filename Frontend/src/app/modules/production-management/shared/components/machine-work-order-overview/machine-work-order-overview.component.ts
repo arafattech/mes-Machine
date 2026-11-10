@@ -14,6 +14,7 @@ import {
   AgGridTableToolbarConfig,
   GridTableColumnDataType,
 } from '@shared/components/ag-grid-table/types/ag-grid-table.types';
+import { formatFactoryDateTime } from '@shared/utilities/date-format';
 
 interface MachineShiftRow {
   shiftId: number | null;
@@ -110,8 +111,7 @@ export class MachineWorkOrderOverviewComponent implements OnChanges {
     {
       field: 'endedAt',
       headerName: $localize`Last Logged`,
-      valueFormatter: (p: ValueFormatterParams<MachineShiftRow, string | null>) =>
-        p.value ? new Date(p.value).toLocaleString() : '',
+      valueFormatter: (p: ValueFormatterParams<MachineShiftRow, string | null>) => formatFactoryDateTime(p.value),
     },
   ];
 

@@ -15,6 +15,7 @@
       </div>
       <ui5-label show-colon required i18n>Plant Name</ui5-label>
       <ui5-input
+        #nameInput
         class="w-100"
         [(ngModel)]="plant.name"
         placeholder="Enter plant name"
@@ -22,9 +23,10 @@
         (input)="checkValidation($event)"
         [attr.value-state]="valueStateOptions.name"
         type="Text"
+        [attr.maxlength]="nameMaxLength"
       >
         <div slot="valueStateMessage">
-          {{ validationMessage }}
+          {{ nameErrorMessage }}
         </div>
       </ui5-input>
     </section>

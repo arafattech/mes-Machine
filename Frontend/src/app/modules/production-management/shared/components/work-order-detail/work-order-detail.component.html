@@ -276,7 +276,9 @@
                     </div>
 
                     <!-- Progress Indicator Bar -->
+                    <!-- The % is shown in the tag above; UI5's own floating value label is hidden. -->
                     <ui5-progress-indicator
+                      hide-value
                       [value]="totals.percentComplete ?? 0"
                       [valueState]="
                         (totals.percentComplete ?? 0) >= 100

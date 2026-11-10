@@ -60,50 +60,6 @@
 </ui5-dialog>
 
 <ui5-dialog
-  class="w-[90vw] max-w-md"
-  [open]="activateDialogOpen"
-  header-text="Activate Maintenance"
-  i18n-header-text
-  (before-close)="closeActivateDialog()"
->
-  <section class="w-full p-3 space-y-3">
-    <p class="text-sm text-slate-600 dark:text-zinc-300" i18n>
-      Activate maintenance now for
-      <strong>{{ scheduleToActivate?.machine?.machine_name }}</strong>. Enter the
-      verification buffer — how many minutes the machine must stay confirmed Active
-      before this maintenance session is finalized.
-    </p>
-    <div class="flex flex-col gap-1 w-full">
-      <ui5-label for="bufferMinutesInput" required show-colon i18n>Buffer (minutes)</ui5-label>
-      <ui5-input
-        id="bufferMinutesInput"
-        class="w-full"
-        type="Number"
-        [value]="bufferMinutes?.toString() ?? ''"
-        (input)="onBufferMinutesInput($event)"
-        [valueState]="bufferMinutesState"
-      ></ui5-input>
-    </div>
-  </section>
-  <ui5-toolbar slot="footer">
-    <ui5-toolbar-button
-      design="Emphasized"
-      [disabled]="activating"
-      (click)="confirmActivate()"
-      text="Activate"
-      i18n-text
-    ></ui5-toolbar-button>
-    <ui5-toolbar-button
-      design="Transparent"
-      [disabled]="activating"
-      (click)="closeActivateDialog()"
-      text="Cancel"
-      i18n-text
-    ></ui5-toolbar-button>
-  </ui5-toolbar>
-</ui5-dialog>
-
-<ui5-dialog
   class="w-[90vw] max-w-2xl"
   [open]="endDialogOpen"
   header-text="End / Cancel Maintenance"
@@ -169,10 +125,13 @@
     </div>
     <div class="flex flex-col gap-1 w-full">
       <ui5-label show-colon i18n>Maintenance Note</ui5-label>
-      <app-angular-editor
-        [isReadonly]="true"
-        [ngModel]="scheduleToView?.maintenance_note || ''"
-      ></app-angular-editor>
+      <ui5-textarea
+        class="w-full"
+        [value]="stripHtml(scheduleToView?.maintenance_note) || '--'"
+        [rows]="3"
+        growing
+        readonly
+      ></ui5-textarea>
     </div>
   </section>
   <ui5-toolbar slot="footer">

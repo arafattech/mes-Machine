@@ -1,7 +1,8 @@
 import { Injectable } from '@angular/core';
+import { HttpParams } from '@angular/common/http';
 import { catchError, map, Observable, of } from 'rxjs';
 import { CommonService } from '@app/services/common-service/common.service';
-import { EligibleWastageType, ProductionLogEntryRow } from '@production-module/shared/interface/interface';
+import { EligibleWastageType, ProductOption, ProductionLogEntryRow } from '@production-module/shared/interface/interface';
 
 /**
  * Data access for the "Plan & Production Log" page — global (not per-machine) production-log
@@ -12,6 +13,22 @@ import { EligibleWastageType, ProductionLogEntryRow } from '@production-module/s
 @Injectable({ providedIn: 'root' })
 export class ProductionLogService {
   constructor(private readonly common: CommonService) {}
+
+  /**
+   * Producible products (configured ProductTypes), server-searched by name — or, with `ids`,
+   * exactly those products whatever their type (to name already-chosen values).
+   */
+  findProducibleProducts(query: { search?: string; ids?: number[] }): Observable<ProductOption[]> {
+    let params = new HttpParams();
+    if (query.ids?.length) {
+      query.ids.forEach((id) => (params = params.append('ids[]', id)));
+    } else if (query.search) {
+      params = params.set('search', query.search);
+    }
+    return this.common
+      .get<{ data: { id: number; product_name: string }[] }>('production/producible-products', false, false, params)
+      .pipe(map((res) => (res.data ?? []).map((p) => ({ id: p.id, text: p.product_name }))));
+  }
 
   /** Real: `WorkOrders` OData entity, `machines` nav property (already exposed — see
    * base-data's work-order list `$expand=product,machines`). Used once a work order is picked
@@ -121,6 +138,8 @@ export class ProductionLogService {
       shiftId: number | null;
       date: string;
       entries: { wastageTypeId: number; qtyKg: number }[];
+      /** Set after the user confirmed wastage above the configured share of production. */
+      overThresholdJustification?: string;
     },
   ): Observable<void> {
     return this.common.post<void>(
@@ -132,6 +151,9 @@ export class ProductionLogService {
           wastage_type_id: e.wastageTypeId,
           qty_kg: e.qtyKg,
         })),
+        ...(payload.overThresholdJustification
+          ? { confirm_over_threshold: true, justification: payload.overThresholdJustification }
+          : {}),
       },
       false,
     );

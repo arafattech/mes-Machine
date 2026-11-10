@@ -54,6 +54,7 @@ class MachineMaintenanceController extends Controller
      *     `scheduled_start_at le <ISO8601>`
      *   - a date column's floating text filter (typed substring, e.g. "2026-01"):
      *     `contains(tolower(<scheduled_start_at|activated_at|ended_at>), '<term>')`
+     *   - single machine: `machine_id eq 7` (the machine dashboards)
      *   - the Status column's multiSelect header (`status` has no real column — it's
      *     `MachineMaintenanceListComponent.scheduleStatus()`, derived from
      *     `activated_at`/`ended_at`): `status eq 'scheduled'`, OR'd for multiple picks
@@ -74,6 +75,12 @@ class MachineMaintenanceController extends Controller
                 $q->whereHas('machine', fn ($mq) => $mq->where('machine_name', 'like', '%' . $term . '%'))
                     ->orWhere('reason', 'like', '%' . $term . '%');
             });
+        }
+
+        // Single machine (the /mco dashboards' maintenance panel). Quoted literals are search text —
+        // blanked first so a search term can't pose as the scope.
+        if (preg_match('/(?<![a-z_])machine_id eq (\d+)/', preg_replace("/'[^']*'/", "''", $filter), $m)) {
+            $query->where('machine_id', (int) $m[1]);
         }
 
         if (preg_match('/scheduled_start_at le ([0-9T:.\-]+Z)/', $filter, $m)) {
@@ -138,6 +145,7 @@ class MachineMaintenanceController extends Controller
             'scheduled_start_at' => ['required', 'date'],
             'reason' => ['required', 'string', 'max:500'],
             'buffer_enabled' => ['sometimes', 'boolean'],
+            'buffer_minutes' => ['sometimes', 'integer', 'min:1', 'max:1440'],
         ]);
 
         $schedule = $this->maintenanceService->schedule(
@@ -146,6 +154,7 @@ class MachineMaintenanceController extends Controller
             $validated['reason'],
             (int) auth()->id(),
             $validated['buffer_enabled'] ?? true,
+            $validated['buffer_minutes'] ?? MachineMaintenanceSchedule::DEFAULT_BUFFER_MINUTES,
         );
 
         return response()->json([
@@ -161,6 +170,7 @@ class MachineMaintenanceController extends Controller
             'scheduled_start_at' => ['sometimes', 'date'],
             'reason' => ['sometimes', 'string', 'max:500'],
             'buffer_enabled' => ['sometimes', 'boolean'],
+            'buffer_minutes' => ['sometimes', 'integer', 'min:1', 'max:1440'],
         ]);
 
         $schedule = $this->maintenanceService->update(
@@ -169,6 +179,7 @@ class MachineMaintenanceController extends Controller
             $validated['scheduled_start_at'] ?? null,
             $validated['reason'] ?? null,
             $validated['buffer_enabled'] ?? null,
+            $validated['buffer_minutes'] ?? null,
         );
 
         if (! $schedule) {
@@ -197,13 +208,9 @@ class MachineMaintenanceController extends Controller
     }
 
     /** Activate a single SCHEDULED row on demand (per-row "Activate now"). */
-    public function activate(Request $request, int $id)
+    public function activate(int $id)
     {
-        $validated = $request->validate([
-            'buffer_minutes' => ['required', 'integer', 'min:1', 'max:1440'],
-        ]);
-
-        $this->maintenanceService->activate($id, (int) $validated['buffer_minutes']);
+        $this->maintenanceService->activate($id);
 
         return response()->json([
             'message' => 'Maintenance activated successfully.',

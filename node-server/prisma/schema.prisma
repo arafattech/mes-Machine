@@ -263,6 +263,7 @@ model count_types {
   custom_id             String?                 @db.VarChar(255)
   name                  String?                 @db.VarChar(255)
   prefix                String?                 @db.VarChar(255)
+  is_active             Boolean                 @default(true)
   created_at            DateTime?               @db.Timestamp(0)
   updated_at            DateTime?               @db.Timestamp(0)
   production_lot_counts production_lot_counts[]
@@ -1336,7 +1337,7 @@ model machine_maintenance_schedules {
   updated_at                                                    DateTime?                               @db.Timestamp(0)
   maintenance_schedule_id                                       BigInt?                                 @db.UnsignedBigInt
   buffer_enabled                                                Boolean                                 @default(true)
-  buffer_minutes                                                Int?                                    @db.UnsignedSmallInt
+  buffer_minutes                                                Int                                     @default(5) @db.UnsignedSmallInt
   users_machine_maintenance_schedules_created_by_user_idTousers users                                   @relation("machine_maintenance_schedules_created_by_user_idTousers", fields: [created_by_user_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "machine_maintenance_schedules_created_by_user_id_foreign")
   users_machine_maintenance_schedules_ended_by_user_idTousers   users?                                  @relation("machine_maintenance_schedules_ended_by_user_idTousers", fields: [ended_by_user_id], references: [id], onUpdate: NoAction, map: "machine_maintenance_schedules_ended_by_user_id_foreign")
   machines                                                      machines                                @relation(fields: [machine_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "machine_maintenance_schedules_machine_id_foreign")
@@ -1346,8 +1347,8 @@ model machine_maintenance_schedules {
   @@index([ended_by_user_id], map: "machine_maintenance_schedules_ended_by_user_id_foreign")
   @@index([machine_id, ended_at], map: "machine_maintenance_schedules_machine_id_ended_at_index")
   @@index([maintenance_schedule_id], map: "machine_maintenance_schedules_maintenance_schedule_id_foreign")
-  @@index([scheduled_start_at], map: "machine_maintenance_schedules_scheduled_start_at_index")
   @@index([pending_confirm_until], map: "machine_maintenance_schedules_pending_confirm_until_index")
+  @@index([scheduled_start_at], map: "machine_maintenance_schedules_scheduled_start_at_index")
 }
 
 model machine_production_counts {
@@ -1491,6 +1492,7 @@ model machine_wastage_entries {
   shift_id                    BigInt?                       @db.UnsignedBigInt
   entry_date                  DateTime                      @db.Date
   qty_kg                      Decimal                       @db.Decimal(10, 2)
+  justification               String?                       @db.Text
   created_by                  BigInt?                       @db.UnsignedBigInt
   created_at                  DateTime?                     @db.Timestamp(0)
   updated_at                  DateTime?                     @db.Timestamp(0)
@@ -1524,6 +1526,7 @@ model machines {
   has_rpm                                                    Boolean                         @default(false)
   has_config                                                 Boolean                         @default(false)
   has_wastage                                                Boolean                         @default(false)
+  dashboard_view                                             String                          @default("OEE_PRODUCTION") @db.VarChar(20)
   custom_id                                                  String?                         @db.VarChar(255)
   machine_name                                               String                          @db.VarChar(255)
   oee                                                        Decimal                         @db.Decimal(5, 2)
@@ -1557,9 +1560,11 @@ model maintenance_schedules {
   machine_id                    BigInt                          @db.UnsignedBigInt
   start_date                    DateTime                        @db.Date
   scheduled_time                String                          @db.VarChar(20)
-  frequency                     String                          @db.VarChar(20)
+  schedule_frequency_id         BigInt                          @db.UnsignedBigInt
+  type_of_work                  String                          @default("Maintenance") @db.VarChar(30)
   is_active                     Boolean                         @default(true)
   buffer_enabled                Boolean                         @default(true)
+  buffer_minutes                Int                             @default(5) @db.UnsignedSmallInt
   next_maintenance_date         DateTime                        @db.DateTime(0)
   created_by_user_id            BigInt?                         @db.UnsignedBigInt
   created_at                    DateTime?                       @db.Timestamp(0)
@@ -1567,9 +1572,21 @@ model maintenance_schedules {
   machine_maintenance_schedules machine_maintenance_schedules[]
   users                         users?                          @relation(fields: [created_by_user_id], references: [id], onUpdate: NoAction, map: "maintenance_schedules_created_by_user_id_foreign")
   machines                      machines                        @relation(fields: [machine_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "maintenance_schedules_machine_id_foreign")
+  schedule_frequencies          schedule_frequencies            @relation(fields: [schedule_frequency_id], references: [id], onUpdate: NoAction, map: "maintenance_schedules_schedule_frequency_id_foreign")
 
   @@index([created_by_user_id], map: "maintenance_schedules_created_by_user_id_foreign")
   @@index([machine_id], map: "maintenance_schedules_machine_id_foreign")
+  @@index([schedule_frequency_id], map: "maintenance_schedules_schedule_frequency_id_foreign")
+}
+
+model schedule_frequencies {
+  id                    BigInt                  @id @default(autoincrement()) @db.UnsignedBigInt
+  name                  String                  @unique(map: "schedule_frequencies_name_unique") @db.VarChar(60)
+  interval_days         Int                     @db.UnsignedSmallInt
+  is_active             Boolean                 @default(true)
+  created_at            DateTime?               @db.Timestamp(0)
+  updated_at            DateTime?               @db.Timestamp(0)
+  maintenance_schedules maintenance_schedules[]
 }
 
 model market_prices {

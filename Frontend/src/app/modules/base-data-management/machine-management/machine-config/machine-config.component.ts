@@ -27,6 +27,7 @@ import {
 } from '@app/shared/components/ag-grid-table/types/ag-grid-table.types';
 import { AgGridBooleanCellRendererComponent } from '@app/shared/components/ag-grid-table/cell-renderers/ag-grid-boolean-cell-renderer.component';
 import { AgGridActionCellRendererComponent } from '@shared/components/ag-grid-table/cell-renderers/ag-grid-cell-renderers.component';
+import { formatFactoryDateTime } from '@shared/utilities/date-format';
 
 @Component({
   selector: 'app-machine-config',
@@ -385,8 +386,7 @@ export class MachineConfigComponent implements OnInit {
         minWidth: 150,
         hide: true,
         filter: false,
-        valueFormatter: ({ value }: any) =>
-          value ? new Date(value).toLocaleString() : '-',
+        valueFormatter: ({ value }: any) => formatFactoryDateTime(value) || '-',
       },
       {
         field: 'order_of_machine',

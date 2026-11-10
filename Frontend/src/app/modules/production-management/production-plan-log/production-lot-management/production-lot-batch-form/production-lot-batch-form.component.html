@@ -76,7 +76,9 @@
                 class="w-100"
                 [(ngModel)]="batch.lot_date"
                 (change)="onLotDateChange()"
-                format-pattern="dd-MM-yyyy"
+                format-pattern="dd/MM/yyyy"
+                placeholder="DD/MM/YYYY"
+                i18n-placeholder
                 [disabled]="!isHeaderEditable"
                 [attr.value-state]="valueStateOptions.lotDate"
               ></ui5-date-picker>
@@ -106,8 +108,8 @@
                 </div>
                 <div class="flex-1">
                   <ui5-label show-colon i18n>Product</ui5-label>
-                  <ui5-combobox class="w-100" [value]="productText(draft.product_id)" (selectionChange)="onDraftProductChange(draft, $event)">
-                    @for (p of products; track p.id) {
+                  <ui5-combobox class="w-100" filter="None" [value]="productText(draft.product_id)" (input)="productPicker.searchFrom($event)" (selectionChange)="onDraftProductChange(draft, $event)">
+                    @for (p of productPicker.options(); track p.id) {
                       <ui5-cb-item [text]="p.text" [id]="p.id" [value]="p.id" [selected]="draft.product_id === p.id"></ui5-cb-item>
                     }
                   </ui5-combobox>
@@ -171,10 +173,12 @@
                       <ui5-combobox
                         class="w-100"
                         [disabled]="!isCountEditable(count)"
+                        filter="None"
                         [value]="productText(count.product_id)"
+                        (input)="productPicker.searchFrom($event)"
                         (selectionChange)="onProductChange(count, $event)"
                       >
-                        @for (p of products; track p.id) {
+                        @for (p of productPicker.options(); track p.id) {
                           <ui5-cb-item [text]="p.text" [id]="p.id" [value]="p.id" [selected]="count.product_id === p.id"></ui5-cb-item>
                         }
                       </ui5-combobox>

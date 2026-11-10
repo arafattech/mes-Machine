@@ -57,6 +57,7 @@ class PermissionSeeder extends Seeder
                 'BASE_DATA_MACHINE_CREATE',
                 'BASE_DATA_MACHINE_EDIT',
                 'BASE_DATA_MACHINE_DELETE',
+                'BASE_DATA_MACHINE_DASHBOARD_VIEW',
 
                 'BASE_DATA_PLANT',
                 'BASE_DATA_PLANT_LIST',

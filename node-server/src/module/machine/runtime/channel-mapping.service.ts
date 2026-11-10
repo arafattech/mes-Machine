@@ -632,11 +632,7 @@ export class ChannelMappingService implements OnModuleInit, OnModuleDestroy {
     }
 
     if (Date.now() >= pending.pendingConfirmUntil.getTime()) {
-      await this.machineStateTracker.finalizePendingConfirmation(
-        pending.scheduleId,
-        pending.pendingConfirmUntil,
-        pending.bufferMs,
-      );
+      await this.machineStateTracker.finalizePendingConfirmation(pending);
     }
 
     return debouncedStateId;

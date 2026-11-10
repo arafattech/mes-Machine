@@ -1,10 +1,15 @@
-import { Component, Input, OnInit, Output, EventEmitter } from '@angular/core';
+import { Component, ElementRef, EventEmitter, Injector, Input, OnInit, Output, afterNextRender } from '@angular/core';
 import { CommonService } from '@app/services/common-service/common.service';
 import { ToastService } from '@app/services/toast-service/toast.service';
 import { saveMode } from '@app/shared/enums/saveMode';
 import { Localization } from '@shared/utilities/localization';
 import { ValueState } from '@shared/utilities/value-state-wrapper';
+import { fromPickerDate, isInvalidPickerDate } from '@shared/utilities/date-format';
+import { apiErrorMessage } from '@shared/utilities/api-errors';
 import { WorkOrder, WorkOrderStatus } from '@app/shared/model/work-order';
+import { ProducibleProductPicker } from '@production-module/shared/services/producible-product-picker';
+
+type Ui5FocusableElement = HTMLElement & { getFocusDomRef?: () => HTMLElement | undefined };
 
 interface OptionRow {
   id: number;
@@ -15,6 +20,7 @@ interface OptionRow {
   selector: 'app-work-order-form',
   templateUrl: './work-order-form.component.html',
   styleUrl: './work-order-form.component.scss',
+  providers: [ProducibleProductPicker],
 })
 export class WorkOrderFormComponent implements OnInit {
   @Input() saveMode = 'POST';
@@ -27,7 +33,6 @@ export class WorkOrderFormComponent implements OnInit {
   public localization = Localization;
   public valueState = ValueState;
 
-  Products: OptionRow[] = [];
   Machines: OptionRow[] = [];
 
   readonly statusOptions: { value: WorkOrderStatus; label: string }[] = [
@@ -40,33 +45,25 @@ export class WorkOrderFormComponent implements OnInit {
   valueStateOptions = {
     product: ValueState.None,
     quantity: ValueState.None,
+    scheduledStart: ValueState.None,
+    actualStart: ValueState.None,
   };
 
   constructor(
     private commonService: CommonService,
     private toastService: ToastService,
+    private host: ElementRef<HTMLElement>,
+    private injector: Injector,
+    readonly productPicker: ProducibleProductPicker,
   ) {}
 
   ngOnInit(): void {
-    this.getProducts();
     this.getMachines();
   }
 
-  private getProducts(): void {
-    this.commonService
-      .get<{ value: { id: number; product_name: string }[] }>(
-        'Products?$filter=is_active eq true&$select=id,product_name',
-        true,
-      )
-      .subscribe({
-        next: (res) => {
-          this.Products = (res.value ?? []).map((p) => ({
-            id: p.id,
-            text: p.product_name,
-          }));
-        },
-        error: () => this.toastService.show('error'),
-      });
+  openDialog(): void {
+    this.productPicker.reset();
+    this.open = true;
   }
 
   private getMachines(): void {
@@ -112,10 +109,25 @@ export class WorkOrderFormComponent implements OnInit {
   onQuantityChange(event: any): void {
     const value = Number(event.target.value);
     this.workOrder.quantity = Number.isFinite(value) ? value : null;
-    this.valueStateOptions.quantity =
-      this.workOrder.quantity && this.workOrder.quantity > 0
-        ? ValueState.None
-        : ValueState.Negative;
+    this.valueStateOptions.quantity = this.isValidQuantity() ? ValueState.None : ValueState.Negative;
+  }
+
+  private isValidQuantity(): boolean {
+    const quantity = this.workOrder.quantity;
+    return quantity !== null && Number.isInteger(quantity) && quantity >= 1;
+  }
+
+  /** Rejected submits always explain themselves and land the cursor on the first bad field. */
+  private reportInvalidForm(): void {
+    this.toastService.show('error', $localize`Please correct the highlighted fields.`);
+    afterNextRender(
+      () => {
+        // UI5 elements expose their inner focusable element; their own `focus()` is deferred.
+        const field = this.host.nativeElement.querySelector<Ui5FocusableElement>('[value-state="Negative"]');
+        (field?.getFocusDomRef?.() ?? field)?.focus();
+      },
+      { injector: this.injector },
+    );
   }
 
   validateForm(): boolean {
@@ -124,15 +136,28 @@ export class WorkOrderFormComponent implements OnInit {
       this.valueStateOptions.product = ValueState.Negative;
       isValid = false;
     }
-    if (!this.workOrder.quantity || this.workOrder.quantity <= 0) {
+    if (!this.isValidQuantity()) {
       this.valueStateOptions.quantity = ValueState.Negative;
       isValid = false;
     }
-    return isValid;
+    this.valueStateOptions.scheduledStart = fromPickerDate(this.workOrder.scheduled_start)
+      ? ValueState.None
+      : ValueState.Negative;
+    this.valueStateOptions.actualStart = isInvalidPickerDate(this.workOrder.actual_start)
+      ? ValueState.Negative
+      : ValueState.None;
+    return (
+      isValid &&
+      this.valueStateOptions.scheduledStart === ValueState.None &&
+      this.valueStateOptions.actualStart === ValueState.None
+    );
   }
 
   SaveWorkOrder(): void {
-    if (!this.validateForm()) return;
+    if (!this.validateForm()) {
+      this.reportInvalidForm();
+      return;
+    }
 
     this.loading = true;
     let request$;
@@ -159,9 +184,9 @@ export class WorkOrderFormComponent implements OnInit {
         this.RefreshTable.emit();
         this.toastService.show(this.ToastType);
       },
-      error: () => {
+      error: (error) => {
         this.loading = false;
-        this.toastService.show('error');
+        this.toastService.show('error', apiErrorMessage(error));
       },
     });
   }
@@ -171,6 +196,8 @@ export class WorkOrderFormComponent implements OnInit {
     this.loading = false;
     this.valueStateOptions.product = ValueState.None;
     this.valueStateOptions.quantity = ValueState.None;
+    this.valueStateOptions.scheduledStart = ValueState.None;
+    this.valueStateOptions.actualStart = ValueState.None;
     this.workOrder = new WorkOrder().deserialize({});
   }
 }

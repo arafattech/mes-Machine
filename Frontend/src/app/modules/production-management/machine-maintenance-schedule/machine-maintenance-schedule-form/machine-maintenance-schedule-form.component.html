@@ -8,27 +8,44 @@
 >
   <ui5-busy-indicator [delay]="0" [active]="saving" size="M" class="w-full">
     <section class="w-full p-2 space-y-4">
-      <div class="flex items-center gap-6">
-        <div>
-          <ui5-label>Active</ui5-label>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
+        <div class="flex items-center gap-6">
           <div>
-            <ui5-switch
-              [checked]="formData.is_active"
-              (change)="onActiveChange($event)"
-            ></ui5-switch>
+            <ui5-label>Active</ui5-label>
+            <div>
+              <ui5-switch
+                [checked]="formData.is_active"
+                (change)="onActiveChange($event)"
+              ></ui5-switch>
+            </div>
+          </div>
+          <div>
+            <ui5-label>Verification Buffer</ui5-label>
+            <div>
+              <ui5-switch
+                [checked]="formData.buffer_enabled"
+                (change)="onBufferEnabledChange($event)"
+              ></ui5-switch>
+            </div>
           </div>
         </div>
-        <div>
-          <ui5-label>Verification Buffer</ui5-label>
+        <div *ngIf="formData.buffer_enabled">
+          <ui5-label show-colon i18n>Buffer Time (minutes)</ui5-label>
           <div>
-            <ui5-switch
-              [checked]="formData.buffer_enabled"
-              (change)="onBufferEnabledChange($event)"
-            ></ui5-switch>
+            <ui5-step-input
+              [value]="formData.buffer_minutes"
+              [min]="minBufferMinutes"
+              [max]="maxBufferMinutes"
+              [step]="1"
+              (change)="onBufferMinutesChange($event)"
+            ></ui5-step-input>
           </div>
         </div>
       </div>
+      
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        
+        
         <div>
           <ui5-label show-colon required i18n>Machine</ui5-label>
           <ui5-select
@@ -53,10 +70,10 @@
           <ui5-label show-colon required i18n>Start Date</ui5-label>
           <ui5-date-picker
             class="w-100"
-            format-pattern="yyyy-MM-dd"
+            format-pattern="dd/MM/yyyy"
             [value]="formData.start_date"
             (change)="onDateChange($event)"
-            placeholder="Select date"
+            placeholder="DD/MM/YYYY"
             i18n-placeholder
             [attr.value-state]="valueStateOptions.start_date"
           >
@@ -90,11 +107,32 @@
             (change)="onFrequencyChange($event)"
             [attr.value-state]="valueStateOptions.frequency"
           >
+            <ui5-option value="null" [selected]="!formData.schedule_frequency_id" disabled i18n>Select Frequency</ui5-option>
             <ui5-option
-              *ngFor="let f of frequencies"
-              [attr.value]="f.value"
-              [selected]="formData.frequency === f.value"
-              >{{ f.label }}</ui5-option
+              *ngFor="let f of frequencyOptions"
+              [attr.value]="f.id"
+              [selected]="formData.schedule_frequency_id === f.id"
+              >{{ f.name }}</ui5-option
+            >
+            <div slot="valueStateMessage">
+              {{ localization.requiredField }}
+            </div>
+          </ui5-select>
+        </div>
+
+        <div>
+          <ui5-label show-colon required i18n>Type of Works</ui5-label>
+          <ui5-select
+            class="w-100"
+            (change)="onWorkTypeChange($event)"
+            [attr.value-state]="valueStateOptions.type_of_work"
+          >
+            <ui5-option value="" [selected]="!formData.type_of_work" disabled i18n>Select Type of Works</ui5-option>
+            <ui5-option
+              *ngFor="let t of workTypes"
+              [attr.value]="t.value"
+              [selected]="formData.type_of_work === t.value"
+              >{{ t.label }}</ui5-option
             >
             <div slot="valueStateMessage">
               {{ localization.requiredField }}

@@ -40,11 +40,16 @@ interface SidebarGroup {
   items: MenuItem[];
 }
 
+import { SideNavNewTabDirective } from '@app/directives/side-nav-new-tab.directive';
+import { keepActiveSidebarGroupOpen } from '@shared/utilities/sidebar-active';
+import { SideNavActiveDirective } from '@app/directives/side-nav-active.directive';
 @Component({
   selector: 'app-base-data-management-layout',
   standalone: true,
   imports: [
     RouterLink,
+    SideNavNewTabDirective,
+    SideNavActiveDirective,
     RouterLinkActive,
     CommonModule,
     SideNavigationComponent,
@@ -58,6 +63,9 @@ interface SidebarGroup {
   styleUrl: './base-data-management-layout.component.scss',
 })
 export class BaseDataManagementLayoutComponent implements OnInit, OnDestroy {
+  /** Opens the group holding the current page — call after the menu is (re)built. */
+  private readonly expandActiveGroups = keepActiveSidebarGroupOpen(() => this.sidebarMenu);
+
 
   dashboard = $localize`Dashboard`;
   home = $localize`Home`;
@@ -230,6 +238,13 @@ export class BaseDataManagementLayoutComponent implements OnInit, OnDestroy {
           ],
         },
         {
+          text: $localize`Schedules Frequency`,
+          icon: 'appointment-2',
+          permission: Permissions.PRODUCTION_ADMIN,
+          routerLink: 'schedule-frequency',
+          expanded: false,
+        },
+        {
           text: `${$localize`Client`} ${$localize`Management`}`,
           icon: 'key-user-settings',
           permission: Permissions.BASE_DATA_CLIENT,
@@ -392,6 +407,7 @@ export class BaseDataManagementLayoutComponent implements OnInit, OnDestroy {
         this.isOpened = !this.isOpened;
       }
     );
+    this.expandActiveGroups();
   }
 
   ngOnDestroy(): void {

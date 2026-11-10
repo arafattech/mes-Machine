@@ -12,6 +12,7 @@ import {
 import * as am4core from '@amcharts/amcharts4/core';
 import * as am4charts from '@amcharts/amcharts4/charts';
 import am4themes_animated from '@amcharts/amcharts4/themes/animated';
+import { onChartThemeChange, readChartThemeColors } from '@shared/utilities/chart-theme';
 
 am4core.useTheme(am4themes_animated);
 
@@ -29,13 +30,31 @@ export class SharedBarChartComponent implements AfterViewInit, OnChanges, OnDest
   @Input() categoryField: string = 'category';
   @Input() valueField: string = 'value';
   @Input() chartHeight: string = '450px';
+  /** Overrides amCharts' default bottom padding (~15px) — for compact fixed-height cards. */
+  @Input() bottomPadding: number | null = null;
+  /** Count data: whole-number axis ticks only (no '500m' / '1.5' on small ranges). */
+  @Input() integerValues = false;
   @Input() barColor: string = '#3B82F6';
+  // Default keeps only the first word of each category (compact axis for dense data). Enable for
+  // multi-word categories that must stay readable (e.g. 'Not specified') — labels wrap instead.
+  @Input() fullCategoryLabels = false;
+  @Input() noDataMessage: string = $localize`No data available`;
+
+  /** Set on every data load; drives the empty-state message instead of a blank plot. */
+  hasData = false;
 
   private chart!: am4charts.XYChart;
   private series?: am4charts.ColumnSeries;
 
+  private unsubscribeTheme?: () => void;
+
   ngAfterViewInit() {
     this.createChart();
+    // Colors are resolved from the theme at build time, so rebuild once a new theme has applied.
+    this.unsubscribeTheme = onChartThemeChange(() => {
+      this.chart?.dispose();
+      this.createChart();
+    });
   }
 
   ngOnChanges(changes: SimpleChanges) {
@@ -78,7 +97,14 @@ export class SharedBarChartComponent implements AfterViewInit, OnChanges, OnDest
   }
 
   private createChart() {
+    const { label, grid } = readChartThemeColors();
+    const labelColor = am4core.color(label);
+    const gridColor = am4core.color(grid);
+
     const chart = am4core.create(this.chartDiv.nativeElement, am4charts.XYChart);
+    if (this.bottomPadding !== null) {
+      chart.paddingBottom = this.bottomPadding;
+    }
     this.chart = chart;
 
     if (chart.logo) {
@@ -99,23 +125,39 @@ export class SharedBarChartComponent implements AfterViewInit, OnChanges, OnDest
     categoryAxis.renderer.grid.template.disabled = true;
     categoryAxis.renderer.minGridDistance = 30;
     categoryAxis.renderer.labels.template.fontSize = 12;
-    categoryAxis.renderer.labels.template.fill = am4core.color('#64748B');
+    categoryAxis.renderer.labels.template.fill = labelColor;
 
-    categoryAxis.renderer.labels.template.adapter.add(
-      'textOutput',
-      (value: string) => {
-        if (!value) {
-          return value;
+    if (this.fullCategoryLabels) {
+      categoryAxis.renderer.labels.template.wrap = true;
+      categoryAxis.renderer.labels.template.textAlign = 'middle';
+      categoryAxis.renderer.labels.template.truncate = true;
+      categoryAxis.renderer.labels.template.tooltipText = `{${this.categoryField}}`;
+      // Each label gets only its own category slot so neighbours never overlap.
+      categoryAxis.events.on('sizechanged', () => {
+        const slots = Math.max(categoryAxis.dataItems.length, 1);
+        categoryAxis.renderer.labels.template.maxWidth = Math.max(categoryAxis.pixelWidth / slots - 8, 30);
+      });
+    } else {
+      categoryAxis.renderer.labels.template.adapter.add(
+        'textOutput',
+        (value: string) => {
+          if (!value) {
+            return value;
+          }
+          return value.split(/[-\s/]/)[0];
         }
-        return value.split(/[-\s/]/)[0];
-      }
-    );
+      );
+    }
 
     const valueAxis = chart.yAxes.push(new am4charts.ValueAxis());
+    if (this.integerValues) {
+      valueAxis.maxPrecision = 0;
+    }
     valueAxis.min = 0;
     valueAxis.renderer.grid.template.strokeDasharray = '4,4';
     valueAxis.renderer.labels.template.fontSize = 12;
-    valueAxis.renderer.labels.template.fill = am4core.color('#64748B');
+    valueAxis.renderer.labels.template.fill = labelColor;
+    valueAxis.renderer.grid.template.stroke = gridColor;
 
     valueAxis.renderer.labels.template.adapter.add(
       'text',
@@ -166,11 +208,14 @@ export class SharedBarChartComponent implements AfterViewInit, OnChanges, OnDest
       return;
     }
 
-    this.chart.data = [...this.resolveData()];
+    const rows = this.resolveData();
+    this.hasData = rows.length > 0;
+    this.chart.data = [...rows];
     this.chart.invalidateData();
   }
 
   ngOnDestroy() {
+    this.unsubscribeTheme?.();
     if (this.chart) {
       this.chart.dispose();
     }

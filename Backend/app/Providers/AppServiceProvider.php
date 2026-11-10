@@ -35,6 +35,9 @@ use App\Models\ActivityLog;
 use App\Models\LoginActivity;
 use App\Models\Notification;
 use App\Observers\DepartmentObserver;
+use App\Observers\ProductionDataObserver;
+use App\Models\MachineWastageEntry;
+use App\Models\MachineWastageAllocation;
 use App\Models\ClientNote;
 use App\Models\ClientArea;
 use App\Models\Asset;
@@ -222,5 +225,17 @@ class AppServiceProvider extends ServiceProvider
         }
 
         Department::observe(DepartmentObserver::class);
+
+        // Realtime production / wastage / OEE signal to node-server (Redis pub/sub → socket push).
+        foreach ([
+            MachineProductionCount::class,
+            MachineWastageEntry::class,
+            MachineWastageAllocation::class,
+            MachineProductionTarget::class,
+            MachineHasConfig::class,
+            WorkOrder::class,
+        ] as $productionModel) {
+            $productionModel::observe(ProductionDataObserver::class);
+        }
     }
 }

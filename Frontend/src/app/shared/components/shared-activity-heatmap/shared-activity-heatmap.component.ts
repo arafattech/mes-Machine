@@ -35,8 +35,14 @@ export class SharedActivityHeatmapComponent implements OnChanges {
   /** Fixed row height — cells stay this tall regardless of the card's available height,
    * so a short flex-sized parent never squeezes them down. */
   @Input() rowSize = '30px';
+  /** Fill the parent's height instead: the 7 rows share it equally (no fixed rowSize), so the
+   * whole grid fits a fixed-height card without scrolling. Parent must give this host a height. */
+  @Input() fitHeight = false;
 
-  readonly weekdayLabels = ['', 'Mon', '', 'Wed', '', 'Fri', ''];
+  get rowTemplate(): string {
+    return this.fitHeight ? 'repeat(7, minmax(0, 1fr))' : `repeat(7, ${this.rowSize})`;
+  }
+
   readonly levelLabels: Record<0 | 1 | 2 | 3 | 4, string> = {
     0: 'No activity',
     1: 'Low',
@@ -48,6 +54,10 @@ export class SharedActivityHeatmapComponent implements OnChanges {
   cells: HeatmapDay[] = [];
   weekCount = 0;
   total = 0;
+  /** Weekday name for each grid row — the window ends on `endDate`, so row 0 is not always Sunday. */
+  rowLabels: string[] = [];
+  /** Visible date span, e.g. "04 Sep – 08 Oct 2026", so the grid reads without hovering. */
+  rangeLabel = '';
 
   ngOnChanges(changes: SimpleChanges): void {
     if (
@@ -98,7 +108,8 @@ export class SharedActivityHeatmapComponent implements OnChanges {
 
     const weekCount = this.weeks;
 
-    const todayKey = new Date().toISOString().slice(0, 10);
+    const now = new Date();
+    const todayKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
     const cells: HeatmapDay[] = [];
     const cursor = new Date(start);
 
@@ -123,5 +134,20 @@ export class SharedActivityHeatmapComponent implements OnChanges {
 
     this.cells = cells;
     this.weekCount = weekCount;
+
+    const weekday = new Intl.DateTimeFormat(undefined, { weekday: 'short' });
+    this.rowLabels = cells.slice(0, 7).map((c) => weekday.format(this.toLocalDate(c.date)));
+
+    const dayMonth = new Intl.DateTimeFormat(undefined, { day: '2-digit', month: 'short' });
+    const dayMonthYear = new Intl.DateTimeFormat(undefined, { day: '2-digit', month: 'short', year: 'numeric' });
+    this.rangeLabel = cells.length
+      ? `${dayMonth.format(this.toLocalDate(cells[0].date))} – ${dayMonthYear.format(this.toLocalDate(cells[cells.length - 1].date))}`
+      : '';
+  }
+
+  /** `yyyy-MM-dd` → local-midnight Date (`new Date(key)` parses as UTC and can shift the day). */
+  private toLocalDate(key: string): Date {
+    const [y, m, d] = key.split('-').map(Number);
+    return new Date(y, m - 1, d);
   }
 }

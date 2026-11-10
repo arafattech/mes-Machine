@@ -94,7 +94,9 @@
           <ui5-date-picker
             class="w-100"
             [(ngModel)]="machineProductionTarget.effective_from"
-            format-pattern="yyyy-MM-dd"
+            format-pattern="dd/MM/yyyy"
+            placeholder="DD/MM/YYYY"
+            i18n-placeholder
             [attr.value-state]="valueStateOptions.effective_from"
           >
             <div slot="valueStateMessage">{{ validationMessage }}</div>
@@ -106,7 +108,10 @@
           <ui5-date-picker
             class="w-100"
             [(ngModel)]="machineProductionTarget.effective_to"
-            format-pattern="yyyy-MM-dd"
+            [attr.value-state]="valueStateOptions.effective_to"
+            format-pattern="dd/MM/yyyy"
+            placeholder="DD/MM/YYYY"
+            i18n-placeholder
           ></ui5-date-picker>
         </div>
       </div>

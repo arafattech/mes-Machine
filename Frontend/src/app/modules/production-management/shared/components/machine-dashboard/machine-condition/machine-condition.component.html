@@ -1,0 +1,104 @@
+<div class="divide-[color:var(--sapList\_BorderColor,#e5e5e5)]" [class]="classes.root">
+  <!-- Maintenance: what is happening now or next, and the last one done -->
+  <section [class]="classes.maintenance" aria-label="Maintenance" i18n-aria-label>
+    @if (maintenance(); as m) {
+      @if (m.kind === 'active') {
+        <div
+          class="flex items-start gap-3 rounded-lg px-3 py-2 border-l-4 border-[color:var(--sapCriticalColor)] bg-[color:color-mix(in_srgb,var(--sapCriticalColor)_14%,transparent)]"
+          role="status"
+        >
+          <ui5-icon name="wrench" class="w-5 h-5 mt-0.5 shrink-0 text-[var(--sapCriticalTextColor)]"></ui5-icon>
+          <div class="min-w-0 flex-1">
+            <p class="text-sm font-bold text-[var(--sapCriticalTextColor)]" i18n>In maintenance</p>
+            <p class="text-sm truncate text-[var(--sapTextColor,#1d2d3e)]" [attr.title]="m.reason">{{ m.reason }}</p>
+            <p class="text-xs tabular-nums text-[color:var(--sapContent\_LabelColor,#556b82)]">
+              <span i18n>Since {{ m.since }}</span>
+              <span class="ml-2 font-semibold text-[var(--sapTextColor,#1d2d3e)]">{{ m.elapsedSeconds | duration }}</span>
+            </p>
+          </div>
+        </div>
+      } @else if (m.kind === 'scheduled') {
+        <div class="flex items-start gap-3">
+          <ui5-icon name="appointment-2" class="w-5 h-5 mt-0.5 shrink-0" [style.color]="m.overdue ? 'var(--sapCriticalTextColor)' : 'var(--sapBrandColor)'"></ui5-icon>
+          <div class="min-w-0 flex-1">
+            <p class="flex items-baseline gap-2 text-sm">
+              <span class="font-semibold text-[var(--sapTextColor,#1d2d3e)]" i18n>Next maintenance</span>
+              <span class="text-xs font-semibold tabular-nums" [style.color]="m.overdue ? 'var(--sapCriticalTextColor)' : 'var(--sapContent_LabelColor)'">{{ m.due }}</span>
+            </p>
+            <p class="text-sm tabular-nums text-[var(--sapTextColor,#1d2d3e)]">{{ m.when }}</p>
+            <p class="text-xs truncate text-[color:var(--sapContent\_LabelColor,#556b82)]" [attr.title]="m.reason">{{ m.reason }}</p>
+          </div>
+        </div>
+      } @else {
+        <div class="flex items-center gap-3">
+          <ui5-icon name="accept" class="w-5 h-5 shrink-0 text-[var(--sapPositiveTextColor)]"></ui5-icon>
+          <p class="text-sm text-[var(--sapTextColor,#1d2d3e)]">
+            @if (store.maintenanceState() === 'error') {
+              <span i18n>Maintenance schedule couldn't be loaded.</span>
+            } @else {
+              <span i18n>No maintenance scheduled</span>
+            }
+          </p>
+        </div>
+      }
+    }
+    @if (store.lastMaintenance(); as last) {
+      <p class="text-xs truncate text-[color:var(--sapContent\_LabelColor,#556b82)]" [attr.title]="last.reason">
+        <span i18n>Last done {{ last.endedAt }}, took</span>
+        <span class="tabular-nums"> {{ last.durationSeconds | duration }}</span>
+      </p>
+    }
+  </section>
+
+  @if (hasTemperature() || hasRpm()) {
+    <div class="divide-[color:var(--sapList\_BorderColor,#e5e5e5)]" [class]="classes.sensors">
+      @if (hasTemperature()) {
+        <!-- Temperature: live Pi sensor reading, limits from machine config, short trend -->
+        <section [class]="classes.sensor" aria-label="Temperature" i18n-aria-label>
+          <p class="flex items-center gap-1.5 text-xs text-[color:var(--sapContent\_LabelColor,#556b82)]">
+            <ui5-icon name="temperature" class="w-3.5 h-3.5"></ui5-icon>
+            <span i18n>Temperature</span>
+          </p>
+          <div class="flex items-end gap-3">
+            <p class="text-2xl font-bold leading-tight tabular-nums" [style.color]="temperature().value === null ? 'var(--sapContent_LabelColor)' : temperature().statusColor">
+              {{ temperature().text }}<span class="text-sm font-semibold"> °C</span>
+            </p>
+            @if (temperature().bars.length) {
+              <div class="flex-1 min-w-0 flex items-end gap-px h-7" aria-hidden="true">
+                @for (bar of temperature().bars; track $index) {
+                  <div class="flex-1 rounded-t-sm bg-[color:color-mix(in_srgb,var(--sapCriticalColor)_55%,transparent)]" [style.height.%]="bar.heightPct"></div>
+                }
+              </div>
+            }
+          </div>
+          <p class="text-xs truncate tabular-nums text-[color:var(--sapContent\_LabelColor,#556b82)]">
+            @if (temperature().atMs; as at) {
+              <span [style.color]="temperature().statusColor">{{ temperature().statusLabel }}</span>
+              <span class="ml-1.5">{{ temperature().limits }}</span>
+              <span class="ml-1.5">{{ at | timeAgo }}</span>
+            } @else {
+              <span i18n>No reading yet</span>
+              <span class="ml-1.5">{{ temperature().limits }}</span>
+            }
+          </p>
+        </section>
+      }
+      @if (hasRpm()) {
+        <!-- Speed: no RPM signal is wired into the machine runtime yet, so only its limits can show -->
+        <section [class]="classes.sensor" aria-label="Speed" i18n-aria-label>
+          <p class="flex items-center gap-1.5 text-xs text-[color:var(--sapContent\_LabelColor,#556b82)]">
+            <ui5-icon name="performance" class="w-3.5 h-3.5"></ui5-icon>
+            <span i18n>Speed</span>
+          </p>
+          <p class="text-2xl font-bold leading-tight tabular-nums text-[color:var(--sapContent\_LabelColor,#556b82)]">
+            —<span class="text-sm font-semibold"> rpm</span>
+          </p>
+          <p class="text-xs truncate text-[color:var(--sapContent\_LabelColor,#556b82)]">
+            <span i18n>No reading yet</span>
+            <span class="ml-1.5 tabular-nums">{{ rpmLimits() }}</span>
+          </p>
+        </section>
+      }
+    </div>
+  }
+</div>

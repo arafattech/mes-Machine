@@ -10,6 +10,7 @@ import {
   Output,
   EventEmitter,
   Input,
+  inject,
 } from '@angular/core';
 import { CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
@@ -18,6 +19,8 @@ import { PopoverComponent } from '@ui5/webcomponents-ngx/main/popover';
 import { AvatarComponent } from '@ui5/webcomponents-ngx/main/avatar';
 import { ButtonComponent } from '@ui5/webcomponents-ngx/main/button';
 import { LabelComponent } from '@ui5/webcomponents-ngx/main/label';
+import { SelectComponent } from '@ui5/webcomponents-ngx/main/select';
+import { OptionComponent } from '@ui5/webcomponents-ngx/main/option';
 import { AuthService } from '@app/services/auth-service/auth.service';
 import { User } from '@app/shared/model/user';
 import { CommonService } from '@app/services/common-service/common.service';
@@ -33,6 +36,7 @@ import { environment } from '@env/environment';
 import { EmployeeShift } from '@app/modules/hr-management/shared/models/employeeShift';
 import { ShiftResolverService } from '@app/modules/hr-management/shared/services/shiftResolver.service';
 import { MediaService } from '@app/services/media-service';
+import { PlantSelectionService } from '@production-module/shared/services/plant-selection.service';
 import { Subscription } from 'rxjs';
 
 @Component({
@@ -44,6 +48,8 @@ import { Subscription } from 'rxjs';
     PopoverComponent,
     ButtonComponent,
     LabelComponent,
+    SelectComponent,
+    OptionComponent,
     BarComponent,
     AvatarComponent,
     NotificationComponent,
@@ -71,6 +77,9 @@ export class LayoutComponent implements OnInit, OnDestroy {
   ];
 
   public localization = Localization;
+  /** Shows the header plant selector (production routes only) and enables plant-scoped production data. */
+  public readonly showPlantSelector = true;
+  public readonly plantSelection = inject(PlantSelectionService);
   type: string | null = null;
   logUserInfo = new User().deserialize({});
   loginUserInformation: string = '';
@@ -80,6 +89,7 @@ export class LayoutComponent implements OnInit, OnDestroy {
   settingOpen: boolean = false;
   isCollapsed: boolean = false;
   isDashboardRoute: boolean = false;
+  isProductionRoute: boolean = false;
   preferredLanguage: string = '';
   selectedTheme: string = 'sap_fiori_3';
   notificationCountNumber: number = 0;
@@ -169,9 +179,14 @@ export class LayoutComponent implements OnInit, OnDestroy {
 
     this.router.events.subscribe(() => {
       this.checkIfDashboardRoute();
+      this.checkIfProductionRoute();
     });
 
     this.checkIfDashboardRoute();
+    this.checkIfProductionRoute();
+    if (this.showPlantSelector) {
+      this.plantSelection.enable();
+    }
     this.loadImg();
     this.profileImageSubscription = this.mediaService.profileImageUpdated$.subscribe((url) => {
       if (url) this.userImg = url;
@@ -232,6 +247,15 @@ export class LayoutComponent implements OnInit, OnDestroy {
   checkIfDashboardRoute() {
     const currentRoute = this.router.url;
     this.isDashboardRoute = currentRoute === '/';
+  }
+  checkIfProductionRoute() {
+    this.isProductionRoute = this.router.url.startsWith('/production');
+  }
+  // UI5 `change` types as plain `Event` in this project's UI5 Angular wrapper — `event: any`
+  // matches the other UI5 select handlers in this component.
+  onPlantChange(event: any): void {
+    const value = event?.detail?.selectedOption?.value;
+    this.plantSelection.select(value ? Number(value) : null);
   }
   onLogout() {
     const remember_token = localStorage.getItem('remember_token');

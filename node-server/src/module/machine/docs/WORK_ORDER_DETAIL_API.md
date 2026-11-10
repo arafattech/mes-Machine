@@ -54,8 +54,9 @@ The speed at which the machine(s) operated compared to the ideal cycle time.
 *(Capped at 100%)*
 
 #### Quality
-The percentage of good parts produced versus total parts.
-- **Formula:** `(Good Count / Total Count) * 100`
+Good output versus total output, where the total includes kg logged via the Wastage Log against this work order (`machine_wastage_allocations` → `machine_wastage_entries.work_order_id`, fetched in parallel with the count buckets). This is the same rule as `/api/machine/:id/overview`, so the work-order and machine screens agree.
+- **Formula:** `(Good Count / (Total Count + Logged Wastage kg)) * 100`. The same applies per machine using that machine's allocation.
+- `totals.logged_wastage_kg` reports the logged kg.
 
 #### Efficiency (Overall OEE)
 The overall effectiveness score.

@@ -1,0 +1,64 @@
+<ui5-dialog
+  class="w-[90vw] max-w-xs"
+  [open]="displayDialog"
+  [attr.header-text]="
+    saveMode === 'POST' ? localization.New : localization.Edit
+  "
+  (before-close)="closeDialog()"
+>
+  <ui5-busy-indicator [delay]="0" [active]="saving" size="M" class="w-full">
+    <section class="w-full space-y-3">
+      <div>
+        <ui5-label i18n>Active</ui5-label>
+        <div>
+          <ui5-switch
+            [checked]="formData.is_active"
+            (change)="onActiveChange($event)"
+          ></ui5-switch>
+        </div>
+      </div>
+      <div>
+        <ui5-label show-colon required i18n>Name</ui5-label>
+        <ui5-input
+          class="w-100"
+          [value]="formData.name"
+          (input)="onNameInput($event)"
+          placeholder="e.g. Every 45 days"
+          i18n-placeholder
+          [maxlength]="60"
+          [attr.value-state]="valueStateOptions.name"
+        >
+          <div slot="valueStateMessage">
+            {{ localization.requiredField }}
+          </div>
+        </ui5-input>
+      </div>
+
+      <div>
+        <ui5-label show-colon required i18n>Repeat Every (days)</ui5-label>
+        <ui5-step-input
+          class="w-full"
+          [value]="formData.interval_days"
+          [min]="minInterval"
+          [max]="maxInterval"
+          [step]="1"
+          (change)="onIntervalChange($event)"
+        ></ui5-step-input>
+      </div>
+    </section>
+  </ui5-busy-indicator>
+  <ui5-toolbar slot="footer">
+    <ui5-toolbar-button
+      design="Emphasized"
+      (click)="save()"
+      [disabled]="saving"
+      text="{{ localization.Submit }}"
+    ></ui5-toolbar-button>
+    <ui5-toolbar-button
+      design="Transparent"
+      [disabled]="saving"
+      (click)="closeDialog()"
+      text="{{ localization.Cancel }}"
+    ></ui5-toolbar-button>
+  </ui5-toolbar>
+</ui5-dialog>

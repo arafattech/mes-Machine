@@ -182,6 +182,13 @@ return [
             'password' => env('REDIS_PASSWORD'),
             'port' => env('REDIS_PORT', '6379'),
             'database' => env('REDIS_DB', '0'),
+            // Bounded waits: this connection is used inline after DB commits (realtime publish,
+            // node cache invalidation) — an unreachable Redis must fail fast (callers log and
+            // continue), never hang the request / Octane worker. `timeout` = connect (both
+            // clients); `read_timeout` = phpredis, `read_write_timeout` = predis.
+            'timeout' => env('REDIS_SHARED_TIMEOUT', 1),
+            'read_timeout' => env('REDIS_SHARED_TIMEOUT', 1),
+            'read_write_timeout' => env('REDIS_SHARED_TIMEOUT', 1),
             'options' => [
                 'prefix' => '',
             ],

@@ -13,6 +13,16 @@
 
     <ui5-label id="basic-label" class="hidden lg:block"> {{ logUserInfo.name }} </ui5-label>
 
+    @if (showPlantSelector && isProductionRoute) {
+      <ui5-select slot="endContent" class="w-36 lg:w-56" accessible-name="Plant" i18n-accessible-name
+        (change)="onPlantChange($event)">
+        <ui5-option value="" [selected]="plantSelection.activePlantId() === null" i18n>All Plants</ui5-option>
+        @for (plant of plantSelection.plants(); track plant.id) {
+          <ui5-option [value]="plant.id?.toString()" [selected]="plant.id === plantSelection.activePlantId()">{{ plant.name }}</ui5-option>
+        }
+      </ui5-select>
+    }
+
     <div class="hidden lg:flex items-center gap-3 mx-3" slot="endContent"
       [ngClass]="isDarkTheme() ? 'text-white' : 'text-black'">
 

@@ -1,4 +1,5 @@
 import { Component, Input, OnInit, Output, EventEmitter } from '@angular/core';
+import '@ui5/webcomponents/dist/StepInput.js';
 import { CommonService } from '@app/services/common-service/common.service';
 import { ToastService } from '@app/services/toast-service/toast.service';
 import { saveMode } from '@app/shared/enums/saveMode';
@@ -6,6 +7,7 @@ import { Localization } from '@shared/utilities/localization';
 import { ValueState } from '@shared/utilities/value-state-wrapper';
 import { MachineMaintenanceService } from '@production-module/shared/services/machine-maintenance.service';
 import { MachineMaintenanceSchedule } from '@production-module/shared/interface/interface';
+import { DEFAULT_BUFFER_MINUTES, MAX_BUFFER_MINUTES, MIN_BUFFER_MINUTES, parseBufferMinutes } from '@production-module/shared/utils/maintenance-buffer';
 import moment from 'moment';
 
 interface OptionRow {
@@ -35,6 +37,9 @@ export class MachineMaintenanceFormComponent implements OnInit {
   scheduledTime = '';
   reason = '';
   bufferEnabled = true;
+  bufferMinutes = DEFAULT_BUFFER_MINUTES;
+  readonly minBufferMinutes = MIN_BUFFER_MINUTES;
+  readonly maxBufferMinutes = MAX_BUFFER_MINUTES;
 
   valueStateOptions = {
     machine: ValueState.None,
@@ -77,6 +82,7 @@ export class MachineMaintenanceFormComponent implements OnInit {
     this.scheduledTime = moment(scheduledStartAt).format(TIME_FORMAT);
     this.reason = schedule?.reason ?? '';
     this.bufferEnabled = schedule?.bufferEnabled ?? true;
+    this.bufferMinutes = schedule?.bufferMinutes ?? DEFAULT_BUFFER_MINUTES;
     this.valueStateOptions = {
       machine: ValueState.None,
       startDate: ValueState.None,
@@ -109,6 +115,10 @@ export class MachineMaintenanceFormComponent implements OnInit {
 
   onBufferEnabledChange(event: any): void {
     this.bufferEnabled = !!event?.target?.checked;
+  }
+
+  onBufferMinutesChange(event: Event): void {
+    this.bufferMinutes = parseBufferMinutes(event);
   }
 
   validateForm(): boolean {
@@ -150,6 +160,7 @@ export class MachineMaintenanceFormComponent implements OnInit {
         scheduledStartAt,
         this.reason.trim(),
         this.bufferEnabled,
+        this.bufferMinutes,
       );
     } else {
       this.ToastType = 'edit';
@@ -158,6 +169,7 @@ export class MachineMaintenanceFormComponent implements OnInit {
         scheduled_start_at: scheduledStartAt,
         reason: this.reason.trim(),
         buffer_enabled: this.bufferEnabled,
+        buffer_minutes: this.bufferMinutes,
       });
     }
 
@@ -182,11 +194,12 @@ export class MachineMaintenanceFormComponent implements OnInit {
     this.scheduledTime = '';
     this.reason = '';
     this.bufferEnabled = true;
+    this.bufferMinutes = DEFAULT_BUFFER_MINUTES;
   }
 }
 
 /** `format-pattern` bound on the date picker. */
-const DATE_FORMAT = 'YYYY-MM-DD';
+const DATE_FORMAT = 'DD/MM/YYYY';
 /** `format-pattern` bound on the time picker — 12-hour clock with AM/PM. */
 const TIME_FORMAT = 'hh:mm A';
 /** Carbon-parseable on Laravel (`Y-m-d H:i:s`) — combined value sent to the backend. */

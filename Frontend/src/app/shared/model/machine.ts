@@ -3,6 +3,11 @@ import { MachineGroup } from '@app/shared/model/machineGroup';
 import { MachineState } from '@app/shared/model/machineState';
 import { Hall } from '@app/shared/model/hall';
 import { MachineWastageType } from '@app/shared/model/machineWastageType';
+import {
+  DEFAULT_MACHINE_DASHBOARD_VIEW,
+  MachineDashboardViewType,
+  MachineDashboardViewTypeClass,
+} from '@shared/enums/machine-dashboard-view';
 export class Machine implements Deserializable {
   id?: number;
   machine_name: string = '';
@@ -11,6 +16,7 @@ export class Machine implements Deserializable {
   has_rpm?: boolean = false;
   has_config?: boolean = false;
   has_wastage?: boolean = false;
+  dashboard_view: MachineDashboardViewType = DEFAULT_MACHINE_DASHBOARD_VIEW;
   oee?: number;
   custom_id?: string;
   machinegroups?: MachineGroup[];
@@ -24,6 +30,7 @@ export class Machine implements Deserializable {
     if (input) {
       Object.assign(this, input);
     }
+    this.dashboard_view = MachineDashboardViewTypeClass.resolve(this.dashboard_view);
 
     return this;
   }

@@ -1,6 +1,7 @@
 import {
   AfterViewInit,
   Component,
+  DestroyRef,
   ElementRef,
   EventEmitter,
   Input,
@@ -9,13 +10,18 @@ import {
   Output,
   SimpleChanges,
   ViewChild,
-  NgZone
+  NgZone,
+  inject,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 import * as am4core from '@amcharts/amcharts4/core';
 import * as am4charts from '@amcharts/amcharts4/charts';
 import am4themes_animated from '@amcharts/amcharts4/themes/animated';
+import { FACTORY_TIME_ZONE } from '@shared/utilities/date-format';
+import { ThemeService } from '@app/services/theme.service';
+import { chartTextColor } from '@production-module/shared/utils/chart-theme';
 
 export interface AmChartDataPoint {
   x: string | number | Date;
@@ -47,12 +53,18 @@ export class AmActivityChartComponent implements AfterViewInit, OnChanges, OnDes
 
   private chart?: am4charts.XYChart;
   private monthLabel?: am4core.Label;
+  /** Axis / legend text sprites (or templates) recoloured when the theme changes. */
+  private readonly mutedText: am4core.Label[] = [];
+
+  private readonly themeService = inject(ThemeService);
+  private readonly destroyRef = inject(DestroyRef);
 
   constructor(private zone: NgZone) {}
 
   ngAfterViewInit(): void {
     this.zone.runOutsideAngular(() => {
       this.createChart();
+      this.themeService.theme$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => this.applyTextColors());
       if (this.datasets && this.datasets.length) {
         this.updateSeries();
       }
@@ -89,7 +101,7 @@ export class AmActivityChartComponent implements AfterViewInit, OnChanges, OnDes
     xAxis.renderer.grid.template.location = 0;
     xAxis.renderer.minGridDistance = 15; // Lower distance to show more labels
     xAxis.renderer.labels.template.fontSize = 11;
-    xAxis.renderer.labels.template.fill = am4core.color('#556b82');
+    this.mutedText.push(xAxis.renderer.labels.template);
     xAxis.renderer.grid.template.disabled = true;
 
     const yAxis = chart.yAxes.push(new am4charts.ValueAxis());
@@ -113,13 +125,13 @@ export class AmActivityChartComponent implements AfterViewInit, OnChanges, OnDes
       range.grid.strokeOpacity = 0.4;
       range.label.text = String(i);
       range.label.fontSize = 11;
-      range.label.fill = am4core.color('#556b82');
+      this.mutedText.push(range.label);
       range.label.location = 0; // Centers the label on the grid line vertically
     }
 
     yAxis.title.text = "Hours";
     yAxis.title.fontSize = 11;
-    yAxis.title.fill = am4core.color('#556b82');
+    this.mutedText.push(yAxis.title);
 
     chart.cursor = new am4charts.XYCursor();
     chart.cursor.behavior = "none";
@@ -131,7 +143,7 @@ export class AmActivityChartComponent implements AfterViewInit, OnChanges, OnDes
     chart.legend.position = "top";
     chart.legend.contentAlign = "right";
     chart.legend.labels.template.fontSize = 12;
-    chart.legend.labels.template.fill = am4core.color('#556b82');
+    this.mutedText.push(chart.legend.labels.template);
     chart.legend.itemContainers.template.paddingTop = 5;
     chart.legend.itemContainers.template.paddingBottom = 5;
     chart.legend.markers.template.width = 12;
@@ -148,13 +160,19 @@ export class AmActivityChartComponent implements AfterViewInit, OnChanges, OnDes
     this.chart = chart;
   }
 
+  private applyTextColors(): void {
+    const dark = this.themeService.isDarkTheme();
+    const muted = am4core.color(chartTextColor(dark));
+    this.mutedText.forEach((label) => (label.fill = muted));
+    if (this.monthLabel) this.monthLabel.fill = am4core.color(chartTextColor(dark, '#000000'));
+  }
+
   private updateSeries(): void {
     if (!this.chart) return;
 
     if (this.monthLabel) {
-      const currentMonth = new Date().toLocaleString('en-US', { month: 'long' });
+      const currentMonth = new Intl.DateTimeFormat('en-GB', { month: 'long', timeZone: FACTORY_TIME_ZONE }).format(new Date());
       this.monthLabel.text = `Month: ${currentMonth}`;
-      this.monthLabel.fill = am4core.color("#000000"); // Black color
     }
 
     const dateSet = new Set<string>();
@@ -213,7 +231,9 @@ export class AmActivityChartComponent implements AfterViewInit, OnChanges, OnDes
       series.columns.template.cursorOverStyle = am4core.MouseCursorStyle.pointer;
       
       const bullet = series.bullets.push(new am4charts.LabelBullet());
-      bullet.label.text = "{valueY}\n{name}";
+      // Labels sit on top of the column; let clicks fall through to the column's `hit` (drill-down).
+      bullet.interactionsEnabled = false;
+      bullet.label.text = "{valueY.formatNumber('#.#')}\n{name}";
       bullet.label.fill = am4core.color("#ffffff");
       bullet.label.fontSize = 12;
       bullet.label.textAlign = "middle";

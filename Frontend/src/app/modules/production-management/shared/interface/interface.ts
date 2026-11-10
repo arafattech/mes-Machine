@@ -39,19 +39,30 @@ export interface StatusCardData {
 
 export interface Metric {
   label: string;
-  value: number;
+  /** `null` = not applicable (e.g. Quality for non-kg products); rendered as "n/a". */
+  value: number | null;
   unit?: string;
   delta?: number;
   icon?: MetricIcon;
   color?: MetricColor;
 }
 
-/** Feeds `MachineDetailsComponent.machine` (id/name/status come from route query params). */
-export interface MachineSpecs {
-  maxRpm: number;
-  minRpm: number;
-  maxTemp: number;
-  minTemp: number;
+/** Raw OEE inputs behind node-server `overview()`'s figures, so the page can advance
+ * Availability / Performance / OEE every second between realtime pushes without polling.
+ * `openStateProductive` is `null` when nothing is accruing (no open state, or the window
+ * ended in the past) — then the figures are static. */
+export interface OeeLiveInputs {
+  activeSeconds: number;
+  totalSeconds: number;
+  openStateProductive: boolean | null;
+  idealCycleSeconds: number | null;
+  totalCount: number;
+  goodCount: number;
+  /** Quality denominator in kg; `null` when Quality is not applicable. */
+  qualityTotal: number | null;
+  /** How old the (possibly cached) snapshot was when served, measured on the server's clock —
+   * the client extrapolates from `receivedAt - ageMs`, independent of clock skew. */
+  ageMs: number;
 }
 
 /** Feeds `ProductionOverviewComponent`'s inputs 1:1. */
@@ -85,6 +96,18 @@ export interface CurrentShift {
 export interface CurrentWorkOrderShift {
   workOrder: CurrentWorkOrder | null;
   shift: CurrentShift | null;
+}
+
+/** One `GET production-logs` group (work order × shift × factory day), scoped to a single machine
+ * by the `machine_id eq` filter shape. */
+export interface MachineProductionLogRow {
+  log_date: string;
+  good_count: number;
+  scrap_count: number;
+  total_count: number;
+  logged_at: string;
+  work_order: { id: number; custom_id: string | null } | null;
+  shift: { id: number; name: string } | null;
 }
 
 export interface PlannedMachine {
@@ -184,6 +207,12 @@ export interface AssignedWorkOrder {
   status: string | null;
 }
 
+/** A product choice in a picker. */
+export interface ProductOption {
+  id: number;
+  text: string;
+}
+
 export interface ShiftOption {
   id: number;
   name: string;
@@ -236,4 +265,16 @@ export interface MachineMaintenanceSchedule {
   endedAt: string | null;
   endedBy: 'manual' | 'auto' | null;
   bufferEnabled: boolean;
+  bufferMinutes: number;
 }
+
+/** One recurrence interval — REST `schedule-frequencies`. */
+export interface ScheduleFrequency {
+  id: number;
+  name: string;
+  interval_days: number;
+  is_active: boolean;
+}
+
+/** Dropdown row — REST `schedule-frequencies/options`. */
+export type ScheduleFrequencyOption = Pick<ScheduleFrequency, 'id' | 'name' | 'is_active'>;

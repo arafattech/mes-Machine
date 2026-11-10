@@ -12,7 +12,10 @@ import { Localization } from "@shared/utilities/localization";
 import ValueState from "@ui5/webcomponents-base/dist/types/ValueState.js";
 import { Hall } from "@shared/model/hall";
 import { ToastService } from "@app/services/toast-service/toast.service";
+import { RolePermissionService } from "@app/services/role-permission-service/role-permission.service";
+import { Permissions } from "@app/shared/enums/permissions";
 import { Machine } from "@shared/model/machine";
+import { MachineDashboardViewTypeClass } from "@shared/enums/machine-dashboard-view";
 import { MachineState } from "@shared/model/machineState";
 import { MachineGroup } from "@shared/model/machineGroup";
 import { MachineWastageType } from "@shared/model/machineWastageType";
@@ -46,6 +49,7 @@ export class MachineFormComponent implements OnInit {
   machine: Machine = new Machine().deserialize({});
   machineGroup = new MachineGroup();
   selectedTab = "coreData";
+  readonly dashboardViewOptions = MachineDashboardViewTypeClass.getOptions();
   open = false;
   loading = false;
   ToastType: "add" | "edit" | "error" = "add";
@@ -232,7 +236,13 @@ export class MachineFormComponent implements OnInit {
   constructor(
     private commonService: CommonService,
     private toastService: ToastService,
+    private rolePermissionService: RolePermissionService,
   ) {}
+
+  /** Super-admin decides which roles may pick a machine's dashboard layout. */
+  get canChangeDashboardView(): boolean {
+    return this.rolePermissionService.hasPermission(Permissions.BASE_DATA_MACHINE_DASHBOARD_VIEW);
+  }
 
   ngOnInit(): void {
     this.LoadMachineGroup();
@@ -283,7 +293,8 @@ export class MachineFormComponent implements OnInit {
       this.valueStateOptions.group = ValueState.Negative;
       isValid = false;
     }
-    if (this.machine.oee) {
+    // 0 is a valid OEE (every seeded machine has it) — only a missing/blank value is rejected.
+    if (this.machine.oee != null && String(this.machine.oee).trim() !== "") {
       this.valueStateOptions.oee = ValueState.None;
     } else {
       this.valueStateOptions.oee = ValueState.Negative;
@@ -494,6 +505,11 @@ export class MachineFormComponent implements OnInit {
 
   onTabSelect(event: any): void {
     this.selectedTab = event.detail.tab.id;
+  }
+
+  onDashboardViewChange(event: Event): void {
+    const option = (event as CustomEvent<{ selectedOption: HTMLElement }>).detail.selectedOption;
+    this.machine.dashboard_view = MachineDashboardViewTypeClass.resolve(option.getAttribute("value"));
   }
 
   OnAddClickMachineGroup(): void {

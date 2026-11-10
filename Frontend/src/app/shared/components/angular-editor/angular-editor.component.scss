@@ -1,0 +1,38 @@
+// @kolkov/angular-editor defaults to fixed light colours; map its theme variables to UI5 tokens
+// so the editor follows the active theme (incl. dark mode).
+:host {
+  --ae-toolbar-bg-color: var(--sapToolbar_Background, #f5f6f7);
+  --ae-toolbar-border-radius: 0.5rem 0.5rem 0 0;
+  --ae-button-bg-color: var(--sapButton_Lite_Background, transparent);
+  --ae-button-hover-bg-color: var(--sapButton_Lite_Hover_Background, #eaecee);
+  --ae-button-active-bg-color: var(--sapButton_Selected_Background, #edf6ff);
+  --ae-button-active-hover-bg-color: var(--sapButton_Selected_Hover_Background, #dcecfa);
+  --ae-button-disabled-bg-color: transparent;
+  --ae-button-border: 1px solid transparent;
+  --ae-button-radius: 0.375rem;
+  --ae-focus-outline-color: var(--sapContent_FocusColor, #0070f2);
+  --ae-picker-color: var(--sapTextColor, #1d2d3e);
+  --ae-picker-label-color: var(--sapButton_Lite_Background, transparent);
+  --ae-picker-option-bg-color: var(--sapList_Background, #fff);
+  --ae-picker-option-hover-bg-color: var(--sapList_Hover_Background, #eaecee);
+  --ae-picker-option-active-bg-color: var(--sapList_SelectionBackgroundColor, #edf6ff);
+  --ae-picker-option-focused-bg-color: var(--sapList_Hover_Background, #eaecee);
+  --ae-text-area-border: 1px solid var(--sapField_BorderColor, #ddd);
+  --ae-text-area-border-radius: 0 0 0.5rem 0.5rem;
+}
+
+// Text/icon colour and field background have no library variable.
+:host ::ng-deep {
+  .angular-editor-button {
+    color: var(--sapTextColor, #1d2d3e);
+  }
+
+  .angular-editor-textarea {
+    background-color: var(--sapField_Background, #fff);
+    color: var(--sapField_TextColor, #1d2d3e);
+  }
+
+  .angular-editor-placeholder {
+    color: var(--sapField_PlaceholderTextColor, #6a7d8f);
+  }
+}

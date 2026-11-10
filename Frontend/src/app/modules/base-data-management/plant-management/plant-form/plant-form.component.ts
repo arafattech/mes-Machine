@@ -1,8 +1,11 @@
+import { HttpErrorResponse } from "@angular/common/http";
 import {
   Component,
+  ElementRef,
   EventEmitter,
   Input,
   Output,
+  ViewChild,
 } from "@angular/core";
 import { CommonService } from "@app/services/common-service/common.service";
 import { Plant } from "@shared/model/plant";
@@ -17,6 +20,8 @@ import { ToastService } from "@app/services/toast-service/toast.service";
   styleUrl: "./plant-form.component.scss",
 })
 export class PlantFormComponent {
+  @ViewChild('nameInput', { read: ElementRef }) nameInput?: ElementRef<HTMLElement>;
+
   @Input() saveMode = "POST";
   @Input() plant: Plant = new Plant().deserialize({});
   @Output() IsOpenToastAlert = new EventEmitter<void>();
@@ -28,6 +33,8 @@ export class PlantFormComponent {
   public valueState = ValueState;
   public responseType: saveMode = saveMode.POST;
   public localization = Localization;
+  readonly nameMaxLength = 255;
+  serverError = "";
   valueStateOptions = {
     name: ValueState.None,
   };
@@ -63,17 +70,30 @@ export class PlantFormComponent {
           this.RefreshTable.emit();
           this.toastService.show(this.ToastType);
         },
-        error: (error: any) => {
-          this.open = false;
-          this.CloseDialog();
-          this.toastService.show("error");
+        error: (error: HttpErrorResponse) => {
+          this.loading = false;
+          this.serverError =
+            error.error?.error?.message ??
+            error.error?.message ??
+            $localize`Something went wrong`;
+          this.valueStateOptions.name = ValueState.Negative;
+          this.focusNameInput();
         },
       });
     }
   }
 
+  private focusNameInput(): void {
+    setTimeout(() => this.nameInput?.nativeElement.focus());
+  }
+
+  get nameErrorMessage(): string {
+    return this.serverError || this.validationMessage;
+  }
+
   checkValidation(event: any) {
-    const value = event.target.value;
+    const value: string = event.target.value;
+    this.serverError = "";
     if (!value.trim()) {
       this.valueStateOptions.name = ValueState.Negative;
     } else {
@@ -83,8 +103,10 @@ export class PlantFormComponent {
 
   validateForm(): boolean {
     let isValid = true;
-    if (!this.plant.name) {
+    this.serverError = "";
+    if (!this.plant.name?.trim()) {
       this.valueStateOptions.name = ValueState.Negative;
+      this.focusNameInput();
       isValid = false;
     }
     return isValid;
@@ -93,6 +115,7 @@ export class PlantFormComponent {
   CloseDialog() {
     this.open = false;
     this.loading = false;
+    this.serverError = "";
     this.valueStateOptions.name = ValueState.None;
     this.plant = new Plant().deserialize({});
   }

@@ -28,11 +28,11 @@
           </div>
 
           <div class="flex flex-col">
-            <ui5-label for="shift" show-colon i18n>Shift (optional)</ui5-label>
+            <ui5-label for="shift" show-colon i18n>Shift</ui5-label>
             <ui5-combobox
               id="shift"
               class="w-full"
-              placeholder="Select Shift"
+              placeholder="Current shift (today) — select for past dates"
               i18n-placeholder
               (selectionChange)="onShiftChange($event)"
             >
@@ -51,7 +51,9 @@
               id="date"
               class="w-full"
               [(ngModel)]="date"
-              format-pattern="dd-MM-yyyy"
+              format-pattern="dd/MM/yyyy"
+              placeholder="DD/MM/YYYY"
+              i18n-placeholder
             ></ui5-date-picker>
           </div>
         </div>
@@ -89,6 +91,49 @@
       [disabled]="loading || submitting"
       (click)="closeDialog()"
       text="Close"
+      i18n-text
+    ></ui5-toolbar-button>
+  </ui5-toolbar>
+</ui5-dialog>
+
+<ui5-dialog
+  [open]="thresholdOpen"
+  class="w-[min(90vw,32rem)]"
+  header-text="Wastage above limit"
+  i18n-header-text
+  state="Critical"
+  (before-close)="cancelOverThreshold()"
+>
+  <div class="flex flex-col gap-3 p-2">
+    <ui5-text>{{ thresholdMessage }}</ui5-text>
+    <div class="flex flex-col">
+      <ui5-label for="justification" show-colon required i18n>Justification</ui5-label>
+      <ui5-textarea
+        id="justification"
+        class="w-full"
+        [rows]="3"
+        [maxlength]="500"
+        [(ngModel)]="justification"
+        [attr.value-state]="justificationMissing ? 'Negative' : 'None'"
+        placeholder="Why is this wastage expected?"
+        i18n-placeholder
+      >
+        <div slot="valueStateMessage" i18n>A justification is required.</div>
+      </ui5-textarea>
+    </div>
+  </div>
+  <ui5-toolbar slot="footer">
+    <ui5-toolbar-button
+      design="Emphasized"
+      [disabled]="submitting"
+      (click)="confirmOverThreshold()"
+      text="Confirm and log"
+      i18n-text
+    ></ui5-toolbar-button>
+    <ui5-toolbar-button
+      design="Transparent"
+      (click)="cancelOverThreshold()"
+      text="Cancel"
       i18n-text
     ></ui5-toolbar-button>
   </ui5-toolbar>

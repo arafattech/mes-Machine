@@ -1,5 +1,6 @@
 import { Component, OnInit, ViewChild } from '@angular/core';
 import moment from 'moment';
+import { formatFactoryDate, formatFactoryDateTime } from '@shared/utilities/date-format';
 import { AgGridTableComponent } from '@shared/components/ag-grid-table/ag-grid-table.component';
 import { AgGridIconTextCellRendererComponent } from '@shared/components/ag-grid-table/cell-renderers/ag-grid-cell-renderers.component';
 import {
@@ -92,8 +93,7 @@ export class ProductionLogListComponent implements OnInit {
       sortable: false,
       filter: false,
       floatingFilter: false,
-      valueFormatter: ({ value }: any) =>
-        value ? moment(value).format('DD/MM/YYYY, hh:mm A') : '',
+      valueFormatter: ({ value }: any) => formatFactoryDateTime(value),
     },
   ];
   detailDataSource: AgGridTableODataSourceConfig<any> = {
@@ -229,8 +229,7 @@ export class ProductionLogListComponent implements OnInit {
         sortable: false,
         filter: false,
         floatingFilter: false,
-        valueFormatter: ({ value }: any) =>
-          value ? moment(value).format('DD/MM/YYYY, hh:mm A') : '',
+        valueFormatter: ({ value }: any) => formatFactoryDateTime(value),
       },
     ];
   }
@@ -250,9 +249,7 @@ export class ProductionLogListComponent implements OnInit {
     const date = row?.log_date;
     if (!workOrderId) return;
 
-    this.detailSubtitle = `${row.work_order?.custom_id ?? 'WO-' + workOrderId} · ${row.shift?.name ?? ''} · ${
-      date ? moment(date).format('DD/MM/YYYY') : ''
-      }`;
+    this.detailSubtitle = `${row.work_order?.custom_id ?? 'WO-' + workOrderId} · ${row.shift?.name ?? ''} · ${formatFactoryDate(date)}`;
     this.detailHeaderText = $localize`Log Details for : ${this.detailSubtitle}`;
     this.detailOpen = true;
     this.detailLoading = true;

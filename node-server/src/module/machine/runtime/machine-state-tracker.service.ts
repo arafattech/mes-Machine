@@ -2,6 +2,12 @@ import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '@prisma/prisma.service';
 import { Prisma } from '@prisma/client';
 import { socketService } from 'config/socket/socket.config';
+import { GetRedisClient } from 'config/redis/config.redis';
+import { BumpCalcVersions } from '@module/machine/realtime/production-events';
+
+/** Max wait for the post-transition calc-cache bump before broadcasting anyway. */
+const CALC_VERSION_BUMP_TIMEOUT_MS = 200;
+const MS_PER_MINUTE = 60_000;
 import { MaintenanceOverrideService } from './maintenance-override.service';
 
 /**
@@ -20,12 +26,11 @@ function toLegacyState(stateName: string): string | null {
 }
 
 /** One open `machine_maintenance_schedules` row currently in its post-maintenance
- * verification buffer (`pending_confirm_until IS NOT NULL`). `bufferMs` is that
- * row's own operator-chosen window length (`buffer_minutes`), not the shared
- * env-var default — see `MachineStateTrackerService.loadPendingConfirmations`. */
+ * verification buffer (`pending_confirm_until IS NOT NULL`). */
 export type PendingConfirmation = {
   scheduleId: bigint;
   pendingConfirmUntil: Date;
+  /** The row's own `buffer_minutes`, in ms — the window's length. */
   bufferMs: number;
 };
 
@@ -38,15 +43,7 @@ export type PendingConfirmation = {
 @Injectable()
 export class MachineStateTrackerService {
   private readonly logger = new Logger(MachineStateTrackerService.name);
-
-  // Fallback post-maintenance verification window, used only when a row has
-  // no `buffer_minutes` of its own (rows activated before that column
-  // existed) — every row activated through the "Activate now" dialog now
-  // carries its own operator-chosen window instead of this shared default.
-  // See `clearMaintenanceOverride` / `loadPendingConfirmations`.
-  private readonly defaultVerificationBufferMs = Number(
-    process.env.MAINTENANCE_VERIFICATION_BUFFER_MS ?? 5 * 60 * 1000,
-  );
+  private readonly redis = GetRedisClient();
 
   constructor(
     private readonly prisma: PrismaService,
@@ -134,6 +131,7 @@ export class MachineStateTrackerService {
       });
     });
 
+    await this.invalidateCalcCache([machineId]);
     socketService.emit('machine_status_runtime', {
       machine_id: machineId,
       machine_state_id: machineStateId,
@@ -217,6 +215,7 @@ export class MachineStateTrackerService {
       await tx.machine_state_events.createMany({ data: toCreate });
     });
 
+    await this.invalidateCalcCache(toBroadcast.map((entry) => entry.machineId));
     for (const entry of toBroadcast) {
       socketService.emit('machine_status_runtime', {
         machine_id: entry.machineId,
@@ -235,10 +234,8 @@ export class MachineStateTrackerService {
    * away, same as manual End does, matching physical reality in real time.
    * What happens to the schedule row depends on that row's `buffer_enabled`:
    *   - `true` (default): the row stays open — a `pending_confirm_until`
-   *     verification window (that row's own `buffer_minutes`, chosen at
-   *     "Activate now" time; `defaultVerificationBufferMs` only for rows
-   *     activated before that column existed) starts instead of closing the
-   *     row now. `ChannelMappingService`'s poll-tick check
+   *     verification window (the row's `buffer_minutes`) starts instead of
+   *     closing the row now. `ChannelMappingService`'s poll-tick check
    *     (`loadPendingConfirmations` + the pending-confirm branch in
    *     `applyMaintenanceOverride`) decides from there whether the row
    *     re-opens for Maintenance (board forced back, same row, if it drops
@@ -255,13 +252,7 @@ export class MachineStateTrackerService {
 
     await this.maintenanceOverride.clear(machineId);
 
-    const open = await this.prisma.$queryRaw<
-      Array<{
-        id: bigint;
-        buffer_enabled: number | boolean;
-        buffer_minutes: number | null;
-      }>
-    >`
+    const open = await this.prisma.$queryRaw<Array<{ id: bigint; buffer_enabled: number | boolean; buffer_minutes: number }>>`
       SELECT id, buffer_enabled, buffer_minutes FROM machine_maintenance_schedules
       WHERE machine_id = ${id} AND ended_at IS NULL AND activated_at IS NOT NULL
       LIMIT 1
@@ -270,11 +261,7 @@ export class MachineStateTrackerService {
     if (!row) return;
 
     if (row.buffer_enabled) {
-      const bufferMs =
-        row.buffer_minutes != null
-          ? row.buffer_minutes * 60 * 1000
-          : this.defaultVerificationBufferMs;
-      const pendingConfirmUntil = new Date(now.getTime() + bufferMs);
+      const pendingConfirmUntil = new Date(now.getTime() + Number(row.buffer_minutes) * MS_PER_MINUTE);
       await this.prisma.$executeRaw`
         UPDATE machine_maintenance_schedules
         SET pending_confirm_until = ${pendingConfirmUntil}
@@ -308,12 +295,7 @@ export class MachineStateTrackerService {
    */
   async loadPendingConfirmations(): Promise<Map<string, PendingConfirmation>> {
     const rows = await this.prisma.$queryRaw<
-      Array<{
-        machine_id: bigint;
-        schedule_id: bigint;
-        pending_confirm_until: Date;
-        buffer_minutes: number | null;
-      }>
+      Array<{ machine_id: bigint; schedule_id: bigint; pending_confirm_until: Date; buffer_minutes: number }>
     >`
       SELECT machine_id, id AS schedule_id, pending_confirm_until, buffer_minutes
       FROM machine_maintenance_schedules
@@ -325,13 +307,9 @@ export class MachineStateTrackerService {
       out.set(row.machine_id.toString(), {
         scheduleId: row.schedule_id,
         pendingConfirmUntil: row.pending_confirm_until,
-        bufferMs:
-          row.buffer_minutes != null
-            ? row.buffer_minutes * 60 * 1000
-            : this.defaultVerificationBufferMs,
+        bufferMs: Number(row.buffer_minutes) * MS_PER_MINUTE,
       });
     }
-
     return out;
   }
 
@@ -362,15 +340,15 @@ export class MachineStateTrackerService {
    * Finalize a schedule row whose verification window elapsed with the
    * machine still genuinely Active. `ended_at`/`duration_seconds` are
    * anchored to when the override was ORIGINALLY cleared
-   * (`pendingConfirmUntil - bufferMs`, that row's own window length), not to
-   * now — that window is genuinely Active time (the board already showed
-   * Active throughout it) and must not be counted as Maintenance duration.
+   * (`pendingConfirmUntil - bufferMs`), not to now — that window
+   * is genuinely Active time (the board already showed Active throughout it)
+   * and must not be counted as Maintenance duration.
    */
-  async finalizePendingConfirmation(
-    scheduleId: bigint,
-    pendingConfirmUntil: Date,
-    bufferMs: number,
-  ): Promise<void> {
+  async finalizePendingConfirmation({
+    scheduleId,
+    pendingConfirmUntil,
+    bufferMs,
+  }: PendingConfirmation): Promise<void> {
     const clearedAt = new Date(pendingConfirmUntil.getTime() - bufferMs);
     await this.prisma.$executeRaw`
       UPDATE machine_maintenance_schedules
@@ -389,6 +367,33 @@ export class MachineStateTrackerService {
       return id > 0n ? id : null;
     } catch {
       return null;
+    }
+  }
+
+  /**
+   * A transition changes OEE's time-based inputs (which state is open, and whether it's
+   * productive), so the machine's cached calculations must not outlive it: bump the calc
+   * version before broadcasting, so a client refetching on `machine_status_runtime` gets the
+   * post-transition snapshot. A failure only costs freshness (TTL-bounded) — never thrown,
+   * since the transition itself is already persisted.
+   */
+  private async invalidateCalcCache(machineIds: string[]): Promise<void> {
+    const ids = machineIds.map(Number).filter((id) => Number.isSafeInteger(id) && id > 0);
+    if (ids.length === 0) return;
+
+    // Bounded: a slow / unreachable Redis (ioredis offline queue + retries) must never hold
+    // back the live status broadcast — past the cap, emit anyway and let the TTL cover it.
+    let timer: NodeJS.Timeout | undefined;
+    const cap = new Promise<void>((resolve) => {
+      timer = setTimeout(resolve, CALC_VERSION_BUMP_TIMEOUT_MS);
+    });
+    try {
+      await Promise.race([BumpCalcVersions(this.redis, ids, []), cap]);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.logger.warn(`Calc cache version bump failed after transition: ${message}`);
+    } finally {
+      clearTimeout(timer);
     }
   }
 }

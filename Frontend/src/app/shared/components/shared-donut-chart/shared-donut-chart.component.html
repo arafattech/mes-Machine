@@ -9,7 +9,9 @@
   </div>
 
   <ng-container *ngIf="showSideList">
-    <div *ngIf="chartData.length > 0" class="flex-1 min-w-0 max-h-full overflow-y-auto pr-1">
+    <div *ngIf="chartData.length > 0" class="flex-1 min-w-0 max-h-full overflow-y-auto pr-1 flex flex-col">
+      <!-- my-auto (not justify-center) so a list taller than the ring still scrolls from its first item -->
+      <div [class.my-auto]="sideListAlign === 'center'">
       <div
         class="flex items-center justify-between gap-2 p-[6px_8px] mb-[6px] border rounded-[10px]"
         style="border-color: var(--sapList_BorderColor, #d9d9d9); background-color: var(--sapList_Background, #f5f6f7)"
@@ -21,6 +23,7 @@
             [title]="item[labelField]">{{ item[labelField] }}</span>
         </div>
         <span class="text-[11px] font-bold shrink-0" [style.color]="getColor(i)">{{ item[valueField] | number:'1.0-2' }}{{ sideListValueSuffix }}</span>
+      </div>
       </div>
     </div>
 

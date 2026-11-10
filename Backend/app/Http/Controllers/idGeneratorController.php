@@ -7,6 +7,7 @@ use Haruncpi\LaravelIdGenerator\IdGenerator;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Illuminate\Database\QueryException;
 
@@ -61,17 +62,19 @@ class idGeneratorController extends Controller
 
         $table = $request->input('model');
         $prefix = $request->input('prefix');
-        $field = $request->input('field');
+        $field = $request->input('field') ?: 'custom_id';
         $padLength = $request->input('length', 7);
 
+        // Table/column names reach raw SQL below — only accept ones that really exist.
+        abort_unless(Schema::hasTable($table) && Schema::hasColumn($table, $field), 422, 'Unknown model or field.');
+
         if ($prefix) {
-            $id = IdGenerator::generate([
-                'table' => $table,
-                'field' => $field,
-                'length' => strlen($prefix) + $padLength,
-                'prefix' => $prefix . '-',
-                'reset_on_prefix_change' => true,
-            ]);
+            $fullPrefix = $prefix . '-';
+            $digits = $padLength - 1;
+            $next = $this->lastNumericSuffix($table, $field, $fullPrefix);
+            do {
+                $id = $fullPrefix . str_pad((string) ++$next, $digits, '0', STR_PAD_LEFT);
+            } while (DB::table($table)->where($field, $id)->exists());
         } else {
             $lastId = DB::table($table)
                 ->where($field, 'REGEXP', '^[0-9]+$')
@@ -86,6 +89,24 @@ class idGeneratorController extends Controller
         return response()->json([
             'code' => $id
         ]);
+    }
+
+    /**
+     * Numeric suffix of the most recently created `{prefix}NNN` row (highest primary key), so ids
+     * continue from the last record. Parsed as a number, so a mis-padded id (`X-00013`) still reads
+     * as 13 — a string MAX would rank it above `X-000014` and hand out a duplicate. Tables without
+     * an `id` column fall back to the highest suffix.
+     */
+    private function lastNumericSuffix(string $table, string $field, string $fullPrefix): int
+    {
+        $column = DB::getQueryGrammar()->wrap($field);
+        $query = DB::table($table)
+            ->where($field, 'like', addcslashes($fullPrefix, '%_\\') . '%')
+            ->selectRaw("CAST(SUBSTRING($column, ?) AS UNSIGNED) as suffix", [strlen($fullPrefix) + 1]);
+
+        $query = Schema::hasColumn($table, 'id') ? $query->orderByDesc('id') : $query->orderByDesc('suffix');
+
+        return (int) $query->value('suffix');
     }
 }
 

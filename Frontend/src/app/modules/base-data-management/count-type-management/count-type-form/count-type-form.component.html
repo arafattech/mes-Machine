@@ -31,6 +31,9 @@
         type="Text"
       >
       </ui5-input>
+
+      <ui5-label show-colon class="w-100" i18n>Active</ui5-label>
+      <ui5-switch [(ngModel)]="countType.is_active"></ui5-switch>
     </section>
   </ui5-busy-indicator>
   <ui5-toolbar slot="footer">

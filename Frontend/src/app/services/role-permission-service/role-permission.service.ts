@@ -1,6 +1,10 @@
 import { Injectable } from '@angular/core';
 import { Observable, map } from 'rxjs';
 import { CommonService } from '@app/services/common-service/common.service';
+import { ThemeService } from '@app/services/theme.service';
+import { Permissions } from '@app/shared/enums/permissions';
+
+const DEFAULT_THEME = 'sap_horizon';
 
 export interface PermissionGroupItem {
   id: number;
@@ -18,10 +22,23 @@ export interface PermissionGroup {
 export class RolePermissionService {
   private permissions: string[] = [];
 
-  constructor(private commonService: CommonService) {}
+  constructor(
+    private commonService: CommonService,
+    private themeService: ThemeService,
+  ) {}
 
   setPermissions(permissions: string[]): void {
     this.permissions = permissions;
+    this.enforceThemeAccess();
+  }
+
+  // Without THEME_ENABLE the theme switcher is hidden, so a theme saved earlier
+  // (or by another user on this browser) must not stick — pin the default light theme.
+  private enforceThemeAccess(): void {
+    if (this.hasPermission(Permissions.THEME_ENABLE)) return;
+    if (this.themeService.getTheme() !== DEFAULT_THEME) {
+      this.themeService.setUI5Theme(DEFAULT_THEME);
+    }
   }
 
   getPermissions(): string[] {

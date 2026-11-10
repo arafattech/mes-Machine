@@ -4,6 +4,7 @@ import { firstValueFrom, interval } from 'rxjs';
 import { CommonService } from '@app/services/common-service/common.service';
 import { SocketService } from '@app/services/socket.service';
 import { MachineStatesService } from '@app/modules/production-management/shared/services/machine-states.service';
+import { MS_PER_DAY, factoryDayStart } from '@shared/utilities/date-format';
 
 /** Per-state accumulated durations for one machine, in seconds — keyed by
  * `machine_states.id`, not a fixed Active/Idle/Inactive/Maintenance/Fault set. */
@@ -25,8 +26,8 @@ export interface MachineDurations {
 
 interface MachineDurationEntry {
   state: number | null; // machine_state_id
-  since: number; // epoch ms of the last state change
-  base: Record<number, number>; // accumulated ms of closed intervals (today), by machine_state_id
+  since: number; // epoch ms the current state was entered — may be before today
+  base: Record<number, number>; // accumulated ms of closed intervals within today, by machine_state_id
 }
 
 export interface MachineStateEventRow {
@@ -96,7 +97,8 @@ export class MachineDurationService {
 
   private readonly states = new Map<string, MachineDurationEntry>();
   private readonly lastSeen = new Map<string, number>();
-  private seedDate = '';
+  /** Epoch ms of the factory midnight opening "today"; every today-total is clipped to it. */
+  private dayStartMs = factoryDayStart().getTime();
 
   constructor(
     private readonly socket: SocketService,
@@ -104,8 +106,6 @@ export class MachineDurationService {
     private readonly machineStates: MachineStatesService,
     private readonly destroyRef: DestroyRef,
   ) {
-    this.seedDate = this.todayKey();
-
     interval(1000)
       .pipe(takeUntilDestroyed())
       .subscribe(() => {
@@ -119,6 +119,7 @@ export class MachineDurationService {
 
   /** Live per-state durations (seconds) for a machine key (`String(MNR)`). */
   snapshot(key: string | null | undefined): MachineDurations {
+    this.rolloverIfNewDay();
     const entry = key ? this.states.get(key) : undefined;
     if (!entry) {
       const lastSeenAt = key ? this.lastSeen.get(key) ?? null : null;
@@ -130,14 +131,13 @@ export class MachineDurationService {
     for (const [stateId, ms] of Object.entries(entry.base)) {
       perState[Number(stateId)] = Math.floor(ms / 1000);
     }
-    // Current state's *today total* = continuous time since it was entered (DB
-    // `started_at`), added on top of today's already-closed intervals for that same
-    // state. `currentSeconds` is kept separate — just the live delta since the last
-    // transition, for a "time in this status" display that resets on every change.
+    // The current state's *today total* adds only its part since factory midnight to
+    // today's closed intervals. `currentSeconds` is the continuous time since the state
+    // was entered (may span days) — the card's "In state for" timer.
     let currentSeconds = 0;
     if (entry.state !== null) {
       currentSeconds = Math.floor(Math.max(0, now - entry.since) / 1000);
-      perState[entry.state] = (perState[entry.state] ?? 0) + currentSeconds;
+      perState[entry.state] = (perState[entry.state] ?? 0) + Math.floor(this.msSinceDayStart(entry.since, now) / 1000);
     }
 
     const total = Object.values(perState).reduce((sum, seconds) => sum + seconds, 0);
@@ -171,7 +171,8 @@ export class MachineDurationService {
         const untilMs = Date.parse(data.until);
         if (!Number.isFinite(sinceMs) || !Number.isFinite(untilMs)) return;
 
-        const ms = Math.max(0, untilMs - sinceMs);
+        this.rolloverIfNewDay();
+        const ms = this.msSinceDayStart(sinceMs, untilMs);
         const entry = this.getEntry(String(data.machine_id));
         entry.base[data.from_state_id] = Math.max(0, (entry.base[data.from_state_id] ?? 0) - ms);
         entry.base[data.to_state_id] = (entry.base[data.to_state_id] ?? 0) + ms;
@@ -206,6 +207,8 @@ export class MachineDurationService {
 
   /** Close the previous state's interval and start the new one. */
   private apply(key: string, stateId: number, now: number): void {
+    // Roll over first, so a segment closed just after midnight only keeps its post-midnight part.
+    this.rolloverIfNewDay();
     const entry = this.states.get(key);
     if (!entry) {
       this.states.set(key, { state: stateId, since: now, base: {} });
@@ -213,14 +216,14 @@ export class MachineDurationService {
     }
     if (entry.state === stateId) return;
     if (entry.state !== null) {
-      entry.base[entry.state] = (entry.base[entry.state] ?? 0) + Math.max(0, now - entry.since);
+      entry.base[entry.state] = (entry.base[entry.state] ?? 0) + this.msSinceDayStart(entry.since, now);
     }
     entry.state = stateId;
     entry.since = now;
   }
 
   private async seed(): Promise<void> {
-    const midnightIso = new Date(new Date().setHours(0, 0, 0, 0)).toISOString();
+    const midnightIso = new Date(this.dayStartMs).toISOString();
 
     // Two independent queries: the open-row anchor (current state) must not
     // depend on the datetime literal that the accumulated-totals query needs.
@@ -232,18 +235,20 @@ export class MachineDurationService {
       ),
       firstValueFrom(
         this.common.get<{ value: MachineStateEventRow[] }>(
-          `MachineStateEvents?$filter=started_at ge ${midnightIso} and ended_at ne null`,
+          `MachineStateEvents?$filter=ended_at gt ${midnightIso}`,
         ),
       ),
     ]);
 
-    // Today's accumulated totals per state (closed intervals).
+    // Today's accumulated totals per state: closed intervals ending after midnight,
+    // clipped so a segment that began yesterday only counts its part since midnight.
     if (closed.status === 'fulfilled') {
       for (const row of closed.value?.value ?? []) {
-        if (row.machine_state_id == null) continue;
+        if (row.machine_state_id == null || !row.ended_at) continue;
         const entry = this.getEntry(String(row.machine_id));
         entry.base[row.machine_state_id] =
-          (entry.base[row.machine_state_id] ?? 0) + (Number(row.duration_seconds) || 0) * 1000;
+          (entry.base[row.machine_state_id] ?? 0) +
+          this.msSinceDayStart(Date.parse(row.started_at), Date.parse(row.ended_at));
       }
     }
 
@@ -268,21 +273,24 @@ export class MachineDurationService {
     return entry;
   }
 
+  /** Length of `[fromMs, toMs)` that falls within today (after factory midnight). */
+  private msSinceDayStart(fromMs: number, toMs: number): number {
+    if (!Number.isFinite(fromMs) || !Number.isFinite(toMs)) return 0;
+    return Math.max(0, toMs - Math.max(fromMs, this.dayStartMs));
+  }
+
   /**
-   * At midnight, reset the accumulated (non-current) totals. `since` is kept so
-   * the current state's counter stays continuous across the day boundary.
+   * At factory midnight, reset the accumulated (non-current) totals. `since` is kept so
+   * "In state for" stays continuous; the current state's today total restarts from
+   * midnight through `msSinceDayStart`. Checked on every read/write, not only on the
+   * 1 s tick (throttled in background tabs); the common path is one comparison.
    */
   private rolloverIfNewDay(): void {
-    const today = this.todayKey();
-    if (today === this.seedDate) return;
-    this.seedDate = today;
+    if (Date.now() < this.dayStartMs + MS_PER_DAY) return;
+    this.dayStartMs = factoryDayStart().getTime();
 
     for (const entry of this.states.values()) {
       entry.base = {};
     }
-  }
-
-  private todayKey(): string {
-    return new Date().toDateString();
   }
 }

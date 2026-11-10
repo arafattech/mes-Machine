@@ -62,6 +62,8 @@ Flat input wins when non-empty/non-zero. `dataSource` object is the fallback.
   showNewButton?: boolean;     // Emphasized "Add" button — wire (newButtonClick)
   addButtonText?: string;
   showDownload?: boolean;
+  showPrint?: boolean;         // "print" icon button right after Download — wire (printButtonClick)
+  disablePrintButton?: boolean;
   showSegmentButton?: boolean; // Active/Inactive/All segments
   // Extra action button (e.g. bulk Approve) — wire (extraButtonClick):
   showExtraButton?: boolean;
@@ -75,6 +77,17 @@ Flat input wins when non-empty/non-zero. `dataSource` object is the fallback.
 **Extra button** — generic toolbar action. Parent controls visibility/disable (reassign `toolbarConfig` object so OnPush picks it up). Use `extraButtonDesign: 'Emphasized'` for filled-border New-button style; default `'Transparent'`.
 
 ---
+
+## sortBy
+
+`sortBy` + `sortDirection` set the initial sort by marking the matching column as sorted. When
+`sortBy` is a nav path (`employee.last_name`) or has **no column** in the grid (e.g. `'id'` for
+newest-first when the id isn't displayed), `buildFetchParams()` sends it as a static
+`$orderby=<field> <dir>` instead, as long as the user hasn't sorted another column.
+
+Every OData sort gets a stable `id` tiebreaker (stops rows repeating/skipping across `$skip` pages when
+the sort column has ties). It uses the **primary sort's direction**: `attendance_date desc` →
+`attendance_date desc, id desc`. Skipped when the sort is already on `id`, and for `type: 'api'`.
 
 ## searchFields — OData query patterns
 
@@ -96,6 +109,17 @@ searchFields: ['employee.first_name', 'status', 'leaveType.name']
 `onSearchInput()` sets `this.searchText` synchronously on **every** keystroke (not only on clear), so the toolbar `[value]="searchText"` binding always mirrors the live `<ui5-input>` DOM value. Every keystroke value (including `''`) is also pushed into `searchInput$` (`debounceTime(600)` + `distinctUntilChanged()`), so a pending debounce from an earlier keystroke is always superseded by the latest one and can never fire late with stale text after the field has been cleared. Clearing (empty value) still triggers `runSearch('')` / `onSearchForCustomAPI('')` immediately for responsive UX, in addition to being pushed through the debounced subject.
 
 ---
+
+## Column header dropdown filters (`filterControl`)
+
+`filterControl: { type: 'multiSelect', options }` renders a dropdown in the column header. It bypasses
+AG Grid's filter model: the header calls `setColumnOdataFilter(colId, model)`, which builds the OData
+fragment (default `(field eq 'a' or field eq 'b')`) and reloads.
+
+- `toOdataFilter?: (values: string[]) => string` — custom fragment for the selected values (e.g. a
+  value that means `eq null`); return `''` for no filter.
+- `(columnOdataFilterChange)` emits `{ colId, values }` on every change so hosts can mirror the
+  selection (e.g. into export payloads), since it never appears in `getFilterModel()`.
 
 ## Column definitions (`AgGridTableColumn`)
 
@@ -255,3 +279,6 @@ Update this file whenever:
 - Query builder patterns change
 - New cell renderers / data types added
 - Theme behavior changes
+
+## Load errors
+When a server fetch fails, the no-rows overlay shows an "Unable to load data" error state with a Retry button (re-runs the load) instead of the "no data" illustration. The state clears on the next load attempt.

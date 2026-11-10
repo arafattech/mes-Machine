@@ -4,6 +4,7 @@ import { RolePermissionService } from '@app/services/role-permission-service/rol
 import { MachineProductionTargetFormComponent } from '@base-data-module/machine-management/machine-production-target/machine-production-target-form/machine-production-target-form.component';
 import { saveMode } from '@shared/enums/saveMode';
 import { Localization } from '@app/shared/utilities/localization';
+import { formatFactoryDate } from '@shared/utilities/date-format';
 import { Permissions } from '@app/shared/enums/permissions';
 import { AgGridTableComponent } from '@app/shared/components/ag-grid-table/ag-grid-table.component';
 import {
@@ -97,7 +98,6 @@ export class MachineProductionTargetListComponent {
       filter: false,
       sortable: false,
       dataType: GridTableColumnDataType.Date,
-      valueFormatter: ({ value }: any) => (value ? new Date(value).toLocaleDateString() : ''),
     },
     {
       field: 'effective_to',
@@ -106,7 +106,6 @@ export class MachineProductionTargetListComponent {
       filter: false,
       sortable: false,
       dataType: GridTableColumnDataType.Date,
-      valueFormatter: ({ value }: any) => (value ? new Date(value).toLocaleDateString() : ''),
     },
     {
       field: 'created_at',
@@ -115,7 +114,7 @@ export class MachineProductionTargetListComponent {
       filter: false,
       floatingFilter: false,
       sortable: false,
-      valueFormatter: ({ value }: any) => (value ? new Date(value).toLocaleDateString() : ''),
+      valueFormatter: ({ value }: any) => formatFactoryDate(value),
     },
   ];
 

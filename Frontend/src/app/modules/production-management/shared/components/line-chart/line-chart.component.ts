@@ -9,6 +9,7 @@ import {
 import { ChartConfiguration, ChartOptions, TooltipItem } from 'chart.js';
 import { NgChartsModule } from 'ng2-charts';
 import { DateHours } from '@production-module/shared/utils/types';
+import { formatFactoryDayMonth } from '@shared/utilities/date-format';
 
 @Component({
   selector: 'app-line-chart',
@@ -121,7 +122,7 @@ export class LineChartComponent {
   }
 
   private formatDate(date: Date): string {
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    return formatFactoryDayMonth(date);
   }
 
   private normalize(rows: DateHours[]): DateHours[] {

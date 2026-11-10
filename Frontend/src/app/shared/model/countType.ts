@@ -4,6 +4,7 @@ export class CountType implements Deserializable {
   id?: number;
   name: string = '';
   prefix: string = '';
+  is_active?: boolean = true;
   custom_id?: string;
   created_at?: string;
   updated_at?: string;

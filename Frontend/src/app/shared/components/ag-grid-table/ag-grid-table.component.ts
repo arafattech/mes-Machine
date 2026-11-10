@@ -77,6 +77,7 @@ import {
   AgGridMultiSelectData,
   AgGridTableCellEditEvent,
   AgGridTableColumn,
+  AgGridTableColumnOdataFilterChange,
   AgGridTableColumnSetting,
   AgGridTableDisplayConfig,
   AgGridTableEditorConfig,
@@ -187,6 +188,8 @@ export class AgGridTableComponent<TData = any>
       syncButtonDisable: t?.syncButtonDisable ?? false,
       showDownload: t?.showDownload ?? false,
       disableDownloadButton: t?.disableDownloadButton ?? false,
+      showPrint: t?.showPrint ?? false,
+      disablePrintButton: t?.disablePrintButton ?? false,
       showUpload: t?.showUpload ?? false,
       disableUploadButton: t?.disableUploadButton ?? false,
       showDeleteButtonInHeader: t?.showDeleteButtonInHeader ?? false,
@@ -229,6 +232,12 @@ export class AgGridTableComponent<TData = any>
   @Input() selectionMode: 'Single' | 'Multiple' | 'None' = 'None';
   @Input() selectionRowBehavior: 'Row' | 'RowOnly' | 'RowSelector' = 'RowOnly';
   @Input() selectedRowsId: Record<string, boolean> = {};
+  /**
+   * Row whose details the parent is showing (master-detail). Highlighted independently of
+   * row selection, so it works in 'Multiple' grids where selection means checkboxes
+   * (e.g. "include in payroll") and must not be touched just to mark the open row.
+   */
+  @Input() activeRowId: string | number | null = null;
   @Input() disableColumnRule: ((row: TData) => boolean) | null = null;
 
   // ─── Misc display (not yet grouped) ─────────────────────────────────────────────
@@ -237,6 +246,8 @@ export class AgGridTableComponent<TData = any>
   @Input() globalFilterValue = '';     // client-side quick filter
   @Input() isAdmin = true;
   @Input() isTreeTable = false;        // enable tree display mode; data must be a flat array with _level:0|1, _parentId, _isLeaf on each row
+  @Input() treeColumnHeader = $localize`Modules Name`; // header of the tree (group/leaf name) column
+  @Input() treeExpandAll = false;      // tree groups start expanded instead of collapsed
   @Input() onDoubleClick?: (row: TData) => void;
 
   // ─── Illustrated / empty-state message ──────────────────────────────────────────
@@ -327,6 +338,7 @@ export class AgGridTableComponent<TData = any>
   @Output() resetButtonClick = new EventEmitter<void>();
   @Output() syncButtonClick = new EventEmitter<void>();
   @Output() downloadButtonClick = new EventEmitter<void>();
+  @Output() printButtonClick = new EventEmitter<void>();
   @Output() uploadButtonClick = new EventEmitter<void>();
   @Output() deleteButtonClick = new EventEmitter<void>();
   @Output() settingsButtonClick = new EventEmitter<void>();
@@ -369,6 +381,9 @@ export class AgGridTableComponent<TData = any>
   @Output() moreRowsLoaded = new EventEmitter<any[]>();
   @Output() dataLoaded = new EventEmitter<number>();
   @Output() onColumnFilter = new EventEmitter<any>();
+  // Header multiSelect selections bypass AG Grid's filter model — report them so hosts
+  // can mirror the filter elsewhere (e.g. export payloads).
+  @Output() columnOdataFilterChange = new EventEmitter<AgGridTableColumnOdataFilterChange>();
   @Output() columnReorder = new EventEmitter<any>();
   @Output() customSorting = new EventEmitter<any>();
   @Output() searchClick = new EventEmitter<any>();
@@ -413,6 +428,7 @@ export class AgGridTableComponent<TData = any>
   // reference between change-detection cycles (the getter previously allocated a new
   // object every CD pass → repeated AG Grid input diffing). Rebuilt only when one of
   // the illustrated-message inputs actually changes (see ngOnChanges).
+  private loadFailed = false;
   private _noRowsOverlayParams: Record<string, unknown> = this.buildNoRowsOverlayParams();
 
   get noRowsOverlayParams(): Record<string, unknown> {
@@ -427,7 +443,16 @@ export class AgGridTableComponent<TData = any>
       subtitle: this.IllustratedSubtitle,
       height: this.IllustratedMessageHeight,
       message: this.noRowsMessage,
+      loadFailed: this.loadFailed,
+      onRetry: () => void this.loadRows(),
     };
+  }
+
+  private setLoadFailed(failed: boolean): void {
+    if (this.loadFailed === failed) return;
+    this.loadFailed = failed;
+    this._noRowsOverlayParams = this.buildNoRowsOverlayParams();
+    this.gridApi?.setGridOption('noRowsOverlayComponentParams', this._noRowsOverlayParams);
   }
 
   // ─── Runtime state ────────────────────────────────────────────────────────────
@@ -442,6 +467,12 @@ export class AgGridTableComponent<TData = any>
   // WeakMap keeps the mapping alive only while the data object exists — no leak.
   private readonly _localRowIdMap = new WeakMap<object, string>();
   private _localRowIdCounter = 0;
+
+  protected readonly rowClassRules = {
+    'ag-grid-table-row--active': (params: { data?: unknown }) =>
+      this.activeRowId !== null &&
+      String((params.data as Record<string, unknown> | undefined)?.['id'] ?? '') === String(this.activeRowId),
+  };
 
   protected readonly rowIdGetter = (params: GetRowIdParams): string => {
     const data = params.data as any;
@@ -487,6 +518,7 @@ export class AgGridTableComponent<TData = any>
   private knownRowCount: number | undefined;
   // Scroll-based incremental load state
   private readonly SCROLL_PAGE_SIZE = 40;
+  private readonly FETCH_ALL_PAGE_SIZE = 500;
   private readonly SCROLL_TRIGGER_THRESHOLD_PX = 400;
   private currentSkip = 0;
   private allRowsLoaded = false;
@@ -611,6 +643,9 @@ export class AgGridTableComponent<TData = any>
   }
 
   ngOnChanges(changes: SimpleChanges): void {
+    if (changes['activeRowId'] && !changes['activeRowId'].firstChange) {
+      this.redrawActiveRows(changes['activeRowId'].previousValue);
+    }
     // Re-merge a config with its defaults whenever the parent reassigns it.
     if (changes['dataSource'] || changes['url'] || changes['customUrl'] ||
         changes['expandQuery'] || changes['filterQuery'] || changes['additionalFilterQuery'] ||
@@ -629,6 +664,8 @@ export class AgGridTableComponent<TData = any>
         this.scheduleFitColumns();
       }
     }
+
+    if (changes['selectedRowsId']) this.applySelectedRowsId();
 
     // External busy override
     if (changes['isBusy'] && this.gridApi) {
@@ -757,6 +794,31 @@ export class AgGridTableComponent<TData = any>
     // permanently missing the row nodes for whichever batch has no next batch
     // to "catch up" the strays on — i.e. always the very last one).
     if (this.selectAllActive) this.selectFreshlyLoadedRows();
+    this.applySelectedRowsId();
+  }
+
+  // Only the previous and the new active row change class — redraw just those two.
+  private redrawActiveRows(previousId: string | number | null): void {
+    if (!this.gridApi) return;
+    const rowNodes = [previousId, this.activeRowId]
+      .filter((id): id is string | number => id !== null && id !== undefined)
+      .map((id) => this.gridApi!.getRowNode(String(id)))
+      .filter((node): node is NonNullable<typeof node> => !!node);
+    if (rowNodes.length) this.gridApi.redrawRows({ rowNodes });
+  }
+
+  // Parent-driven selection (e.g. a master list that auto-picks its first row): mirror
+  // `selectedRowsId` onto the row nodes so the active row is highlighted. Re-applied on
+  // every model update because reloaded rows come back unselected. Empty map = no-op,
+  // so grids that don't bind the input keep purely user-driven selection.
+  private applySelectedRowsId(): void {
+    if (!this.gridApi || Object.keys(this.selectedRowsId).length === 0) return;
+    this.gridApi.forEachNode((node) => {
+      if (node.rowPinned || !node.data) return;
+      const id = String((node.data as Record<string, unknown>)['id'] ?? '');
+      const shouldSelect = !!this.selectedRowsId[id];
+      if (node.isSelected() !== shouldSelect) node.setSelected(shouldSelect, false, 'api');
+    });
   }
 
   // Columns + initial rows are laid out — first chance to fit to real width.
@@ -923,7 +985,7 @@ export class AgGridTableComponent<TData = any>
     // so forward the row-body click to the same toggle the checkbox uses. Clicks that
     // originate from the checkbox cell are skipped — its own change event already
     // toggled the row, and re-toggling here would cancel it out.
-    if (this.isTreeTable) {
+    if (this.isTreeTable && this.selectionMode === 'Multiple') {
       const src = event.event?.target as HTMLElement | null;
       if (!src?.closest('app-ag-grid-tree-checkbox-cell-renderer')) {
         this.toggleTreeRowSelection(event);
@@ -1393,6 +1455,23 @@ export class AgGridTableComponent<TData = any>
 
   getSelectedRows(): TData[] { return this.gridApi?.getSelectedRows() ?? []; }
 
+  // True only while the header select-all is engaged and no loaded row has been unticked since.
+  isSelectAllActive(): boolean { return this.selectAllActive && this.getSelectAllState() === 'all'; }
+
+  // Resolves every row matching the current search / filters / sort, paging past what the
+  // scroll-driven load has fetched so far. Lets a select-all consumer act on the full
+  // dataset without the user scrolling it into the grid first.
+  async fetchAllRows(): Promise<TData[]> {
+    if (!this.gridApi) return [];
+    const rows = [...this.resolvedRowData];
+    while (rows.length < this.totalRowCount) {
+      const result = await this.resolveRows(this.buildFetchRequest(rows.length, rows.length + this.FETCH_ALL_PAGE_SIZE));
+      if (!result?.rows.length) break;
+      rows.push(...result.rows);
+    }
+    return rows;
+  }
+
   getGridApi(): GridApi<TData> | undefined { return this.gridApi; }
 
   setStaticData(data: TData[]): void {
@@ -1518,15 +1597,21 @@ export class AgGridTableComponent<TData = any>
   // Called by in-header multiSelect via grid context. Builds the column's OData fragment
   // from its filter model (or clears it), then reloads the datasource with the new $filter.
   setColumnOdataFilter(colId: string, model: any): void {
-    const fragment = model
-      ? this.queryBuilder.buildColumnFilterExpression(colId, model)
-      : '';
+    const values = model ? String(model.filter ?? '').split('|').filter(Boolean) : [];
+    const filterControl = this.columns.find((col) => (col.colId ?? col.field) === colId)?.filterControl;
+    const customBuilder = filterControl?.type === 'multiSelect' ? filterControl.toOdataFilter : undefined;
+    const fragment = !model
+      ? ''
+      : customBuilder
+        ? customBuilder(values)
+        : this.queryBuilder.buildColumnFilterExpression(colId, model);
     if (fragment) {
       this.columnOdataFilters.set(colId, fragment);
     } else {
       this.columnOdataFilters.delete(colId);
     }
     this.onColumnFilter.emit(this.gridApi?.getFilterModel());
+    this.columnOdataFilterChange.emit({ colId, values });
     this.refreshGridData(true);
   }
 
@@ -1555,11 +1640,15 @@ export class AgGridTableComponent<TData = any>
       params = params.delete('$count');
     }
 
-    // Nav-property sortBy (e.g. 'employee.last_name') is skipped by buildSortQuery
-    // because lodata.io rejects $orderby on nav paths from dynamic sort model.
-    // Re-apply it here as a static $orderby when no direct-field sort is active.
-    const sortByField = this.ResolveDataSource.sortBy?.replace(/\./g, '/');
-    if (sortByField?.includes('/') && !params.has('$orderby')) {
+    // sortBy is normally applied as the matching column's sort state. Two cases never
+    // reach buildSortQuery that way, so re-apply them here as a static $orderby when no
+    // other sort is active: nav-property sortBy (e.g. 'employee.last_name' — lodata.io
+    // rejects nav paths from the dynamic sort model) and a sortBy with no column of its
+    // own (e.g. 'id' for newest-first on a grid that doesn't display the id).
+    const sortBy = this.ResolveDataSource.sortBy;
+    const sortByField = sortBy?.replace(/\./g, '/');
+    const sortByHasColumn = !!sortBy && !!this.gridApi?.getColumn(sortBy);
+    if (sortByField && (sortByField.includes('/') || !sortByHasColumn) && !params.has('$orderby')) {
       params = params.set('$orderby', `${sortByField} ${this.ResolveDataSource.sortDirection ?? 'asc'}`);
     }
 
@@ -1642,6 +1731,20 @@ export class AgGridTableComponent<TData = any>
   // ─── Private: client-side row fetch ──────────────────────────────────────────
   // Fetches all data from the API, stores in resolvedRowData, and lets AG Grid
   // handle sorting / filtering / search client-side on the loaded set.
+  private buildFetchRequest(startRow: number, endRow: number): AgGridTableFetchRequest<TData> {
+    return {
+      startRow,
+      endRow,
+      sortModel: (this.gridApi?.getColumnState() ?? [])
+        .filter(s => s.sort != null)
+        .sort((a, b) => (a.sortIndex ?? 0) - (b.sortIndex ?? 0))
+        .map(s => ({ colId: s.colId!, sort: s.sort as 'asc' | 'desc' })),
+      filterModel: this.gridApi?.getFilterModel() ?? {},
+      searchText: this.searchText,
+      columns: this.columns,
+    };
+  }
+
   private async loadRows(): Promise<void> {
     if (!this.gridApi) return;
 
@@ -1653,20 +1756,11 @@ export class AgGridTableComponent<TData = any>
     this.isFetchingMore = false;
     this.isGridLoading = true;
     this.resolvedRowData = [];
+    this.setLoadFailed(false);
     this.gridApi.setGridOption('loading', true);
     this.cdr.markForCheck();
 
-    const request: AgGridTableFetchRequest<TData> = {
-      startRow: 0,
-      endRow: this.SCROLL_PAGE_SIZE,
-      sortModel: (this.gridApi?.getColumnState() ?? [])
-        .filter(s => s.sort != null)
-        .sort((a, b) => (a.sortIndex ?? 0) - (b.sortIndex ?? 0))
-        .map(s => ({ colId: s.colId!, sort: s.sort as 'asc' | 'desc' })),
-      filterModel: this.gridApi?.getFilterModel() ?? {},
-      searchText: this.searchText,
-      columns: this.columns,
-    };
+    const request = this.buildFetchRequest(0, this.SCROLL_PAGE_SIZE);
 
     try {
       const result = await this.resolveRows(request);
@@ -1684,6 +1778,7 @@ export class AgGridTableComponent<TData = any>
       this.cdr.markForCheck();
     } catch (err) {
       console.error('[AgGridTable] load failed', err);
+      this.setLoadFailed(true);
       this.isGridLoading = false;
       this.gridApi?.setGridOption('loading', false);
       this.cdr.markForCheck();
@@ -1696,17 +1791,7 @@ export class AgGridTableComponent<TData = any>
     this.isFetchingMore = true;
     this.cdr.markForCheck();
 
-    const request: AgGridTableFetchRequest<TData> = {
-      startRow: this.currentSkip,
-      endRow: this.currentSkip + this.SCROLL_PAGE_SIZE,
-      sortModel: (this.gridApi?.getColumnState() ?? [])
-        .filter(s => s.sort != null)
-        .sort((a, b) => (a.sortIndex ?? 0) - (b.sortIndex ?? 0))
-        .map(s => ({ colId: s.colId!, sort: s.sort as 'asc' | 'desc' })),
-      filterModel: this.gridApi?.getFilterModel() ?? {},
-      searchText: this.searchText,
-      columns: this.columns,
-    };
+    const request = this.buildFetchRequest(this.currentSkip, this.currentSkip + this.SCROLL_PAGE_SIZE);
 
     try {
       const result = await this.resolveRows(request);
@@ -1807,7 +1892,7 @@ export class AgGridTableComponent<TData = any>
 
     const treeCol: ColDef<TData>[] = this.isTreeTable ? [{
       colId: '__tree__',
-      headerName: $localize`Modules Name`,
+      headerName: this.treeColumnHeader,
       field: 'name' as any,
       minWidth: 220,
       flex: 1,
@@ -1820,7 +1905,7 @@ export class AgGridTableComponent<TData = any>
       cellRenderer: AgGridTreeCellRendererComponent,
       cellRendererParams: {
         onToggle: (groupId: string) => this.toggleTreeGroup(groupId),
-        isExpanded: (groupId: string) => this._expandedTreeGroups.has(groupId),
+        isExpanded: (groupId: string) => this.isTreeGroupExpanded(groupId),
       },
     } as ColDef<TData>] : [];
 
@@ -1889,7 +1974,7 @@ export class AgGridTableComponent<TData = any>
       ...base,
       {
         colId: '__actions__',
-        headerName: $localize`Action`,
+        headerName: $localize`Actions`,
         pinned: 'right',
         lockPinned: true,
         lockVisible: true,
@@ -2158,10 +2243,16 @@ export class AgGridTableComponent<TData = any>
     if (saved.columnState?.length) {
       // Strip persisted sort — only sortBy config drives $orderby. Without this,
       // a previously user-sorted column would restore its sort state and silently
-      // inject $orderby into every request on reload.
-      const stateToRestore = this.ResolveDataSource.sortBy
-        ? saved.columnState.map((s: ColumnState) => ({ ...s, sort: null, sortIndex: null }))
-        : saved.columnState;
+      // inject $orderby into every request on reload. Without a sortBy, a saved sort
+      // survives only on columns that are still sortable: a column later marked
+      // `sortable: false` (computed / nested field) would otherwise keep sending an
+      // $orderby the server rejects.
+      const sortBy = this.ResolveDataSource.sortBy;
+      const stateToRestore = saved.columnState.map((s: ColumnState) =>
+        sortBy || !this.gridApi?.getColumn(s.colId)?.isSortable()
+          ? { ...s, sort: null, sortIndex: null }
+          : s,
+      );
       // applyColumnState reconciles by colId — columns missing from saved state keep
       // their def defaults, and saved entries for removed columns are ignored. So
       // added/removed columns are handled gracefully without breaking the layout.
@@ -2214,7 +2305,12 @@ export class AgGridTableComponent<TData = any>
   }
 
   // ─── Tree table (isTreeTable) ─────────────────────────────────────────────
+  // Groups the user toggled away from the default state (collapsed, or expanded with treeExpandAll).
   private _expandedTreeGroups = new Set<string>();
+
+  private isTreeGroupExpanded(groupId: string): boolean {
+    return this.treeExpandAll !== this._expandedTreeGroups.has(groupId);
+  }
 
   protected readonly treeIsExternalFilterPresent = (): boolean => this.isTreeTable;
 
@@ -2222,7 +2318,7 @@ export class AgGridTableComponent<TData = any>
     if (!node.data) return true;
     if ((node.data as any)._level !== 1) return true;
     if (this.searchText?.trim()) return true;
-    return this._expandedTreeGroups.has(String((node.data as any)._parentId ?? ''));
+    return this.isTreeGroupExpanded(String((node.data as any)._parentId ?? ''));
   };
 
   toggleTreeGroup(groupId: string): void {
@@ -2235,7 +2331,7 @@ export class AgGridTableComponent<TData = any>
   }
 
   private initTreeExpansion(): void {
-    this._expandedTreeGroups.clear(); // all groups start collapsed
+    this._expandedTreeGroups.clear(); // every group starts in the default state (see isTreeGroupExpanded)
   }
 
   // Tri-state for a group from its children's AG selection (hidden/collapsed nodes count too).

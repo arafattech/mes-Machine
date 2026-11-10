@@ -41,11 +41,11 @@
       <ui5-label show-colon i18n>Color</ui5-label>
       <div class="flex items-center gap-2 w-full">
         <div
-          class="rounded h-6 flex-[0_0_80%]"
+          class="rounded h-6 flex-1 min-w-0"
           [style.background-color]="machineState.color || 'rgb(0, 128, 0)'"
         ></div>
         <ui5-button
-          class="flex-[0_0_20%]"
+          class="shrink-0"
           design="Emphasized"
           (click)="openColorPickerDialog()" i18n>Select
         </ui5-button>

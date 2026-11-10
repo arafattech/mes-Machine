@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Output } from '@angular/core';
+import { Component, EventEmitter, Output, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { CommonService } from '@app/services/common-service/common.service';
 import { ToastService } from '@app/services/toast-service/toast.service';
@@ -7,7 +7,9 @@ import { ValueState } from '@app/shared/utilities/value-state-wrapper';
 import { ProductionLot, ProductionLotCount, ProductionLotItem } from '@app/shared/model/productionLot';
 import { LotStatus } from '@production-module/shared/enums/lot-status';
 import { MachineOverviewDataService } from '@production-module/shared/services/machine-overview-data.service';
+import { ProducibleProductPicker } from '@production-module/shared/services/producible-product-picker';
 import { ShiftOption } from '@production-module/shared/interface/interface';
+import { factoryToday, fromPickerDate } from '@shared/utilities/date-format';
 import {
   AgGridTableColumn,
   AgGridTableDisplayConfig,
@@ -35,6 +37,7 @@ interface CountUiState {
 @Component({
   selector: 'app-production-lot-batch-form',
   templateUrl: './production-lot-batch-form.component.html',
+  providers: [ProducibleProductPicker],
 })
 export class ProductionLotBatchFormComponent {
   @Output() RefreshTable = new EventEmitter<void>();
@@ -46,7 +49,18 @@ export class ProductionLotBatchFormComponent {
   isReadOnly = false;
   selectedTab: 'details' | 'counts' = 'details';
 
-  batch: ProductionLot = new ProductionLot().deserialize({});
+  readonly productPicker = inject(ProducibleProductPicker);
+  private currentBatch = new ProductionLot().deserialize({});
+
+  /** Every assigned batch also resolves its counts' product names for display. */
+  get batch(): ProductionLot {
+    return this.currentBatch;
+  }
+  set batch(batch: ProductionLot) {
+    this.currentBatch = batch;
+    this.productPicker.resolve(batch.counts.map((count) => count.product_id));
+  }
+
   draftCounts: DraftCount[] = [{ count_type_id: null, product_id: null }];
 
   cancelConfirmOpen = false;
@@ -71,7 +85,6 @@ export class ProductionLotBatchFormComponent {
   workOrders: (OptionRow & { productName: string | null })[] = [];
   machines: OptionRow[] = [];
   shifts: ShiftOption[] = [];
-  products: OptionRow[] = [];
   countTypes: OptionRow[] = [];
   private optionsLoaded = false;
 
@@ -97,6 +110,7 @@ export class ProductionLotBatchFormComponent {
     this.resetValueStates();
     this.open = true;
     this.loadOptions();
+    this.productPicker.reset();
   }
 
   openManage(batch: ProductionLot, isReadOnly = false): void {
@@ -106,6 +120,7 @@ export class ProductionLotBatchFormComponent {
     this.resetValueStates();
     this.open = true;
     this.loadOptions();
+    this.productPicker.reset();
     this.reloadBatch(batch.id!);
   }
 
@@ -149,7 +164,7 @@ export class ProductionLotBatchFormComponent {
   }
 
   onLotDateChange(): void {
-    this.valueStateOptions.lotDate = this.batch.lot_date ? ValueState.None : ValueState.Negative;
+    this.valueStateOptions.lotDate = fromPickerDate(this.batch.lot_date) ? ValueState.None : ValueState.Negative;
   }
 
   get isHeaderEditable(): boolean {
@@ -179,8 +194,10 @@ export class ProductionLotBatchFormComponent {
   }
 
   productText(productId: number | null): string {
-    return this.products.find((p) => p.id === productId)?.text ?? '';
+    return this.productPicker.nameOf(productId);
   }
+
+
 
   onDraftCountTypeChange(draft: DraftCount, event: any): void {
     const id = Number(event?.detail?.item?.value);
@@ -470,7 +487,7 @@ export class ProductionLotBatchFormComponent {
       this.valueStateOptions.machine = ValueState.Negative;
       isValid = false;
     }
-    if (!this.batch.lot_date) {
+    if (!fromPickerDate(this.batch.lot_date)) {
       this.valueStateOptions.lotDate = ValueState.Negative;
       isValid = false;
     }
@@ -514,13 +531,6 @@ export class ProductionLotBatchFormComponent {
     this.machineOverviewDataService.getActiveShifts().subscribe((shifts) => {
       this.shifts = shifts;
     });
-    this.commonService
-      .get<{ value: { id: number; product_name: string }[] }>(
-        'Products?$filter=is_active eq true&$select=id,product_name',
-      )
-      .subscribe((res) => {
-        this.products = (res.value ?? []).map((p) => ({ id: p.id, text: p.product_name }));
-      });
 
     this.commonService
       .get<{ value: { id: number; name: string; prefix?: string }[] }>('CountTypes?$select=id,name,prefix')
@@ -682,6 +692,6 @@ export class ProductionLotBatchFormComponent {
   }
 
   private today(): string {
-    return new Date().toISOString().slice(0, 10);
+    return factoryToday();
   }
 }

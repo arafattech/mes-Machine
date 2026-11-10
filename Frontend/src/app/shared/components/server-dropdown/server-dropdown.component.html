@@ -5,15 +5,14 @@
     [value]="displayValue"
     [disabled]="disabled"
     (input)="onInput($event)"
-    (focusin)="onFocus()"
   >
     <ui5-busy-indicator *ngIf="loading || loadingMore" slot="icon" active [delay]="0" size="S"></ui5-busy-indicator>
     <ui5-icon
-      *ngIf="!loading && !loadingMore"
+      *ngIf="!loading && !loadingMore && !disabled"
       slot="icon"
       class="cursor-pointer"
       [name]="showClearIcon ? 'decline' : 'slim-arrow-down'"
-      (click)="showClearIcon ? clearValue() : onFocus()"
+      (click)="showClearIcon ? clearValue() : toggleList()"
     ></ui5-icon>
   </ui5-input>
 
@@ -36,10 +35,6 @@
       >
         <div *ngIf="loading" class="flex items-center justify-center py-3">
           <ui5-busy-indicator active [delay]="0" size="S"></ui5-busy-indicator>
-        </div>
-
-        <div *ngIf="!loading && !hasSearched" class="px-3 py-4 text-sm text-center text-[var(--sapContent_LabelColor,#64748b)]" i18n>
-          Type to search
         </div>
 
         <ng-container *ngIf="!loading && hasSearched">

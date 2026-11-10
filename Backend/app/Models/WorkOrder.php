@@ -17,6 +17,7 @@ class WorkOrder extends Model
         'status',
         'scheduled_start',
         'actual_start',
+        'completed_at',
     ];
 
     public function product()

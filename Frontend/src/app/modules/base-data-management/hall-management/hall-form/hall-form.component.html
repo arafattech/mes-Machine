@@ -1,8 +1,8 @@
-<ui5-dialog [open]="open" id="dialog" class="h-[calc(250vh-100px)]" [attr.header-text]="
+<ui5-dialog [open]="open" id="dialog" [attr.header-text]="
     this.saveMode === 'POST' ? localization.New : localization.Edit
   " (before-close)="CloseDialog()">
   <ui5-busy-indicator [delay]="0" [active]="loading" size="M" class="w-full">
-    <ui5-tabcontainer class="ui5-tab" header-background-design="Solid" content-background-design="Transparent" (tab-select)="onTabSelect($event)">
+    <ui5-tabcontainer class="ui5-tab !h-[45vh]" header-background-design="Solid" content-background-design="Transparent" (tab-select)="onTabSelect($event)">
       <ui5-tab class="p-0 bg-none border-none overflow-hidden" id="coreData" text="Core Data" i18n-text [selected]="selectedTab === 'coreData'">
         <section class="ui5-selected-tab">
           <div class="row">

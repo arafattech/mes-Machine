@@ -36,6 +36,11 @@ import { AmDivergentStackedBarComponent } from '@production-module/shared/compon
 import { MachineMaintenanceScheduleListComponent } from './machine-maintenance-schedule/machine-maintenance-schedule-list/machine-maintenance-schedule-list.component';
 import { MachineMaintenanceScheduleFormComponent } from './machine-maintenance-schedule/machine-maintenance-schedule-form/machine-maintenance-schedule-form.component';
 import { AngularEditorComponent } from '@app/shared/components/angular-editor/angular-editor.component';
+import { OeeProductionDashboardComponent } from '@production-module/shared/components/machine-dashboard/oee-production-dashboard/oee-production-dashboard.component';
+import { MachineDashboardHeaderComponent } from '@production-module/shared/components/machine-dashboard/machine-dashboard-header/machine-dashboard-header.component';
+import { MachineConditionComponent } from '@production-module/shared/components/machine-dashboard/machine-condition/machine-condition.component';
+import { MachineRuntimeDashboardComponent } from '@production-module/shared/components/machine-dashboard/machine-runtime-dashboard/machine-runtime-dashboard.component';
+import { SapFioriMachineDashboardComponent } from '@production-module/shared/components/machine-dashboard/sap-fiori-machine-dashboard/sap-fiori-machine-dashboard.component';
 
 @NgModule({
   declarations: [
@@ -63,6 +68,7 @@ import { AngularEditorComponent } from '@app/shared/components/angular-editor/an
     ProductionLotBatchFormComponent,
     MachineMaintenanceScheduleListComponent,
     MachineMaintenanceScheduleFormComponent,
+    OeeProductionDashboardComponent,
   ],
   imports: [
     CommonModule,
@@ -73,6 +79,10 @@ import { AngularEditorComponent } from '@app/shared/components/angular-editor/an
     AmActivityChartComponent,
     AmDivergentStackedBarComponent,
     AngularEditorComponent,
+    MachineDashboardHeaderComponent,
+    MachineConditionComponent,
+    MachineRuntimeDashboardComponent,
+    SapFioriMachineDashboardComponent,
   ],
   exports: [],
   schemas: [CUSTOM_ELEMENTS_SCHEMA],
