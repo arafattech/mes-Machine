@@ -131,14 +131,14 @@ export class LayoutComponent {
               },
             ],
           },
-          {
-            text: $localize`Yarn Lots`,
-            icon: 'energy-saving-lightbulb',
-            permission: Permissions.PRODUCTION_LOT,
-            routerLink: 'production-lots',
-
-            expanded: false,
-          },
+          // {
+          //   text: $localize`Yarn Lots`,
+          //   icon: 'energy-saving-lightbulb',
+          //   permission: Permissions.PRODUCTION_LOT,
+          //   routerLink: 'production-lots',
+          //
+          //   expanded: false,
+          // },
         ],
       },
       {
