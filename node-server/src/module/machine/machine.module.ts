@@ -7,6 +7,7 @@ import { MachineConfigService } from '@module/machine/runtime/machine-config.ser
 import { MachineRuntimeService } from '@module/machine/runtime/machine-runtime.service';
 import { ChannelMappingService } from '@module/machine/runtime/channel-mapping.service';
 import { MqttChannelSource } from '@module/machine/runtime/mqtt-channel-source';
+import { SocketChannelSource } from '@module/machine/runtime/socket-channel-source';
 import { MachineStateTrackerService } from '@module/machine/runtime/machine-state-tracker.service';
 import { MaintenanceOverrideService } from '@module/machine/runtime/maintenance-override.service';
 
@@ -19,6 +20,7 @@ import { MaintenanceOverrideService } from '@module/machine/runtime/maintenance-
     MachineConfigService,
     MachineRuntimeService,
     MqttChannelSource,
+    SocketChannelSource,
     ChannelMappingService,
     MachineStateTrackerService,
     MaintenanceOverrideService,

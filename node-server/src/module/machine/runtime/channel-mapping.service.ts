@@ -24,6 +24,7 @@ import {
   decodeModbusCounters,
 } from './channel-lookup.util';
 import { MqttChannelSource } from './mqtt-channel-source';
+import { SocketChannelSource } from './socket-channel-source';
 import {
   MachineStateTrackerService,
   PendingConfirmation,
@@ -178,13 +179,19 @@ export class ChannelMappingService implements OnModuleInit, OnModuleDestroy {
   private readonly httpAgent = new http.Agent({ keepAlive: true });
   private readonly httpsAgent = new https.Agent({ keepAlive: true });
 
+  /** Provider behind read_from='MQTT': the socket feed when MACHINE_DATA_SOCKET=true, else the MQTT broker. */
+  private readonly pushSource: Pick<MqttChannelSource, 'getLatestForMachine' | 'getLastReceivedAt'>;
+
   constructor(
     private readonly machineConfigService: MachineConfigService,
     private readonly machineGateway: MachineService,
-    private readonly mqtt: MqttChannelSource,
+    mqtt: MqttChannelSource,
+    socketSource: SocketChannelSource,
     private readonly machineStateTracker: MachineStateTrackerService,
     private readonly maintenanceOverride: MaintenanceOverrideService,
-  ) {}
+  ) {
+    this.pushSource = socketSource.enabled ? socketSource : mqtt;
+  }
 
   onModuleInit() {
     if (!this.enabled) return;
@@ -442,7 +449,7 @@ export class ChannelMappingService implements OnModuleInit, OnModuleDestroy {
       const stateName = stateId !== null ? (statesById.get(stateId)?.name ?? DEFAULT_STATUS) : DEFAULT_STATUS;
       const lastSeenAt =
         config.channel_read_from === 'MQTT'
-          ? this.mqtt.getLastReceivedAt(config.ip, config.id_iot)
+          ? this.pushSource.getLastReceivedAt(config.ip, config.id_iot)
           : (config.ip ? this.lastSuccessAt.get(config.ip) ?? null : null);
 
       this.machineGateway.broadcastData(config.id, {
@@ -1014,7 +1021,7 @@ export class ChannelMappingService implements OnModuleInit, OnModuleDestroy {
   private acquireMqtt(configs: ChannelRuntimeConfig[]): LookupByMachine {
     const out: LookupByMachine = new Map();
     for (const config of configs) {
-      out.set(config.id, this.mqtt.getLatestForMachine(config.ip, config.id_iot));
+      out.set(config.id, this.pushSource.getLatestForMachine(config.ip, config.id_iot));
     }
     return out;
   }

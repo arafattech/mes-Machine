@@ -7,6 +7,7 @@ import {
 } from './channel-lookup.util';
 import { MachineConfigService } from './machine-config.service';
 import { ChannelRuntimeConfig } from './machine-runtime.types';
+import { isMachineDataSocketEnabled } from './socket-channel-source';
 
 type CacheEntry = {
   inputs: boolean[];
@@ -94,6 +95,10 @@ export class MqttChannelSource implements OnModuleInit, OnModuleDestroy {
   constructor(private readonly machineConfigService: MachineConfigService) {}
 
   onModuleInit(): void {
+    if (isMachineDataSocketEnabled()) {
+      this.logger.log('MACHINE_DATA_SOCKET=true — MQTT channel source disabled (socket feed overrides read_from=MQTT)');
+      return;
+    }
     if (!this.brokerUrl) return;
 
     const segments = this.topicTemplate.split('/');
